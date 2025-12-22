@@ -18,6 +18,9 @@ package net.ljga.projects.apps.bttk.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothScreen
 import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothViewModel
+import net.ljga.projects.apps.bttk.ui.bluetooth.DeviceDetailScreen
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameScreen
 
 @Composable
@@ -40,7 +44,23 @@ fun MainNavigation() {
                 viewModel = viewModel,
                 onDeviceClick = { device ->
                     viewModel.connectToDevice(device)
+                },
+                onDetailsClick = { device ->
+                    viewModel.showDeviceDetails(device)
+                    navController.navigate("device_details")
                 }
+            )
+        }
+        composable("device_details") {
+            val backStackEntry = remember(it) {
+                navController.getBackStackEntry("bluetooth")
+            }
+            val viewModel = hiltViewModel<BluetoothViewModel>(backStackEntry)
+            val state by viewModel.state.collectAsState()
+            
+            DeviceDetailScreen(
+                device = state.selectedDevice,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

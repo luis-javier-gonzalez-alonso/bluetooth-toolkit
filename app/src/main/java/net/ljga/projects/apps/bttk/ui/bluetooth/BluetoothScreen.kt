@@ -23,7 +23,8 @@ import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
 @Composable
 fun BluetoothScreen(
     viewModel: BluetoothViewModel,
-    onDeviceClick: (BluetoothDeviceDomain) -> Unit
+    onDeviceClick: (BluetoothDeviceDomain) -> Unit,
+    onDetailsClick: (BluetoothDeviceDomain) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -87,6 +88,7 @@ fun BluetoothScreen(
                 pairedDevices = state.pairedDevices,
                 scannedDevices = state.scannedDevices,
                 onClick = onDeviceClick,
+                onDetailsClick = onDetailsClick,
                 onForget = viewModel::forgetDevice,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -101,6 +103,7 @@ fun BluetoothDeviceList(
     pairedDevices: List<BluetoothDeviceDomain>,
     scannedDevices: List<BluetoothDeviceDomain>,
     onClick: (BluetoothDeviceDomain) -> Unit,
+    onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onForget: (BluetoothDeviceDomain) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -128,6 +131,7 @@ fun BluetoothDeviceList(
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
+                onDetailsClick = onDetailsClick,
                 onForget = onForget,
                 isPaired = true
             )
@@ -153,6 +157,7 @@ fun BluetoothDeviceList(
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
+                onDetailsClick = onDetailsClick,
                 onForget = onForget,
                 isPaired = false
             )
@@ -164,6 +169,7 @@ fun BluetoothDeviceList(
 fun BluetoothDeviceItem(
     device: BluetoothDeviceDomain,
     onClick: (BluetoothDeviceDomain) -> Unit,
+    onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onForget: (BluetoothDeviceDomain) -> Unit,
     isPaired: Boolean
 ) {
@@ -232,14 +238,7 @@ fun BluetoothDeviceItem(
                     DropdownMenuItem(
                         text = { Text("Details") },
                         onClick = {
-                            // Show details logic
-                            showMenu = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Copy Address") },
-                        onClick = {
-                            // Copy address logic
+                            onDetailsClick(device)
                             showMenu = false
                         }
                     )

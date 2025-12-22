@@ -44,10 +44,6 @@ class BluetoothViewModel @Inject constructor(
     }
 
     fun connectToDevice(device: BluetoothDeviceDomain) {
-        if (!device.isInRange && state.value.pairedDevices.contains(device)) {
-            // Logic to handle connecting to out-of-range device if needed, 
-            // but usually we want to prevent this or show a message.
-        }
         _state.update { it.copy(isConnecting = true) }
         bluetoothController.connectToDevice(device)
     }
@@ -58,6 +54,10 @@ class BluetoothViewModel @Inject constructor(
     
     fun forgetDevice(device: BluetoothDeviceDomain) {
         bluetoothController.forgetDevice(device.address)
+    }
+
+    fun showDeviceDetails(device: BluetoothDeviceDomain?) {
+        _state.update { it.copy(selectedDevice = device) }
     }
     
     override fun onCleared() {
@@ -71,5 +71,6 @@ data class BluetoothUiState(
     val pairedDevices: List<BluetoothDeviceDomain> = emptyList(),
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val selectedDevice: BluetoothDeviceDomain? = null
 )

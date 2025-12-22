@@ -45,13 +45,17 @@ class AndroidBluetoothController @Inject constructor(
         
         // Update scanned devices
         _scannedDevices.update { devices ->
-            if (devices.any { it.address == newDevice.address }) devices else devices + newDevice
+            if (devices.any { it.address == newDevice.address }) {
+                devices.map { if (it.address == newDevice.address) newDevice else it }
+            } else {
+                devices + newDevice
+            }
         }
 
         // Mark paired device as in range if discovered
         _pairedDevices.update { devices ->
             devices.map { 
-                if (it.address == newDevice.address) it.copy(isInRange = true) else it
+                if (it.address == newDevice.address) newDevice.copy(isInRange = true) else it
             }
         }
     }
@@ -165,7 +169,10 @@ class AndroidBluetoothController @Inject constructor(
         return BluetoothDeviceDomain(
             name = name,
             address = address,
-            isInRange = isInRange
+            isInRange = isInRange,
+            bondState = bondState,
+            type = type,
+            uuids = uuids?.map { it.toString() } ?: emptyList()
         )
     }
 }
