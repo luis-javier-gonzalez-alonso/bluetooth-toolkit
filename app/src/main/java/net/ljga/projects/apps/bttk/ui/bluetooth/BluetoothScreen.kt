@@ -5,7 +5,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,11 +16,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -31,6 +30,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluetoothScreen(
     viewModel: BluetoothViewModel,
@@ -84,45 +85,33 @@ fun BluetoothScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = {
+                permissionLauncher.launch(permissions)
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                Button(onClick = {
-                    permissionLauncher.launch(permissions)
-                }) {
-                    Text(text = "Start scan")
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (state.isConnecting) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
-                Button(onClick = viewModel::stopScan) {
-                    Text(text = "Stop scan")
-                }
-            }
 
-            if (state.isConnecting) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                BluetoothDeviceList(
+                    pairedDevices = state.pairedDevices,
+                    savedDevices = state.savedDevices,
+                    scannedDevices = state.scannedDevices,
+                    onClick = onDeviceClick,
+                    onDetailsClick = onDetailsClick,
+                    onForgetPaired = viewModel::forgetDevice,
+                    onSave = viewModel::saveDevice,
+                    onForgetSaved = viewModel::forgetSavedDevice,
+                    onCheckReachability = viewModel::checkReachability,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-
-            BluetoothDeviceList(
-                pairedDevices = state.pairedDevices,
-                savedDevices = state.savedDevices,
-                scannedDevices = state.scannedDevices,
-                onClick = onDeviceClick,
-                onDetailsClick = onDetailsClick,
-                onForgetPaired = viewModel::forgetDevice,
-                onSave = viewModel::saveDevice,
-                onForgetSaved = viewModel::forgetSavedDevice,
-                onCheckReachability = viewModel::checkReachability,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
         }
     }
 }

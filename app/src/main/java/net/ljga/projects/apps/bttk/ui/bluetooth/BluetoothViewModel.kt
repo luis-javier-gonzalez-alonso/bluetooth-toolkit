@@ -21,8 +21,9 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.scannedDevices,
         bluetoothController.pairedDevices,
         savedDeviceRepository.savedDevices,
+        bluetoothController.isScanning,
         _state
-    ) { scannedDevices, pairedDevices, savedDevices, state ->
+    ) { scannedDevices, pairedDevices, savedDevices, isScanning, state ->
         val updatedSavedDevices = savedDevices.map { saved ->
             val scannedMatch = scannedDevices.find { it.address == saved.address }
             val pairedMatch = pairedDevices.find { it.address == saved.address }
@@ -34,7 +35,8 @@ class BluetoothViewModel @Inject constructor(
         state.copy(
             scannedDevices = scannedDevices,
             pairedDevices = pairedDevices,
-            savedDevices = updatedSavedDevices
+            savedDevices = updatedSavedDevices,
+            isRefreshing = isScanning
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -101,6 +103,7 @@ data class BluetoothUiState(
     val savedDevices: List<BluetoothDeviceDomain> = emptyList(),
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
+    val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
     val selectedDevice: BluetoothDeviceDomain? = null
 )

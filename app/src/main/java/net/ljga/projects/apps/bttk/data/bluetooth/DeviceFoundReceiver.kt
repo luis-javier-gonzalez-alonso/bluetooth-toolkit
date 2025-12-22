@@ -7,23 +7,28 @@ import android.content.Intent
 import android.os.Build
 
 class DeviceFoundReceiver(
-    private val onDeviceFound: (BluetoothDevice, Int) -> Unit
+    private val onDeviceFound: (BluetoothDevice, Int?) -> Unit
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
+        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra(
+                BluetoothDevice.EXTRA_DEVICE,
+                BluetoothDevice::class.java
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+        }
+
         when (intent?.action) {
             BluetoothDevice.ACTION_FOUND -> {
-                val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getParcelableExtra(
-                        BluetoothDevice.EXTRA_DEVICE,
-                        BluetoothDevice::class.java
-                    )
-                } else {
-                    @Suppress("DEPRECATION")
-                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                }
                 val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
-                device?.let { onDeviceFound(it, rssi) }
+                val rssiValue = if (rssi == Short.MIN_VALUE.toInt()) null else rssi
+                device?.let { onDeviceFound(it, rssiValue) }
+            }
+            BluetoothDevice.ACTION_UUID -> {
+                device?.let { onDeviceFound(it, null) }
             }
         }
     }

@@ -2,9 +2,12 @@ package net.ljga.projects.apps.bttk.data.bluetooth
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
@@ -35,6 +38,10 @@ class AndroidBluetoothController @Inject constructor(
     override val isConnected: StateFlow<Boolean>
         get() = _isConnected.asStateFlow()
 
+    private val _isScanning = MutableStateFlow(false)
+    override val isScanning: StateFlow<Boolean>
+        get() = _isScanning.asStateFlow()
+
     private val _errors = MutableSharedFlow<String>()
     override val errors: Flow<String>
         get() = _errors.asSharedFlow()
@@ -60,8 +67,22 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
 
+    private val scanStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
+                    _isScanning.value = true
+                }
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                    _isScanning.value = false
+                }
+            }
+        }
+    }
+
     init {
         updatePairedDevices()
+        registerScanStateReceiver()
     }
 
     override fun startDiscovery() {
@@ -138,6 +159,14 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
 
+    private fun registerScanStateReceiver() {
+        val filter = IntentFilter().apply {
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+        context.registerReceiver(scanStateReceiver, filter)
+    }
+
     override fun release() {
         if (isReceiverRegistered) {
             try {
@@ -146,6 +175,11 @@ class AndroidBluetoothController @Inject constructor(
             } catch (e: Exception) {
                 // Ignore
             }
+        }
+        try {
+            context.unregisterReceiver(scanStateReceiver)
+        } catch (e: Exception) {
+            // Ignore
         }
         stopDiscovery()
     }
