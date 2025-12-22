@@ -16,6 +16,7 @@ interface BluetoothController {
     fun disconnect()
     
     fun forgetDevice(address: String)
+    fun checkReachability(address: String)
     
     fun release()
 }

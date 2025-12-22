@@ -92,6 +92,7 @@ fun BluetoothScreen(
                 onForgetPaired = viewModel::forgetDevice,
                 onSave = viewModel::saveDevice,
                 onForgetSaved = viewModel::forgetSavedDevice,
+                onCheckReachability = viewModel::checkReachability,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -110,6 +111,7 @@ fun BluetoothDeviceList(
     onForgetPaired: (BluetoothDeviceDomain) -> Unit,
     onSave: (BluetoothDeviceDomain) -> Unit,
     onForgetSaved: (BluetoothDeviceDomain) -> Unit,
+    onCheckReachability: (BluetoothDeviceDomain) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -138,6 +140,7 @@ fun BluetoothDeviceList(
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
                 onForget = { onForgetPaired(device) },
+                onCheckReachability = { onCheckReachability(device) },
                 isPaired = true
             )
         }
@@ -165,6 +168,7 @@ fun BluetoothDeviceList(
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
                 onForget = { onForgetSaved(device) },
+                onCheckReachability = { onCheckReachability(device) },
                 isSaved = true
             )
         }
@@ -205,6 +209,7 @@ fun BluetoothDeviceItem(
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onForget: (() -> Unit)? = null,
     onSave: (() -> Unit)? = null,
+    onCheckReachability: (() -> Unit)? = null,
     isPaired: Boolean = false,
     isSaved: Boolean = false
 ) {
@@ -270,9 +275,16 @@ fun BluetoothDeviceItem(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
-                    onForget?.let {
+                    DropdownMenuItem(
+                        text = { Text("Details") },
+                        onClick = {
+                            onDetailsClick(device)
+                            showMenu = false
+                        }
+                    )
+                    onCheckReachability?.let {
                         DropdownMenuItem(
-                            text = { Text("Forget") },
+                            text = { Text("Check Status") },
                             onClick = {
                                 it()
                                 showMenu = false
@@ -288,13 +300,15 @@ fun BluetoothDeviceItem(
                             }
                         )
                     }
-                    DropdownMenuItem(
-                        text = { Text("Details") },
-                        onClick = {
-                            onDetailsClick(device)
-                            showMenu = false
-                        }
-                    )
+                    onForget?.let {
+                        DropdownMenuItem(
+                            text = { Text("Forget") },
+                            onClick = {
+                                it()
+                                showMenu = false
+                            }
+                        )
+                    }
                 }
             }
         }

@@ -25,9 +25,10 @@ class BluetoothViewModel @Inject constructor(
     ) { scannedDevices, pairedDevices, savedDevices, state ->
         val updatedSavedDevices = savedDevices.map { saved ->
             val scannedMatch = scannedDevices.find { it.address == saved.address }
+            val pairedMatch = pairedDevices.find { it.address == saved.address }
             saved.copy(
-                isInRange = scannedMatch != null,
-                rssi = scannedMatch?.rssi
+                isInRange = scannedMatch?.isInRange == true || pairedMatch?.isInRange == true,
+                rssi = scannedMatch?.rssi ?: pairedMatch?.rssi
             )
         }
         state.copy(
@@ -53,6 +54,10 @@ class BluetoothViewModel @Inject constructor(
 
     fun stopScan() {
         bluetoothController.stopDiscovery()
+    }
+
+    fun checkReachability(device: BluetoothDeviceDomain) {
+        bluetoothController.checkReachability(device.address)
     }
 
     fun connectToDevice(device: BluetoothDeviceDomain) {

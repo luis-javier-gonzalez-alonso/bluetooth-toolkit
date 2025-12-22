@@ -55,7 +55,7 @@ class AndroidBluetoothController @Inject constructor(
         // Mark paired device as in range and update RSSI if discovered
         _pairedDevices.update { devices ->
             devices.map { 
-                if (it.address == newDevice.address) newDevice.copy(isInRange = true) else it
+                if (it.address == newDevice.address) it.copy(isInRange = true, rssi = rssi) else it
             }
         }
     }
@@ -84,13 +84,7 @@ class AndroidBluetoothController @Inject constructor(
         _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false, rssi = null) } }
         _scannedDevices.value = emptyList()
         
-        if (!isReceiverRegistered) {
-            context.registerReceiver(
-                deviceFoundReceiver,
-                IntentFilter(BluetoothDevice.ACTION_FOUND)
-            )
-            isReceiverRegistered = true
-        }
+        registerReceiver()
 
         bluetoothAdapter?.startDiscovery()
     }
@@ -119,6 +113,28 @@ class AndroidBluetoothController @Inject constructor(
             }
         } catch (e: Exception) {
             _errors.tryEmit("Failed to forget device")
+        }
+    }
+
+    override fun checkReachability(address: String) {
+        if (!hasPermission(getConnectPermission())) return
+        val device = bluetoothAdapter?.getRemoteDevice(address) ?: return
+        
+        registerReceiver()
+        
+        // fetchUuidsWithSdp triggers an SDP query which is much lighter than a full scan
+        // and will trigger ACTION_FOUND or ACTION_UUID if the device is reachable.
+        device.fetchUuidsWithSdp()
+    }
+
+    private fun registerReceiver() {
+        if (!isReceiverRegistered) {
+            val filter = IntentFilter().apply {
+                addAction(BluetoothDevice.ACTION_FOUND)
+                addAction(BluetoothDevice.ACTION_UUID)
+            }
+            context.registerReceiver(deviceFoundReceiver, filter)
+            isReceiverRegistered = true
         }
     }
 
