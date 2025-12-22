@@ -11,9 +11,11 @@ interface BluetoothController {
 
     fun startDiscovery()
     fun stopDiscovery()
-
+    
     fun connectToDevice(device: BluetoothDeviceDomain)
     fun disconnect()
-
+    
+    fun forgetDevice(address: String)
+    
     fun release()
 }

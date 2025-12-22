@@ -8,13 +8,7 @@ import android.content.Context
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
@@ -47,9 +41,18 @@ class AndroidBluetoothController @Inject constructor(
 
     private var isReceiverRegistered = false
     private val deviceFoundReceiver = DeviceFoundReceiver { device ->
+        val newDevice = device.toBluetoothDeviceDomain(isInRange = true)
+        
+        // Update scanned devices
         _scannedDevices.update { devices ->
-            val newDevice = device.toBluetoothDeviceDomain()
             if (devices.any { it.address == newDevice.address }) devices else devices + newDevice
+        }
+
+        // Mark paired device as in range if discovered
+        _pairedDevices.update { devices ->
+            devices.map { 
+                if (it.address == newDevice.address) it.copy(isInRange = true) else it
+            }
         }
     }
 
@@ -73,9 +76,10 @@ class AndroidBluetoothController @Inject constructor(
             return
         }
 
-        updatePairedDevices()
+        // Reset inRange status for paired devices when starting a new scan
+        _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false) } }
         _scannedDevices.value = emptyList()
-
+        
         if (!isReceiverRegistered) {
             context.registerReceiver(
                 deviceFoundReceiver,
@@ -100,6 +104,20 @@ class AndroidBluetoothController @Inject constructor(
         _isConnected.value = false
     }
 
+    override fun forgetDevice(address: String) {
+        if (!hasPermission(getConnectPermission())) return
+        val device = bluetoothAdapter?.getRemoteDevice(address)
+        try {
+            device?.let {
+                val method = it.javaClass.getMethod("removeBond")
+                method.invoke(it)
+                updatePairedDevices()
+            }
+        } catch (e: Exception) {
+            _errors.tryEmit("Failed to forget device")
+        }
+    }
+
     override fun release() {
         if (isReceiverRegistered) {
             try {
@@ -114,7 +132,7 @@ class AndroidBluetoothController @Inject constructor(
 
     private fun updatePairedDevices() {
         if (!hasPermission(getConnectPermission())) return
-
+        
         bluetoothAdapter
             ?.bondedDevices
             ?.map { it.toBluetoothDeviceDomain() }
@@ -142,11 +160,12 @@ class AndroidBluetoothController @Inject constructor(
             Manifest.permission.BLUETOOTH
         }
     }
-
-    private fun BluetoothDevice.toBluetoothDeviceDomain(): BluetoothDeviceDomain {
+    
+    private fun BluetoothDevice.toBluetoothDeviceDomain(isInRange: Boolean = false): BluetoothDeviceDomain {
         return BluetoothDeviceDomain(
             name = name,
-            address = address
+            address = address,
+            isInRange = isInRange
         )
     }
 }

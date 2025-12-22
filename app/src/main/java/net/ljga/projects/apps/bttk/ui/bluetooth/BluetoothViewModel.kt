@@ -3,13 +3,7 @@ package net.ljga.projects.apps.bttk.ui.bluetooth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
 import javax.inject.Inject
@@ -50,6 +44,10 @@ class BluetoothViewModel @Inject constructor(
     }
 
     fun connectToDevice(device: BluetoothDeviceDomain) {
+        if (!device.isInRange && state.value.pairedDevices.contains(device)) {
+            // Logic to handle connecting to out-of-range device if needed, 
+            // but usually we want to prevent this or show a message.
+        }
         _state.update { it.copy(isConnecting = true) }
         bluetoothController.connectToDevice(device)
     }
@@ -57,7 +55,11 @@ class BluetoothViewModel @Inject constructor(
     fun disconnectFromDevice() {
         bluetoothController.disconnect()
     }
-
+    
+    fun forgetDevice(device: BluetoothDeviceDomain) {
+        bluetoothController.forgetDevice(device.address)
+    }
+    
     override fun onCleared() {
         super.onCleared()
         bluetoothController.release()
