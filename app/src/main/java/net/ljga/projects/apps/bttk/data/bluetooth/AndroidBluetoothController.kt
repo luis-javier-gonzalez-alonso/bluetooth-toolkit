@@ -40,8 +40,8 @@ class AndroidBluetoothController @Inject constructor(
         get() = _errors.asSharedFlow()
 
     private var isReceiverRegistered = false
-    private val deviceFoundReceiver = DeviceFoundReceiver { device ->
-        val newDevice = device.toBluetoothDeviceDomain(isInRange = true)
+    private val deviceFoundReceiver = DeviceFoundReceiver { device, rssi ->
+        val newDevice = device.toBluetoothDeviceDomain(isInRange = true, rssi = rssi)
         
         // Update scanned devices
         _scannedDevices.update { devices ->
@@ -52,7 +52,7 @@ class AndroidBluetoothController @Inject constructor(
             }
         }
 
-        // Mark paired device as in range if discovered
+        // Mark paired device as in range and update RSSI if discovered
         _pairedDevices.update { devices ->
             devices.map { 
                 if (it.address == newDevice.address) newDevice.copy(isInRange = true) else it
@@ -80,8 +80,8 @@ class AndroidBluetoothController @Inject constructor(
             return
         }
 
-        // Reset inRange status for paired devices when starting a new scan
-        _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false) } }
+        // Reset inRange status and RSSI for paired devices when starting a new scan
+        _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false, rssi = null) } }
         _scannedDevices.value = emptyList()
         
         if (!isReceiverRegistered) {
@@ -165,14 +165,18 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
     
-    private fun BluetoothDevice.toBluetoothDeviceDomain(isInRange: Boolean = false): BluetoothDeviceDomain {
+    private fun BluetoothDevice.toBluetoothDeviceDomain(
+        isInRange: Boolean = false,
+        rssi: Int? = null
+    ): BluetoothDeviceDomain {
         return BluetoothDeviceDomain(
             name = name,
             address = address,
             isInRange = isInRange,
             bondState = bondState,
             type = type,
-            uuids = uuids?.map { it.toString() } ?: emptyList()
+            uuids = uuids?.map { it.toString() } ?: emptyList(),
+            rssi = rssi
         )
     }
 }

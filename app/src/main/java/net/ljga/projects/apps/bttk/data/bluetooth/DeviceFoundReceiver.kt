@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Build
 
 class DeviceFoundReceiver(
-    private val onDeviceFound: (BluetoothDevice) -> Unit
+    private val onDeviceFound: (BluetoothDevice, Int) -> Unit
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -22,7 +22,8 @@ class DeviceFoundReceiver(
                     @Suppress("DEPRECATION")
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 }
-                device?.let(onDeviceFound)
+                val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
+                device?.let { onDeviceFound(it, rssi) }
             }
         }
     }

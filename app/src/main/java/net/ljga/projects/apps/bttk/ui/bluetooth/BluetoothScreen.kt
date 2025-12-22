@@ -214,6 +214,15 @@ fun BluetoothDeviceItem(
                 }
             }
             
+            if (device.rssi != null) {
+                Text(
+                    text = "${device.rssi} dBm",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentColor,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
+            
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(

@@ -81,6 +81,9 @@ fun DeviceDetailScreen(
                 item {
                     DetailItem(label = "In Range", value = if (device.isInRange) "Yes" else "No")
                 }
+                item {
+                    DetailItem(label = "Signal Strength (RSSI)", value = device.rssi?.let { "$it dBm" } ?: "Unavailable")
+                }
                 if (device.uuids.isNotEmpty()) {
                     item {
                         Text(
