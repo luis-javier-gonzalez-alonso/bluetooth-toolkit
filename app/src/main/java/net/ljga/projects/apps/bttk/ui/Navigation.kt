@@ -20,17 +20,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothScreen
+import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothViewModel
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameScreen
 
 @Composable
 fun MainNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "main") {
+    NavHost(navController = navController, startDestination = "bluetooth") {
         composable("main") { DataFrameScreen(modifier = Modifier.padding(16.dp)) }
-        // TODO: Add more destinations
+        composable("bluetooth") {
+            val viewModel = hiltViewModel<BluetoothViewModel>()
+            BluetoothScreen(
+                viewModel = viewModel,
+                onDeviceClick = { device ->
+                    viewModel.connectToDevice(device)
+                }
+            )
+        }
     }
 }

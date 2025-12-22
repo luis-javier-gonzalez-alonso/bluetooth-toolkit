@@ -1,0 +1,22 @@
+package net.ljga.projects.apps.bttk.data.di
+
+import android.content.Context
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import net.ljga.projects.apps.bttk.data.bluetooth.AndroidBluetoothController
+import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object BluetoothModule {
+
+    @Provides
+    @Singleton
+    fun provideBluetoothController(@ApplicationContext context: Context): BluetoothController {
+        return AndroidBluetoothController(context)
+    }
+}
