@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,10 +85,13 @@ fun BluetoothScreen(
 
             BluetoothDeviceList(
                 pairedDevices = state.pairedDevices,
+                savedDevices = state.savedDevices,
                 scannedDevices = state.scannedDevices,
                 onClick = onDeviceClick,
                 onDetailsClick = onDetailsClick,
-                onForget = viewModel::forgetDevice,
+                onForgetPaired = viewModel::forgetDevice,
+                onSave = viewModel::saveDevice,
+                onForgetSaved = viewModel::forgetSavedDevice,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -101,10 +103,13 @@ fun BluetoothScreen(
 @Composable
 fun BluetoothDeviceList(
     pairedDevices: List<BluetoothDeviceDomain>,
+    savedDevices: List<BluetoothDeviceDomain>,
     scannedDevices: List<BluetoothDeviceDomain>,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
-    onForget: (BluetoothDeviceDomain) -> Unit,
+    onForgetPaired: (BluetoothDeviceDomain) -> Unit,
+    onSave: (BluetoothDeviceDomain) -> Unit,
+    onForgetSaved: (BluetoothDeviceDomain) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -132,10 +137,38 @@ fun BluetoothDeviceList(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-                onForget = onForget,
+                onForget = { onForgetPaired(device) },
                 isPaired = true
             )
         }
+
+        item {
+            Text(
+                text = "Saved Devices",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+        if (savedDevices.isEmpty()) {
+            item {
+                Text(
+                    text = "No saved devices found",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
+        items(savedDevices) { device ->
+            BluetoothDeviceItem(
+                device = device,
+                onClick = onClick,
+                onDetailsClick = onDetailsClick,
+                onForget = { onForgetSaved(device) },
+                isSaved = true
+            )
+        }
+
         item {
             Text(
                 text = "Scanned Devices",
@@ -154,12 +187,12 @@ fun BluetoothDeviceList(
             }
         }
         items(scannedDevices) { device ->
+            val isAlreadySaved = savedDevices.any { it.address == device.address }
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-                onForget = onForget,
-                isPaired = false
+                onSave = if (!isAlreadySaved) { { onSave(device) } } else null
             )
         }
     }
@@ -170,13 +203,15 @@ fun BluetoothDeviceItem(
     device: BluetoothDeviceDomain,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
-    onForget: (BluetoothDeviceDomain) -> Unit,
-    isPaired: Boolean
+    onForget: (() -> Unit)? = null,
+    onSave: (() -> Unit)? = null,
+    isPaired: Boolean = false,
+    isSaved: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
     
-    // Disable interaction if paired but not in range
-    val isEnabled = !isPaired || device.isInRange
+    // Disable interaction if paired or saved but not in range
+    val isEnabled = (!isPaired && !isSaved) || device.isInRange
     val contentColor = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
 
     Card(
@@ -205,7 +240,7 @@ fun BluetoothDeviceItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor
                 )
-                if (isPaired && !device.isInRange) {
+                if ((isPaired || isSaved) && !device.isInRange) {
                     Text(
                         text = "Out of range",
                         style = MaterialTheme.typography.labelSmall,
@@ -235,11 +270,20 @@ fun BluetoothDeviceItem(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
-                    if (isPaired) {
+                    onForget?.let {
                         DropdownMenuItem(
                             text = { Text("Forget") },
                             onClick = {
-                                onForget(device)
+                                it()
+                                showMenu = false
+                            }
+                        )
+                    }
+                    onSave?.let {
+                        DropdownMenuItem(
+                            text = { Text("Save") },
+                            onClick = {
+                                it()
                                 showMenu = false
                             }
                         )

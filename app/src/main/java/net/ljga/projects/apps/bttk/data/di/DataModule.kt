@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.DefaultDataFrameRepository
+import net.ljga.projects.apps.bttk.data.DefaultSavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,6 +38,12 @@ interface DataModule {
     fun bindsDataFrameRepository(
         dataFrameRepository: DefaultDataFrameRepository
     ): DataFrameRepository
+
+    @Singleton
+    @Binds
+    fun bindsSavedDeviceRepository(
+        savedDeviceRepository: DefaultSavedDeviceRepository
+    ): SavedDeviceRepository
 }
 
 class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {

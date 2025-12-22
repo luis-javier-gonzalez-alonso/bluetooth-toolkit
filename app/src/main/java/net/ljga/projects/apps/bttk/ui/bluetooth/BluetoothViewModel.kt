@@ -4,24 +4,36 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
 import javax.inject.Inject
 
 @HiltViewModel
 class BluetoothViewModel @Inject constructor(
-    private val bluetoothController: BluetoothController
+    private val bluetoothController: BluetoothController,
+    private val savedDeviceRepository: SavedDeviceRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BluetoothUiState())
     val state = combine(
         bluetoothController.scannedDevices,
         bluetoothController.pairedDevices,
+        savedDeviceRepository.savedDevices,
         _state
-    ) { scannedDevices, pairedDevices, state ->
+    ) { scannedDevices, pairedDevices, savedDevices, state ->
+        val updatedSavedDevices = savedDevices.map { saved ->
+            val scannedMatch = scannedDevices.find { it.address == saved.address }
+            saved.copy(
+                isInRange = scannedMatch != null,
+                rssi = scannedMatch?.rssi
+            )
+        }
         state.copy(
             scannedDevices = scannedDevices,
-            pairedDevices = pairedDevices
+            pairedDevices = pairedDevices,
+            savedDevices = updatedSavedDevices
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -56,6 +68,18 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.forgetDevice(device.address)
     }
 
+    fun saveDevice(device: BluetoothDeviceDomain) {
+        viewModelScope.launch {
+            savedDeviceRepository.saveDevice(device)
+        }
+    }
+
+    fun forgetSavedDevice(device: BluetoothDeviceDomain) {
+        viewModelScope.launch {
+            savedDeviceRepository.forgetDevice(device.address)
+        }
+    }
+
     fun showDeviceDetails(device: BluetoothDeviceDomain?) {
         _state.update { it.copy(selectedDevice = device) }
     }
@@ -69,6 +93,7 @@ class BluetoothViewModel @Inject constructor(
 data class BluetoothUiState(
     val scannedDevices: List<BluetoothDeviceDomain> = emptyList(),
     val pairedDevices: List<BluetoothDeviceDomain> = emptyList(),
+    val savedDevices: List<BluetoothDeviceDomain> = emptyList(),
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
     val errorMessage: String? = null,
