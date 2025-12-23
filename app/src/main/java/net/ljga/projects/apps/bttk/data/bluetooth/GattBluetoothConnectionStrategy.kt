@@ -34,6 +34,7 @@ class GattBluetoothConnectionStrategy(
             )
         }
 
+        // Emit structured data for persistence and UI
         scope.trySend(
             BluetoothDataPacket(
                 format = DataFormat.GATT_STRUCTURE,
@@ -42,11 +43,12 @@ class GattBluetoothConnectionStrategy(
             )
         )
 
+        // Process handlers for specific logic
         gatt.services.forEach { service ->
             service.characteristics.forEach { characteristic ->
                 var handled = false
                 
-                // 1. Check specific handlers
+                // Check specific handlers
                 handlers.forEach { handler ->
                     if (handler.serviceUuid == null || handler.serviceUuid == service.uuid) {
                         val discoveryPacket = handler.onServiceDiscovered(gatt, characteristic)
@@ -59,13 +61,8 @@ class GattBluetoothConnectionStrategy(
                     }
                 }
                 
-                // 2. Fallback to default handler for logging and notifications
+                // Fallback for notifications if not handled specifically
                 if (!handled) {
-                    val discoveryPacket = defaultHandler.onServiceDiscovered(gatt, characteristic)
-                    if (discoveryPacket != null) {
-                        scope.trySend(discoveryPacket)
-                    }
-                    
                     if (isNotifyable(characteristic)) {
                         enableNotification(gatt, characteristic)
                     }

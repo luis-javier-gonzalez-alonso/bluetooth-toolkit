@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.DataFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -153,7 +154,20 @@ fun LogEntry(packet: BluetoothDataPacket) {
         when (packet.format) {
             DataFormat.HEX_ASCII -> RawDataEntry(packet.data)
             DataFormat.STRUCTURED -> StructuredDataEntry(packet.text ?: String(packet.data))
-            DataFormat.GATT_STRUCTURE -> {}
+            DataFormat.GATT_STRUCTURE -> {
+                val gattText = remember(packet.gattServices) {
+                    packet.gattServices?.let { formatGattServices(it) } ?: "No services discovered"
+                }
+                StructuredDataEntry(gattText)
+            }
+        }
+    }
+}
+
+private fun formatGattServices(services: List<BluetoothServiceDomain>): String {
+    return services.joinToString("\n") { service ->
+        "Service: ${service.uuid}\n" + service.characteristics.joinToString("\n") { char ->
+            "  └─ ${char.uuid.take(8)}... (${char.properties.joinToString(", ")})"
         }
     }
 }
