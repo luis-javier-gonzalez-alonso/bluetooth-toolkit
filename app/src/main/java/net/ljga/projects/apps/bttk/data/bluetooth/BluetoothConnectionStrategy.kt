@@ -11,6 +11,17 @@ interface BluetoothConnectionStrategy {
     suspend fun disconnect()
 }
 
+enum class BluetoothConnectionState(val state: Int) {
+    STATE_CONNECTED(0),
+    STATE_DISCONNECTED(1);
+
+    companion object {
+        fun fromInt(newValue: Int): BluetoothConnectionState? {
+            return BluetoothConnectionState.entries.find { it.state == newValue }
+        }
+    }
+}
+
 enum class BluetoothProfile(val displayName: String, val uuid: UUID?) {
     SPP("Serial Port (SPP)", UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")),
     GATT("Generic Attribute (GATT)", null),
