@@ -46,8 +46,6 @@ class GattBluetoothConnectionStrategy(
         // Process handlers for specific logic
         gatt.services.forEach { service ->
             service.characteristics.forEach { characteristic ->
-                var handled = false
-                
                 // Check specific handlers
                 handlers.forEach { handler ->
                     if (handler.serviceUuid == null || handler.serviceUuid == service.uuid) {
@@ -55,16 +53,6 @@ class GattBluetoothConnectionStrategy(
                         if (discoveryPacket != null) {
                             scope.trySend(discoveryPacket)
                         }
-                        if (handler.characteristicUuid == characteristic.uuid) {
-                            handled = true
-                        }
-                    }
-                }
-                
-                // Fallback for notifications if not handled specifically
-                if (!handled) {
-                    if (isNotifyable(characteristic)) {
-                        enableNotification(gatt, characteristic)
                     }
                 }
             }
@@ -79,11 +67,6 @@ class GattBluetoothConnectionStrategy(
                 scope.trySend(packet)
             }
         }
-    }
-
-    private fun isNotifyable(characteristic: BluetoothGattCharacteristic): Boolean {
-        return (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) ||
-               (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0)
     }
 
     private fun getPropertiesList(properties: Int): List<String> {

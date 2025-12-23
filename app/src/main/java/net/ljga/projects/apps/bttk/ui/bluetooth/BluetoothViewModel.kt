@@ -152,6 +152,23 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.refreshPairedDevices()
     }
 
+    fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {
+        bluetoothController.readCharacteristic(serviceUuid, characteristicUuid)
+    }
+
+    fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean) {
+        _state.update { currentState ->
+            val key = "$serviceUuid-$characteristicUuid"
+            val newEnabledNotifications = if (enable) {
+                currentState.enabledNotifications + key
+            } else {
+                currentState.enabledNotifications - key
+            }
+            currentState.copy(enabledNotifications = newEnabledNotifications)
+        }
+        bluetoothController.toggleNotification(serviceUuid, characteristicUuid, enable)
+    }
+
     override fun onCleared() {
         super.onCleared()
         bluetoothController.release()
@@ -168,5 +185,6 @@ data class BluetoothUiState(
     val errorMessage: String? = null,
     val selectedDevice: BluetoothDeviceDomain? = null,
     val dataLogs: List<BluetoothDataPacket> = emptyList(),
-    val profilesToSelect: List<BluetoothProfile> = emptyList()
+    val profilesToSelect: List<BluetoothProfile> = emptyList(),
+    val enabledNotifications: Set<String> = emptySet()
 )

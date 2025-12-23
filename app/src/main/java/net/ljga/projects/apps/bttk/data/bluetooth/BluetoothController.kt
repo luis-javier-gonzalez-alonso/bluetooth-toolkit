@@ -22,6 +22,9 @@ interface BluetoothController {
     fun checkReachability(address: String)
     fun refreshPairedDevices()
     
+    fun readCharacteristic(serviceUuid: String, characteristicUuid: String)
+    fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean)
+    
     fun release()
 }
 

@@ -9,6 +9,9 @@ interface BluetoothConnectionStrategy {
     
     suspend fun connect(address: String): Flow<BluetoothDataPacket>
     suspend fun disconnect()
+
+    fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {}
+    fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean) {}
 }
 
 enum class BluetoothConnectionState(val state: Int) {

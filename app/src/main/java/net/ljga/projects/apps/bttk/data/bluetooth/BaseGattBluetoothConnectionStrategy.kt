@@ -15,7 +15,7 @@ abstract class BaseGattBluetoothConnectionStrategy(
     protected val bluetoothAdapter: BluetoothAdapter
 ) : BluetoothConnectionStrategy {
 
-    private var bluetoothGatt: BluetoothGatt? = null
+    protected var bluetoothGatt: BluetoothGatt? = null
     protected val handlers = mutableListOf<GattCharacteristicHandler>()
 
     protected val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
@@ -85,6 +85,28 @@ abstract class BaseGattBluetoothConnectionStrategy(
     protected open fun onDataReceived(characteristic: BluetoothGattCharacteristic, value: ByteArray, scope: ProducerScope<BluetoothDataPacket>) {}
 
     @SuppressLint("MissingPermission")
+    override fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {
+        val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
+        val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
+        if (characteristic != null) {
+            bluetoothGatt?.readCharacteristic(characteristic)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    override fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean) {
+        val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
+        val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
+        if (characteristic != null) {
+            if (enable) {
+                enableNotification(bluetoothGatt!!, characteristic)
+            } else {
+                disableNotification(bluetoothGatt!!, characteristic)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     protected fun enableNotification(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
         gatt.setCharacteristicNotification(characteristic, true)
         val descriptor = characteristic.getDescriptor(CCCD_UUID)
@@ -94,6 +116,24 @@ abstract class BaseGattBluetoothConnectionStrategy(
             } else {
                 BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
             }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                gatt.writeDescriptor(descriptor, value)
+            } else {
+                @Suppress("DEPRECATION")
+                descriptor.value = value
+                @Suppress("DEPRECATION")
+                gatt.writeDescriptor(descriptor)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    protected fun disableNotification(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+        gatt.setCharacteristicNotification(characteristic, false)
+        val descriptor = characteristic.getDescriptor(CCCD_UUID)
+        if (descriptor != null) {
+            val value = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 gatt.writeDescriptor(descriptor, value)

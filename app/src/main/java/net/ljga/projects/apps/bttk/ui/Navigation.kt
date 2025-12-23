@@ -76,11 +76,14 @@ fun MainNavigation() {
                 device = state.selectedDevice,
                 isConnected = state.isConnected,
                 logs = state.dataLogs,
+                enabledNotifications = state.enabledNotifications,
                 onBackClick = { navController.popBackStack() },
                 onDisconnectClick = {
                     viewModel.disconnectFromDevice()
                     navController.popBackStack()
-                }
+                },
+                onReadCharacteristic = { s, c -> viewModel.readCharacteristic(s, c) },
+                onToggleNotification = { s, c, e -> viewModel.toggleNotification(s, c, e) }
             )
         }
     }

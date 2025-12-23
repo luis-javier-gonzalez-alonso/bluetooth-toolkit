@@ -8,9 +8,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -29,8 +28,11 @@ fun ConnectionScreen(
     device: BluetoothDeviceDomain?,
     isConnected: Boolean,
     logs: List<BluetoothDataPacket>,
+    enabledNotifications: Set<String> = emptySet(),
     onBackClick: () -> Unit,
-    onDisconnectClick: () -> Unit
+    onDisconnectClick: () -> Unit,
+    onReadCharacteristic: (String, String) -> Unit = { _, _ -> },
+    onToggleNotification: (String, String, Boolean) -> Unit = { _, _, _ -> }
 ) {
     Scaffold(
         topBar = {
@@ -59,23 +61,36 @@ fun ConnectionScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Profile Options Section
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Available Profiles", fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Mocking profile buttons based on UUIDs or device type
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProfileButton("GATT")
-                        ProfileButton("SPP")
-                        ProfileButton("A2DP")
+            if (isConnected && device != null && device.services.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = "Characteristics", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                            device.services.forEach { service ->
+                                items(service.characteristics) { characteristic ->
+                                    CharacteristicRow(
+                                        serviceUuid = service.uuid,
+                                        characteristicUuid = characteristic.uuid,
+                                        properties = characteristic.properties,
+                                        isNotifying = enabledNotifications.contains("${service.uuid}-${characteristic.uuid}"),
+                                        onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
+                                        onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) }
+                                    )
+                                }
+                            }
+                        }
                     }
+                }
+            } else if (!isConnected) {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
 
@@ -98,14 +113,58 @@ fun ConnectionScreen(
 }
 
 @Composable
-fun ProfileButton(name: String) {
-    OutlinedButton(
-        onClick = { /* TODO: Implement profile interaction */ },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+fun CharacteristicRow(
+    serviceUuid: String,
+    characteristicUuid: String,
+    properties: List<String>,
+    isNotifying: Boolean,
+    onRead: () -> Unit,
+    onToggleNotify: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(name, fontSize = 12.sp)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = characteristicUuid.take(8) + "...",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = properties.joinToString(", "),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+        
+        Row {
+            if (properties.contains("READ")) {
+                IconButton(onClick = onRead) {
+                    Text("R", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            if (properties.contains("NOTIFY") || properties.contains("INDICATE")) {
+                Switch(
+                    checked = isNotifying,
+                    onCheckedChange = onToggleNotify,
+                    modifier = Modifier//.scale(0.7f)
+                )
+            }
+        }
     }
 }
+
+//// Add scale extension for switch
+//fun Modifier.scale(scale: Float): Modifier = this.then(
+//    androidx.compose.ui.graphics.graphicsLayer {
+//        scaleX = scale
+//        scaleY = scale
+//    }
+//)
 
 @Composable
 fun LogListView(
