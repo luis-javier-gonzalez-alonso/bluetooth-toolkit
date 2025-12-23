@@ -1,17 +1,14 @@
 package net.ljga.projects.apps.bttk.data.bluetooth
 
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.*
 import android.content.Context
 import android.os.Build
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import java.util.UUID
+import java.util.*
 
 abstract class BaseGattBluetoothConnectionStrategy(
     protected val context: Context,
@@ -39,45 +36,29 @@ abstract class BaseGattBluetoothConnectionStrategy(
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    onGattServicesDiscovered(gatt)
+                    onGattServicesDiscovered(gatt, this@callbackFlow)
                 }
             }
 
             @Deprecated("Deprecated in Java")
-            override fun onCharacteristicRead(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic,
-                status: Int
-            ) {
+            override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     processData(characteristic, characteristic.value)
                 }
             }
 
-            override fun onCharacteristicRead(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic,
-                value: ByteArray,
-                status: Int
-            ) {
+            override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     processData(characteristic, value)
                 }
             }
 
             @Deprecated("Deprecated in Java")
-            override fun onCharacteristicChanged(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic
-            ) {
+            override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
                 processData(characteristic, characteristic.value)
             }
 
-            override fun onCharacteristicChanged(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic,
-                value: ByteArray
-            ) {
+            override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
                 processData(characteristic, value)
             }
 
@@ -88,7 +69,7 @@ abstract class BaseGattBluetoothConnectionStrategy(
                         trySend(packet)
                     }
                 }
-                onDataReceived(characteristic, value)
+                onDataReceived(characteristic, value, this@callbackFlow)
             }
         }
 
@@ -99,29 +80,21 @@ abstract class BaseGattBluetoothConnectionStrategy(
         }
     }
 
-    protected abstract fun onGattServicesDiscovered(gatt: BluetoothGatt)
-
-    protected open fun onDataReceived(
-        characteristic: BluetoothGattCharacteristic,
-        value: ByteArray
-    ) {
-    }
+    protected abstract fun onGattServicesDiscovered(gatt: BluetoothGatt, scope: ProducerScope<BluetoothDataPacket>)
+    
+    protected open fun onDataReceived(characteristic: BluetoothGattCharacteristic, value: ByteArray, scope: ProducerScope<BluetoothDataPacket>) {}
 
     @SuppressLint("MissingPermission")
-    protected fun enableNotification(
-        gatt: BluetoothGatt,
-        characteristic: BluetoothGattCharacteristic
-    ) {
+    protected fun enableNotification(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
         gatt.setCharacteristicNotification(characteristic, true)
         val descriptor = characteristic.getDescriptor(CCCD_UUID)
         if (descriptor != null) {
-            val value =
-                if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
-                    BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                } else {
-                    BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-                }
-
+            val value = if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
+                BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            } else {
+                BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+            }
+            
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 gatt.writeDescriptor(descriptor, value)
             } else {

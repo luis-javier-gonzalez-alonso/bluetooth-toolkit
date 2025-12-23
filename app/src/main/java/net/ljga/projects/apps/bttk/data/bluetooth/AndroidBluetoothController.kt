@@ -15,9 +15,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.IOException
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
@@ -129,14 +134,11 @@ class AndroidBluetoothController @Inject constructor(
         val strategy: BluetoothConnectionStrategy = when (profile) {
             BluetoothProfile.SPP -> SppBluetoothConnectionStrategy(adapter)
             BluetoothProfile.GATT -> GattBluetoothConnectionStrategy(context, adapter)
-            BluetoothProfile.BATTERY -> BatteryBluetoothConnectionStrategy(context, adapter)
             else -> {
-                // If no profile selected, check if device supports SPP or GATT
-                val supportsBattery = device.uuids.any { it.equals(BluetoothProfile.BATTERY.uuid.toString(), ignoreCase = true) }
+                // If no profile selected, check if device supports SPP or defaults to GATT
                 val supportsSpp = device.uuids.any { it.equals(BluetoothProfile.SPP.uuid.toString(), ignoreCase = true) }
                 
                 when {
-                    supportsBattery -> BatteryBluetoothConnectionStrategy(context, adapter)
                     supportsSpp -> SppBluetoothConnectionStrategy(adapter)
                     else -> GattBluetoothConnectionStrategy(context, adapter)
                 }

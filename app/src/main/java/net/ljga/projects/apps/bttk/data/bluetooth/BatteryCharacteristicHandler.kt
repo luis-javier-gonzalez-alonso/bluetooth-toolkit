@@ -13,7 +13,7 @@ class BatteryCharacteristicHandler : GattCharacteristicHandler {
     private val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
     @SuppressLint("MissingPermission")
-    override fun onServiceDiscovered(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+    override fun onServiceDiscovered(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic): BluetoothDataPacket? {
         if (characteristic.uuid == characteristicUuid) {
             // 1. Initial read
             gatt.readCharacteristic(characteristic)
@@ -27,7 +27,13 @@ class BatteryCharacteristicHandler : GattCharacteristicHandler {
                     gatt.writeDescriptor(descriptor)
                 }
             }
+            
+            return BluetoothDataPacket(
+                data = "Battery Service Found - Monitoring level...".toByteArray(),
+                source = "Battery"
+            )
         }
+        return null
     }
 
     override fun handleData(characteristic: BluetoothGattCharacteristic, value: ByteArray): BluetoothDataPacket? {

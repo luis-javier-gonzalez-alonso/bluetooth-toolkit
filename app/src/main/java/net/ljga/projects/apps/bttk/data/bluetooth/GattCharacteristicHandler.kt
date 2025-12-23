@@ -9,10 +9,10 @@ interface GattCharacteristicHandler {
     val characteristicUuid: UUID?
     
     /**
-     * Called after services are discovered to allow the handler to perform initial actions 
-     * like reading a value or enabling notifications.
+     * Called after services are discovered. 
+     * Returns an optional packet to log discovery information (e.g. metadata).
      */
-    fun onServiceDiscovered(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic)
+    fun onServiceDiscovered(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic): BluetoothDataPacket?
     
     /**
      * Parses the raw byte data into a BluetoothDataPacket.

@@ -3,6 +3,7 @@ package net.ljga.projects.apps.bttk.data.bluetooth
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.content.Context
+import kotlinx.coroutines.channels.ProducerScope
 import java.util.*
 
 class GattBluetoothConnectionStrategy(
@@ -12,25 +13,38 @@ class GattBluetoothConnectionStrategy(
     override val name: String = "GATT"
     override val uuid: UUID? = null
 
+    private val defaultHandler = DefaultGattCharacteristicHandler()
+
     init {
-        // You can add default handlers here if desired
         handlers.add(BatteryCharacteristicHandler())
     }
 
     @SuppressLint("MissingPermission")
-    override fun onGattServicesDiscovered(gatt: BluetoothGatt) {
+    override fun onGattServicesDiscovered(gatt: BluetoothGatt, scope: ProducerScope<BluetoothDataPacket>) {
         gatt.services.forEach { service ->
             service.characteristics.forEach { characteristic ->
-                // Let handlers take action
+                var handled = false
+                
+                // 1. Check specific handlers
                 handlers.forEach { handler ->
                     if (handler.serviceUuid == null || handler.serviceUuid == service.uuid) {
-                        handler.onServiceDiscovered(gatt, characteristic)
+                        val discoveryPacket = handler.onServiceDiscovered(gatt, characteristic)
+                        if (discoveryPacket != null) {
+                            scope.trySend(discoveryPacket)
+                        }
+                        if (handler.characteristicUuid == characteristic.uuid) {
+                            handled = true
+                        }
                     }
                 }
                 
-                // Generic GATT behavior: notify for everything else not handled specifically if desired
-                // Or just keep it extensible via handlers.
-                if (handlers.none { it.characteristicUuid == characteristic.uuid }) {
+                // 2. Fallback to default handler for logging and notifications
+                if (!handled) {
+                    val discoveryPacket = defaultHandler.onServiceDiscovered(gatt, characteristic)
+                    if (discoveryPacket != null) {
+                        scope.trySend(discoveryPacket)
+                    }
+                    
                     if (isNotifyable(characteristic)) {
                         enableNotification(gatt, characteristic)
                     }
@@ -39,10 +53,13 @@ class GattBluetoothConnectionStrategy(
         }
     }
 
-    override fun onDataReceived(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-        // Generic logging for data not caught by specific handlers
+    override fun onDataReceived(characteristic: BluetoothGattCharacteristic, value: ByteArray, scope: ProducerScope<BluetoothDataPacket>) {
+        // If no specific handler took interest in this data, the default handler logs it
         if (handlers.none { it.characteristicUuid == characteristic.uuid }) {
-            // The base class could also handle this or we can let it be handled here
+            val packet = defaultHandler.handleData(characteristic, value)
+            if (packet != null) {
+                scope.trySend(packet)
+            }
         }
     }
 
