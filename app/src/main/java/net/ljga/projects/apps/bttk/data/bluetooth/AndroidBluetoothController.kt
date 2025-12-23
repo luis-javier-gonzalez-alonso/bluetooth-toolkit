@@ -49,6 +49,10 @@ class AndroidBluetoothController @Inject constructor(
     override val isConnected: StateFlow<Boolean>
         get() = _isConnected.asStateFlow()
 
+    private val _connectedAddress = MutableStateFlow<String?>(null)
+    override val connectedAddress: StateFlow<String?>
+        get() = _connectedAddress.asStateFlow()
+
     private val _isScanning = MutableStateFlow(false)
     override val isScanning: StateFlow<Boolean>
         get() = _isScanning.asStateFlow()
@@ -91,6 +95,7 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     private var currentStrategy: BluetoothConnectionStrategy? = null
+    private var currentAddress: String? = null
     private var connectionJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -126,6 +131,11 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     override fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile?) {
+        if (_isConnected.value && _connectedAddress.value == device.address) {
+            // Already connected to this device, nothing to do
+            return
+        }
+
         if (!hasPermission(getConnectPermission())) {
             _errors.tryEmit("Missing connect permission")
             return
@@ -153,9 +163,11 @@ class AndroidBluetoothController @Inject constructor(
             try {
                 stopDiscovery()
                 currentStrategy = strategy
+                currentAddress = device.address
                 
                 strategy.connect(device.address).collect { packet ->
                     _isConnected.value = true
+                    _connectedAddress.value = device.address
                     if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
                         updateDeviceServices(device.address, packet.gattServices)
                     }
@@ -183,7 +195,9 @@ class AndroidBluetoothController @Inject constructor(
         scope.launch {
             currentStrategy?.disconnect()
             currentStrategy = null
+            currentAddress = null
             _isConnected.value = false
+            _connectedAddress.value = null
         }
     }
 
