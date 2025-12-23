@@ -128,14 +128,17 @@ class AndroidBluetoothController @Inject constructor(
         // Select strategy based on profile
         val strategy: BluetoothConnectionStrategy = when (profile) {
             BluetoothProfile.SPP -> SppBluetoothConnectionStrategy(adapter)
-            // GATT and others would be implemented here
+            BluetoothProfile.GATT -> GattBluetoothConnectionStrategy(context, adapter)
+            BluetoothProfile.BATTERY -> BatteryBluetoothConnectionStrategy(context, adapter)
             else -> {
-                // Default to SPP if no profile specified and it's available in UUIDs
-                if (device.uuids.any { BluetoothProfile.fromUuid(it) == BluetoothProfile.SPP }) {
-                    SppBluetoothConnectionStrategy(adapter)
-                } else {
-                    _errors.tryEmit("No supported profile selected")
-                    return
+                // If no profile selected, check if device supports SPP or GATT
+                val supportsBattery = device.uuids.any { it.equals(BluetoothProfile.BATTERY.uuid.toString(), ignoreCase = true) }
+                val supportsSpp = device.uuids.any { it.equals(BluetoothProfile.SPP.uuid.toString(), ignoreCase = true) }
+                
+                when {
+                    supportsBattery -> BatteryBluetoothConnectionStrategy(context, adapter)
+                    supportsSpp -> SppBluetoothConnectionStrategy(adapter)
+                    else -> GattBluetoothConnectionStrategy(context, adapter)
                 }
             }
         }
@@ -150,7 +153,7 @@ class AndroidBluetoothController @Inject constructor(
                     _isConnected.value = true
                     _incomingData.emit(packet)
                 }
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 _errors.tryEmit("Connection failed: ${e.message}")
             } finally {
                 disconnect()

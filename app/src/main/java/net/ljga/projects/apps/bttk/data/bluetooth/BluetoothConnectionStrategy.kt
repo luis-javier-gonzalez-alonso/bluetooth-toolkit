@@ -13,9 +13,10 @@ interface BluetoothConnectionStrategy {
 
 enum class BluetoothProfile(val displayName: String, val uuid: UUID?) {
     SPP("Serial Port (SPP)", UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")),
-    GATT("Generic Attribute (GATT)", null), // GATT handles connection differently
+    GATT("Generic Attribute (GATT)", null),
     HID("Human Interface Device", UUID.fromString("00001124-0000-1000-8000-00805f9b34fb")),
-    A2DP("Advanced Audio (A2DP)", UUID.fromString("0000110b-0000-1000-8000-00805f9b34fb"));
+    A2DP("Advanced Audio (A2DP)", UUID.fromString("0000110b-0000-1000-8000-00805f9b34fb")),
+    BATTERY("Battery Service", UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb"));
 
     companion object {
         fun fromUuid(uuidString: String): BluetoothProfile? {
