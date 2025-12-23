@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -19,7 +18,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.IOException
-import java.util.UUID
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
@@ -62,7 +60,6 @@ class AndroidBluetoothController @Inject constructor(
     private val deviceFoundReceiver = DeviceFoundReceiver { device, rssi ->
         val newDevice = device.toBluetoothDeviceDomain(isInRange = true, rssi = rssi)
         
-        // Update scanned devices
         _scannedDevices.update { devices ->
             if (devices.any { it.address == newDevice.address }) {
                 devices.map { if (it.address == newDevice.address) newDevice else it }
@@ -71,10 +68,9 @@ class AndroidBluetoothController @Inject constructor(
             }
         }
 
-        // Mark paired device as in range and update RSSI if discovered
         _pairedDevices.update { devices ->
             devices.map { 
-                if (it.address == newDevice.address) it.copy(isInRange = true, rssi = rssi) else it
+                if (it.address == newDevice.address) it.copy(isInRange = true, rssi = rssi, uuids = newDevice.uuids) else it
             }
         }
     }
@@ -82,20 +78,14 @@ class AndroidBluetoothController @Inject constructor(
     private val scanStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
-                    _isScanning.value = true
-                }
-                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    _isScanning.value = false
-                }
-                BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
-                    updatePairedDevices()
-                }
+                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> _isScanning.value = true
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> _isScanning.value = false
+                BluetoothDevice.ACTION_BOND_STATE_CHANGED -> updatePairedDevices()
             }
         }
     }
 
-    private var currentSocket: BluetoothSocket? = null
+    private var currentStrategy: BluetoothConnectionStrategy? = null
     private var connectionJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -110,22 +100,15 @@ class AndroidBluetoothController @Inject constructor(
             return
         }
 
-        if (bluetoothAdapter == null) {
-            _errors.tryEmit("Bluetooth not supported on this device")
+        if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
+            _errors.tryEmit("Bluetooth not available or disabled")
             return
         }
 
-        if (!bluetoothAdapter!!.isEnabled) {
-            _errors.tryEmit("Bluetooth is disabled")
-            return
-        }
-
-        // Reset inRange status and RSSI for paired devices when starting a new scan
         _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false, rssi = null) } }
         _scannedDevices.value = emptyList()
         
         registerReceiver()
-
         bluetoothAdapter?.startDiscovery()
     }
 
@@ -134,46 +117,38 @@ class AndroidBluetoothController @Inject constructor(
         bluetoothAdapter?.cancelDiscovery()
     }
 
-    override fun connectToDevice(device: BluetoothDeviceDomain) {
+    override fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile?) {
         if (!hasPermission(getConnectPermission())) {
             _errors.tryEmit("Missing connect permission")
             return
         }
 
+        val adapter = bluetoothAdapter ?: return
+        
+        // Select strategy based on profile
+        val strategy: BluetoothConnectionStrategy = when (profile) {
+            BluetoothProfile.SPP -> SppBluetoothConnectionStrategy(adapter)
+            // GATT and others would be implemented here
+            else -> {
+                // Default to SPP if no profile specified and it's available in UUIDs
+                if (device.uuids.any { BluetoothProfile.fromUuid(it) == BluetoothProfile.SPP }) {
+                    SppBluetoothConnectionStrategy(adapter)
+                } else {
+                    _errors.tryEmit("No supported profile selected")
+                    return
+                }
+            }
+        }
+
         connectionJob?.cancel()
         connectionJob = scope.launch {
-            val bluetoothDevice = bluetoothAdapter?.getRemoteDevice(device.address) ?: return@launch
-            
             try {
-                // Standard SPP (Serial Port Profile) UUID
-                val sppUuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-                currentSocket = bluetoothDevice.createRfcommSocketToServiceRecord(sppUuid)
-                
-                // Discovery should be cancelled before connecting
                 stopDiscovery()
+                currentStrategy = strategy
                 
-                currentSocket?.connect()
-                _isConnected.value = true
-                
-                val inputStream = currentSocket?.inputStream ?: return@launch
-                val buffer = ByteArray(1024)
-                
-                while (true) {
-                    val bytesRead = try {
-                        inputStream.read(buffer)
-                    } catch (e: IOException) {
-                        -1
-                    }
-                    
-                    if (bytesRead == -1) break
-                    
-                    val data = buffer.copyOfRange(0, bytesRead)
-                    _incomingData.emit(
-                        BluetoothDataPacket(
-                            data = data,
-                            source = device.name ?: device.address
-                        )
-                    )
+                strategy.connect(device.address).collect { packet ->
+                    _isConnected.value = true
+                    _incomingData.emit(packet)
                 }
             } catch (e: IOException) {
                 _errors.tryEmit("Connection failed: ${e.message}")
@@ -185,19 +160,16 @@ class AndroidBluetoothController @Inject constructor(
 
     override fun disconnect() {
         connectionJob?.cancel()
-        try {
-            currentSocket?.close()
-        } catch (e: IOException) {
-            // Ignore
+        scope.launch {
+            currentStrategy?.disconnect()
+            currentStrategy = null
+            _isConnected.value = false
         }
-        currentSocket = null
-        _isConnected.value = false
     }
 
     override fun pairDevice(address: String) {
         if (!hasPermission(getConnectPermission())) return
-        val device = bluetoothAdapter?.getRemoteDevice(address)
-        device?.createBond()
+        bluetoothAdapter?.getRemoteDevice(address)?.createBond()
     }
 
     override fun forgetDevice(address: String) {
@@ -205,8 +177,7 @@ class AndroidBluetoothController @Inject constructor(
         val device = bluetoothAdapter?.getRemoteDevice(address)
         try {
             device?.let {
-                val method = it.javaClass.getMethod("removeBond")
-                method.invoke(it)
+                it.javaClass.getMethod("removeBond").invoke(it)
                 updatePairedDevices()
             }
         } catch (e: Exception) {
@@ -216,13 +187,8 @@ class AndroidBluetoothController @Inject constructor(
 
     override fun checkReachability(address: String) {
         if (!hasPermission(getConnectPermission())) return
-        val device = bluetoothAdapter?.getRemoteDevice(address) ?: return
-        
         registerReceiver()
-        
-        // fetchUuidsWithSdp triggers an SDP query which is much lighter than a full scan
-        // and will trigger ACTION_FOUND or ACTION_UUID if the device is reachable.
-        device.fetchUuidsWithSdp()
+        bluetoothAdapter?.getRemoteDevice(address)?.fetchUuidsWithSdp()
     }
 
     private fun registerReceiver() {
@@ -247,65 +213,32 @@ class AndroidBluetoothController @Inject constructor(
 
     override fun release() {
         if (isReceiverRegistered) {
-            try {
-                context.unregisterReceiver(deviceFoundReceiver)
-                isReceiverRegistered = false
-            } catch (e: Exception) {
-                // Ignore
-            }
+            try { context.unregisterReceiver(deviceFoundReceiver) } catch (e: Exception) {}
+            isReceiverRegistered = false
         }
-        try {
-            context.unregisterReceiver(scanStateReceiver)
-        } catch (e: Exception) {
-            // Ignore
-        }
+        try { context.unregisterReceiver(scanStateReceiver) } catch (e: Exception) {}
         disconnect()
         stopDiscovery()
     }
 
     private fun updatePairedDevices() {
         if (!hasPermission(getConnectPermission())) return
-        
-        bluetoothAdapter
-            ?.bondedDevices
-            ?.map { it.toBluetoothDeviceDomain() }
-            ?.let { devices ->
-                _pairedDevices.update { devices }
-            }
-    }
-
-    private fun hasPermission(permission: String): Boolean {
-        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun getScanPermission(): String {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Manifest.permission.BLUETOOTH_SCAN
-        } else {
-            Manifest.permission.ACCESS_FINE_LOCATION
+        _pairedDevices.update { 
+            bluetoothAdapter?.bondedDevices?.map { it.toBluetoothDeviceDomain() } ?: emptyList()
         }
     }
 
-    private fun getConnectPermission(): String {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Manifest.permission.BLUETOOTH_CONNECT
-        } else {
-            Manifest.permission.BLUETOOTH
-        }
-    }
+    private fun hasPermission(permission: String) = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    private fun getScanPermission() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Manifest.permission.BLUETOOTH_SCAN else Manifest.permission.ACCESS_FINE_LOCATION
+    private fun getConnectPermission() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Manifest.permission.BLUETOOTH_CONNECT else Manifest.permission.BLUETOOTH
     
-    private fun BluetoothDevice.toBluetoothDeviceDomain(
-        isInRange: Boolean = false,
-        rssi: Int? = null
-    ): BluetoothDeviceDomain {
-        return BluetoothDeviceDomain(
-            name = name,
-            address = address,
-            isInRange = isInRange,
-            bondState = bondState,
-            type = type,
-            uuids = uuids?.map { it.toString() } ?: emptyList(),
-            rssi = rssi
-        )
-    }
+    private fun BluetoothDevice.toBluetoothDeviceDomain(isInRange: Boolean = false, rssi: Int? = null) = BluetoothDeviceDomain(
+        name = name,
+        address = address,
+        isInRange = isInRange,
+        bondState = bondState,
+        type = type,
+        uuids = uuids?.map { it.toString() } ?: emptyList(),
+        rssi = rssi
+    )
 }

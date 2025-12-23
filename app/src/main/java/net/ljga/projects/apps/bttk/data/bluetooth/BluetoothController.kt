@@ -14,7 +14,7 @@ interface BluetoothController {
     fun startDiscovery()
     fun stopDiscovery()
     
-    fun connectToDevice(device: BluetoothDeviceDomain)
+    fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile? = null)
     fun disconnect()
     
     fun pairDevice(address: String)

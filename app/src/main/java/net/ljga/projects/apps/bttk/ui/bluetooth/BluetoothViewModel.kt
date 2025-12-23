@@ -9,6 +9,7 @@ import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothProfile
 import javax.inject.Inject
 
 @HiltViewModel
@@ -66,7 +67,7 @@ class BluetoothViewModel @Inject constructor(
 
     init {
         bluetoothController.isConnected.onEach { isConnected ->
-            _state.update { it.copy(isConnected = isConnected) }
+            _state.update { it.copy(isConnected = isConnected, isConnecting = if (isConnected) false else it.isConnecting) }
         }.launchIn(viewModelScope)
 
         bluetoothController.isScanning.onEach { isScanning ->
@@ -74,7 +75,7 @@ class BluetoothViewModel @Inject constructor(
         }.launchIn(viewModelScope)
 
         bluetoothController.errors.onEach { error ->
-            _state.update { it.copy(errorMessage = error) }
+            _state.update { it.copy(errorMessage = error, isConnecting = false) }
         }.launchIn(viewModelScope)
 
         bluetoothController.incomingData.onEach { packet ->
@@ -94,9 +95,19 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.checkReachability(device.address)
     }
 
-    fun connectToDevice(device: BluetoothDeviceDomain) {
-        _state.update { it.copy(isConnecting = true, selectedDevice = device) }
-        bluetoothController.connectToDevice(device)
+    fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile? = null) {
+        val availableProfiles = device.uuids.mapNotNull { BluetoothProfile.fromUuid(it) }.distinct()
+        
+        if (profile == null && availableProfiles.size > 1) {
+            _state.update { it.copy(selectedDevice = device, profilesToSelect = availableProfiles) }
+        } else {
+            _state.update { it.copy(isConnecting = true, selectedDevice = device, profilesToSelect = emptyList()) }
+            bluetoothController.connectToDevice(device, profile)
+        }
+    }
+
+    fun dismissProfileSelection() {
+        _state.update { it.copy(profilesToSelect = emptyList()) }
     }
 
     fun disconnectFromDevice() {
@@ -142,5 +153,6 @@ data class BluetoothUiState(
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
     val selectedDevice: BluetoothDeviceDomain? = null,
-    val dataLogs: List<BluetoothDataPacket> = emptyList()
+    val dataLogs: List<BluetoothDataPacket> = emptyList(),
+    val profilesToSelect: List<BluetoothProfile> = emptyList()
 )
