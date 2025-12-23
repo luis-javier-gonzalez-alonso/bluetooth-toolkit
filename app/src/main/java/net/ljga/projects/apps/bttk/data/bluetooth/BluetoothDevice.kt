@@ -7,5 +7,6 @@ data class BluetoothDeviceDomain(
     val bondState: Int = 10, // BluetoothDevice.BOND_NONE
     val type: Int = 0,      // BluetoothDevice.DEVICE_TYPE_UNKNOWN
     val uuids: List<String> = emptyList(),
-    val rssi: Int? = null
+    val rssi: Int? = null,
+    val services: List<BluetoothServiceDomain> = emptyList()
 )

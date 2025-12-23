@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
 @Entity(tableName = "saved_devices")
 data class SavedDevice(
     @PrimaryKey val address: String,
-    val name: String?
+    val name: String?,
+    val servicesJson: String? = null
 )
 
 @Dao
@@ -21,6 +22,9 @@ interface SavedDeviceDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDevice(device: SavedDevice)
+
+    @Query("SELECT * FROM saved_devices WHERE address = :address")
+    suspend fun getDevice(address: String): SavedDevice?
 
     @Query("DELETE FROM saved_devices WHERE address = :address")
     suspend fun deleteDevice(address: String)

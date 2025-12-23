@@ -156,6 +156,9 @@ class AndroidBluetoothController @Inject constructor(
                 
                 strategy.connect(device.address).collect { packet ->
                     _isConnected.value = true
+                    if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
+                        updateDeviceServices(device.address, packet.gattServices)
+                    }
                     _incomingData.emit(packet)
                 }
             } catch (e: Exception) {
@@ -163,6 +166,15 @@ class AndroidBluetoothController @Inject constructor(
             } finally {
                 disconnect()
             }
+        }
+    }
+
+    private fun updateDeviceServices(address: String, services: List<BluetoothServiceDomain>) {
+        _scannedDevices.update { devices ->
+            devices.map { if (it.address == address) it.copy(services = services) else it }
+        }
+        _pairedDevices.update { devices ->
+            devices.map { if (it.address == address) it.copy(services = services) else it }
         }
     }
 

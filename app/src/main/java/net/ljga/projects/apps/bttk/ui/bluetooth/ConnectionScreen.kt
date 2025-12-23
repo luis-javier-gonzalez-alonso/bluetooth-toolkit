@@ -153,6 +153,7 @@ fun LogEntry(packet: BluetoothDataPacket) {
         when (packet.format) {
             DataFormat.HEX_ASCII -> RawDataEntry(packet.data)
             DataFormat.STRUCTURED -> StructuredDataEntry(packet.text ?: String(packet.data))
+            DataFormat.GATT_STRUCTURE -> {}
         }
     }
 }

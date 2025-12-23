@@ -10,6 +10,7 @@ import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothProfile
+import net.ljga.projects.apps.bttk.data.bluetooth.DataFormat
 import javax.inject.Inject
 
 @HiltViewModel
@@ -44,7 +45,8 @@ class BluetoothViewModel @Inject constructor(
                 bondState = paired?.bondState ?: scanned?.bondState ?: saved?.bondState ?: 10,
                 type = allForAddress.map { it.type }.firstOrNull { it != 0 } ?: 0,
                 uuids = allForAddress.flatMap { it.uuids }.distinct(),
-                rssi = scanned?.rssi ?: paired?.rssi ?: saved?.rssi
+                rssi = scanned?.rssi ?: paired?.rssi ?: saved?.rssi,
+                services = allForAddress.firstOrNull { it.services.isNotEmpty() }?.services ?: emptyList()
             )
         }
 
@@ -58,10 +60,13 @@ class BluetoothViewModel @Inject constructor(
             .mapNotNull { mergedDevicesMap[it.address] }
             .filter { it.address !in pairedAddresses && it.address !in savedAddresses }
 
+        val selectedDevice = state.selectedDevice?.let { mergedDevicesMap[it.address] } ?: state.selectedDevice
+
         state.copy(
             scannedDevices = filteredScannedDevices,
             pairedDevices = updatedPaired,
-            savedDevices = updatedSaved
+            savedDevices = updatedSaved,
+            selectedDevice = selectedDevice
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -79,6 +84,11 @@ class BluetoothViewModel @Inject constructor(
         }.launchIn(viewModelScope)
 
         bluetoothController.incomingData.onEach { packet ->
+            if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
+                state.value.selectedDevice?.let { device ->
+                    savedDeviceRepository.updateServices(device.address, packet.gattServices)
+                }
+            }
             _state.update { it.copy(dataLogs = (it.dataLogs + packet).takeLast(100)) }
         }.launchIn(viewModelScope)
     }
