@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
@@ -95,6 +96,16 @@ fun BluetoothScreen(
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = "\u2304 Pull down to scan \u2304",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    textAlign = TextAlign.Center
+                )
+
                 if (state.isConnecting) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
@@ -109,7 +120,7 @@ fun BluetoothScreen(
                     onSave = viewModel::saveDevice,
                     onForgetSaved = viewModel::forgetSavedDevice,
                     onCheckReachability = viewModel::checkReachability,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
