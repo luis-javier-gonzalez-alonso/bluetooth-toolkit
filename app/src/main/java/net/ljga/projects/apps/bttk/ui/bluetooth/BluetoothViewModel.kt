@@ -24,26 +24,51 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.isScanning,
         _state
     ) { scannedDevices, pairedDevices, savedDevices, isScanning, state ->
-        val updatedSavedDevices = savedDevices.map { saved ->
-            val scannedMatch = scannedDevices.find { it.address == saved.address }
-            val pairedMatch = pairedDevices.find { it.address == saved.address }
-            saved.copy(
-                isInRange = scannedMatch?.isInRange == true || pairedMatch?.isInRange == true,
-                rssi = scannedMatch?.rssi ?: pairedMatch?.rssi
+        
+        // Merge information for all unique addresses to ensure consistency
+        val allAddresses = (scannedDevices.map { it.address } + 
+                            pairedDevices.map { it.address } + 
+                            savedDevices.map { it.address }).distinct()
+        
+        val mergedDevicesMap = allAddresses.associateWith { address ->
+            val scanned = scannedDevices.find { it.address == address }
+            val paired = pairedDevices.find { it.address == address }
+            val saved = savedDevices.find { it.address == address }
+            
+            val allForAddress = listOfNotNull(scanned, paired, saved)
+            
+            BluetoothDeviceDomain(
+                address = address,
+                // Pick the first non-null, non-blank name available
+                name = allForAddress.mapNotNull { it.name }.firstOrNull { it.isNotBlank() },
+                // Device is in range if any source says it is
+                isInRange = allForAddress.any { it.isInRange },
+                // System bond state is authoritative if available (from paired or scanned)
+                bondState = paired?.bondState ?: scanned?.bondState ?: saved?.bondState ?: 10,
+                // Type is usually consistent, pick first non-zero
+                type = allForAddress.map { it.type }.firstOrNull { it != 0 } ?: 0,
+                // Accumulate all known UUIDs
+                uuids = allForAddress.flatMap { it.uuids }.distinct(),
+                // RSSI is most accurate from scanned devices
+                rssi = scanned?.rssi ?: paired?.rssi ?: saved?.rssi
             )
         }
 
-        val pairedAddresses = pairedDevices.map { it.address }.toSet()
-        val savedAddresses = savedDevices.map { it.address }.toSet()
+        val updatedPaired = pairedDevices.mapNotNull { mergedDevicesMap[it.address] }
+        val updatedSaved = savedDevices.mapNotNull { mergedDevicesMap[it.address] }
+        
+        val pairedAddresses = updatedPaired.map { it.address }.toSet()
+        val savedAddresses = updatedSaved.map { it.address }.toSet()
 
-        val filteredScannedDevices = scannedDevices.filter { scanned ->
-            scanned.address !in pairedAddresses && scanned.address !in savedAddresses
-        }
+        // Scanned devices only show what is NOT already in paired or saved lists
+        val filteredScannedDevices = scannedDevices
+            .mapNotNull { mergedDevicesMap[it.address] }
+            .filter { it.address !in pairedAddresses && it.address !in savedAddresses }
 
         state.copy(
             scannedDevices = filteredScannedDevices,
-            pairedDevices = pairedDevices,
-            savedDevices = updatedSavedDevices,
+            pairedDevices = updatedPaired,
+            savedDevices = updatedSaved,
             isRefreshing = isScanning
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
