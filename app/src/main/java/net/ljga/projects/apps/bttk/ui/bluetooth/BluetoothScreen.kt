@@ -97,7 +97,7 @@ fun BluetoothScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = "Pull down to scan",
+                    text = "\u2304 Pull down to scan \u2304",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier
@@ -163,11 +163,13 @@ fun BluetoothDeviceList(
             }
         }
         items(pairedDevices) { device ->
+            val isAlreadySaved = savedDevices.any { it.address == device.address }
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
                 onForget = { onForgetPaired(device) },
+                onSave = if (!isAlreadySaved) { { onSave(device) } } else null,
                 onCheckReachability = { onCheckReachability(device) },
                 isPaired = true
             )
