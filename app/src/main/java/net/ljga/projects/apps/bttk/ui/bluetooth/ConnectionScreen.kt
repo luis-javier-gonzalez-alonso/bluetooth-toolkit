@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.DataFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -77,14 +78,14 @@ fun ConnectionScreen(
                 }
             }
 
-            // Hex/ASCII Log Section
+            // Data Log Section
             Text(
                 text = "Data Log",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.titleSmall
             )
             
-            HexLogView(
+            LogListView(
                 logs = logs,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -106,7 +107,7 @@ fun ProfileButton(name: String) {
 }
 
 @Composable
-fun HexLogView(
+fun LogListView(
     logs: List<BluetoothDataPacket>,
     modifier: Modifier = Modifier
 ) {
@@ -131,45 +132,69 @@ fun HexLogView(
 
 @Composable
 fun LogEntry(packet: BluetoothDataPacket) {
-    val bytesPerRow = 16
-    val chunks = remember(packet.data) { packet.data.toList().chunked(bytesPerRow) }
     val timeFormatter = remember { SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()) }
 
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text(
-            text = timeFormatter.format(packet.timestamp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.secondary
-        )
-        
-        chunks.forEach { chunk ->
-            val chunkBytes = chunk.toByteArray()
-            Row(modifier = Modifier.fillMaxWidth()) {
-                // Hex column
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                text = timeFormatter.format(packet.timestamp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            packet.source?.let {
                 Text(
-                    text = chunkBytes.toHexString(padTo = bytesPerRow),
-                    modifier = Modifier.weight(2.5f),
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp,
-                    maxLines = 1
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // ASCII column
-                Text(
-                    text = chunkBytes.toAsciiString(padTo = bytesPerRow),
-                    modifier = Modifier.weight(1f),
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    maxLines = 1
+                    text = it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
                 )
             }
         }
+
+        when (packet.format) {
+            DataFormat.HEX_ASCII -> RawDataEntry(packet.data)
+            DataFormat.STRUCTURED -> StructuredDataEntry(packet.text ?: String(packet.data))
+        }
     }
+}
+
+@Composable
+fun RawDataEntry(data: ByteArray) {
+    val bytesPerRow = 16
+    val chunks = remember(data) { data.toList().chunked(bytesPerRow) }
+    
+    chunks.forEach { chunk ->
+        val chunkBytes = chunk.toByteArray()
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = chunkBytes.toHexString(padTo = bytesPerRow),
+                modifier = Modifier.weight(2.5f),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = chunkBytes.toAsciiString(padTo = bytesPerRow),
+                modifier = Modifier.weight(1f),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = MaterialTheme.colorScheme.tertiary,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+fun StructuredDataEntry(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(vertical = 2.dp)
+    )
 }
 
 fun ByteArray.toHexString(padTo: Int = 0): String {

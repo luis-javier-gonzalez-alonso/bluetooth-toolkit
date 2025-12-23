@@ -19,15 +19,18 @@ class DefaultGattCharacteristicHandler : GattCharacteristicHandler {
                    "Permissions: $permissions"
         
         return BluetoothDataPacket(
-            data = info.toByteArray(),
-            source = "GATT Metadata"
+            data = byteArrayOf(),
+            text = info,
+            source = "GATT Metadata",
+            format = DataFormat.STRUCTURED
         )
     }
 
     override fun handleData(characteristic: BluetoothGattCharacteristic, value: ByteArray): BluetoothDataPacket? {
         return BluetoothDataPacket(
             data = value,
-            source = "GATT: ${characteristic.uuid.toString().take(8)}..."
+            source = "GATT: ${characteristic.uuid.toString().take(8)}...",
+            format = DataFormat.HEX_ASCII
         )
     }
 

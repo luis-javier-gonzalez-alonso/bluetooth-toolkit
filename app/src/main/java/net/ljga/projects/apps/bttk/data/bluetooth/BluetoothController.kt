@@ -25,8 +25,15 @@ interface BluetoothController {
     fun release()
 }
 
+enum class DataFormat {
+    HEX_ASCII, // For raw binary streams
+    STRUCTURED  // For human-readable strings like service info
+}
+
 data class BluetoothDataPacket(
     val timestamp: Long = System.currentTimeMillis(),
     val data: ByteArray,
-    val source: String? = null
+    val source: String? = null,
+    val format: DataFormat = DataFormat.HEX_ASCII,
+    val text: String? = null // Optional pre-formatted text
 )

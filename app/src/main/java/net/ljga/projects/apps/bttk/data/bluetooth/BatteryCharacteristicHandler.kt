@@ -29,8 +29,10 @@ class BatteryCharacteristicHandler : GattCharacteristicHandler {
             }
             
             return BluetoothDataPacket(
-                data = "Battery Service Found - Monitoring level...".toByteArray(),
-                source = "Battery"
+                data = byteArrayOf(),
+                text = "Battery Service Found - Monitoring level...",
+                source = "Battery",
+                format = DataFormat.STRUCTURED
             )
         }
         return null
@@ -40,8 +42,10 @@ class BatteryCharacteristicHandler : GattCharacteristicHandler {
         if (characteristic.uuid == characteristicUuid && value.isNotEmpty()) {
             val level = value[0].toInt() and 0xFF
             return BluetoothDataPacket(
-                data = "Battery Level: $level%".toByteArray(),
-                source = "Battery"
+                data = value,
+                text = "Battery Level: $level%",
+                source = "Battery",
+                format = DataFormat.STRUCTURED
             )
         }
         return null
