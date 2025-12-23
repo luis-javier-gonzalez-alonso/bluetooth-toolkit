@@ -32,8 +32,16 @@ class BluetoothViewModel @Inject constructor(
                 rssi = scannedMatch?.rssi ?: pairedMatch?.rssi
             )
         }
+
+        val pairedAddresses = pairedDevices.map { it.address }.toSet()
+        val savedAddresses = savedDevices.map { it.address }.toSet()
+
+        val filteredScannedDevices = scannedDevices.filter { scanned ->
+            scanned.address !in pairedAddresses && scanned.address !in savedAddresses
+        }
+
         state.copy(
-            scannedDevices = scannedDevices,
+            scannedDevices = filteredScannedDevices,
             pairedDevices = pairedDevices,
             savedDevices = updatedSavedDevices,
             isRefreshing = isScanning
