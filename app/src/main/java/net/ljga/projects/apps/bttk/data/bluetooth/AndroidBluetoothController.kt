@@ -5,13 +5,21 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import java.io.IOException
+import java.util.UUID
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
@@ -87,6 +95,10 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
 
+    private var currentSocket: BluetoothSocket? = null
+    private var connectionJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     init {
         updatePairedDevices()
         registerScanStateReceiver()
@@ -123,11 +135,62 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     override fun connectToDevice(device: BluetoothDeviceDomain) {
-        // Placeholder for real connection logic
-        _isConnected.value = true
+        if (!hasPermission(getConnectPermission())) {
+            _errors.tryEmit("Missing connect permission")
+            return
+        }
+
+        connectionJob?.cancel()
+        connectionJob = scope.launch {
+            val bluetoothDevice = bluetoothAdapter?.getRemoteDevice(device.address) ?: return@launch
+            
+            try {
+                // Standard SPP (Serial Port Profile) UUID
+                val sppUuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+                currentSocket = bluetoothDevice.createRfcommSocketToServiceRecord(sppUuid)
+                
+                // Discovery should be cancelled before connecting
+                stopDiscovery()
+                
+                currentSocket?.connect()
+                _isConnected.value = true
+                
+                val inputStream = currentSocket?.inputStream ?: return@launch
+                val buffer = ByteArray(1024)
+                
+                while (true) {
+                    val bytesRead = try {
+                        inputStream.read(buffer)
+                    } catch (e: IOException) {
+                        -1
+                    }
+                    
+                    if (bytesRead == -1) break
+                    
+                    val data = buffer.copyOfRange(0, bytesRead)
+                    _incomingData.emit(
+                        BluetoothDataPacket(
+                            data = data,
+                            source = device.name ?: device.address
+                        )
+                    )
+                }
+            } catch (e: IOException) {
+                _errors.tryEmit("Connection failed: ${e.message}")
+            } finally {
+                disconnect()
+            }
+        }
     }
 
     override fun disconnect() {
+        connectionJob?.cancel()
+        try {
+            currentSocket?.close()
+        } catch (e: IOException) {
+            // Ignore
+        }
+        currentSocket = null
         _isConnected.value = false
     }
 
@@ -196,6 +259,7 @@ class AndroidBluetoothController @Inject constructor(
         } catch (e: Exception) {
             // Ignore
         }
+        disconnect()
         stopDiscovery()
     }
 
