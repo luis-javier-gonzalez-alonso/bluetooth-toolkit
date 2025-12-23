@@ -9,6 +9,7 @@ interface BluetoothController {
     val isConnected: StateFlow<Boolean>
     val isScanning: StateFlow<Boolean>
     val errors: Flow<String>
+    val incomingData: Flow<BluetoothDataPacket>
 
     fun startDiscovery()
     fun stopDiscovery()
@@ -22,3 +23,9 @@ interface BluetoothController {
     
     fun release()
 }
+
+data class BluetoothDataPacket(
+    val timestamp: Long = System.currentTimeMillis(),
+    val data: ByteArray,
+    val source: String? = null
+)

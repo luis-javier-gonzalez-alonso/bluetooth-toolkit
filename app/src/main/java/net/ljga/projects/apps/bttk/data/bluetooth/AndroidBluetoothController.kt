@@ -46,6 +46,10 @@ class AndroidBluetoothController @Inject constructor(
     override val errors: Flow<String>
         get() = _errors.asSharedFlow()
 
+    private val _incomingData = MutableSharedFlow<BluetoothDataPacket>()
+    override val incomingData: Flow<BluetoothDataPacket>
+        get() = _incomingData.asSharedFlow()
+
     private var isReceiverRegistered = false
     private val deviceFoundReceiver = DeviceFoundReceiver { device, rssi ->
         val newDevice = device.toBluetoothDeviceDomain(isInRange = true, rssi = rssi)
@@ -119,6 +123,7 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     override fun connectToDevice(device: BluetoothDeviceDomain) {
+        // Placeholder for real connection logic
         _isConnected.value = true
     }
 

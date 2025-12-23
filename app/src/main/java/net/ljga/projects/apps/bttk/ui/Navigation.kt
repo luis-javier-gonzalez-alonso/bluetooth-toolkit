@@ -29,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothScreen
 import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothViewModel
+import net.ljga.projects.apps.bttk.ui.bluetooth.ConnectionScreen
 import net.ljga.projects.apps.bttk.ui.bluetooth.DeviceDetailScreen
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameScreen
 
@@ -44,6 +45,7 @@ fun MainNavigation() {
                 viewModel = viewModel,
                 onDeviceClick = { device ->
                     viewModel.connectToDevice(device)
+                    navController.navigate("connection")
                 },
                 onDetailsClick = { device ->
                     viewModel.showDeviceDetails(device)
@@ -61,6 +63,24 @@ fun MainNavigation() {
             DeviceDetailScreen(
                 device = state.selectedDevice,
                 onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable("connection") {
+            val backStackEntry = remember(it) {
+                navController.getBackStackEntry("bluetooth")
+            }
+            val viewModel = hiltViewModel<BluetoothViewModel>(backStackEntry)
+            val state by viewModel.state.collectAsState()
+            
+            ConnectionScreen(
+                device = state.selectedDevice,
+                isConnected = state.isConnected,
+                logs = state.dataLogs,
+                onBackClick = { navController.popBackStack() },
+                onDisconnectClick = {
+                    viewModel.disconnectFromDevice()
+                    navController.popBackStack()
+                }
             )
         }
     }
