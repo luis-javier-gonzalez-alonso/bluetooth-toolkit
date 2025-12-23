@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -17,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,42 +131,58 @@ fun HexLogView(
 
 @Composable
 fun LogEntry(packet: BluetoothDataPacket) {
+    val bytesPerRow = 16
+    val chunks = remember(packet.data) { packet.data.toList().chunked(bytesPerRow) }
+    val timeFormatter = remember { SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()) }
+
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Text(
-            text = java.text.SimpleDateFormat("HH:mm:ss.SSS").format(packet.timestamp),
+            text = timeFormatter.format(packet.timestamp),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.secondary
         )
         
-        Row(modifier = Modifier.fillMaxWidth()) {
-            // Hex column
-            Text(
-                text = packet.data.toHexString(),
-                modifier = Modifier.weight(1.5f),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                lineHeight = 16.sp
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            // ASCII column
-            Text(
-                text = packet.data.toAsciiString(),
-                modifier = Modifier.weight(1f),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                color = MaterialTheme.colorScheme.tertiary
-            )
+        chunks.forEach { chunk ->
+            val chunkBytes = chunk.toByteArray()
+            Row(modifier = Modifier.fillMaxWidth()) {
+                // Hex column
+                Text(
+                    text = chunkBytes.toHexString(padTo = bytesPerRow),
+                    modifier = Modifier.weight(2.5f),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    maxLines = 1
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // ASCII column
+                Text(
+                    text = chunkBytes.toAsciiString(padTo = bytesPerRow),
+                    modifier = Modifier.weight(1f),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
 
-fun ByteArray.toHexString(): String {
-    return joinToString(" ") { "%02X".format(it) }
+fun ByteArray.toHexString(padTo: Int = 0): String {
+    val hex = joinToString(" ") { "%02X".format(it) }
+    return if (padTo > size) {
+        val padding = "   ".repeat(padTo - size)
+        hex + padding
+    } else hex
 }
 
-fun ByteArray.toAsciiString(): String {
-    return String(map { if (it in 32..126) it.toByte() else '.'.toByte() }.toByteArray())
+fun ByteArray.toAsciiString(padTo: Int = 0): String {
+    val ascii = String(map { if (it in 32..126) it.toByte() else '.'.toByte() }.toByteArray())
+    return if (padTo > size) {
+        ascii + " ".repeat(padTo - size)
+    } else ascii
 }
