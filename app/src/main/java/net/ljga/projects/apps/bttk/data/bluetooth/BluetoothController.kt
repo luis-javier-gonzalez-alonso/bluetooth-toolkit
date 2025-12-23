@@ -20,6 +20,7 @@ interface BluetoothController {
     fun pairDevice(address: String)
     fun forgetDevice(address: String)
     fun checkReachability(address: String)
+    fun refreshPairedDevices()
     
     fun release()
 }

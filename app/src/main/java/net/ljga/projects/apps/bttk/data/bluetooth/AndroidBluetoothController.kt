@@ -110,6 +110,9 @@ class AndroidBluetoothController @Inject constructor(
             return
         }
 
+        // Always update paired devices when starting discovery, as permissions are now guaranteed
+        updatePairedDevices()
+
         _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false, rssi = null) } }
         _scannedDevices.value = emptyList()
         
@@ -194,6 +197,10 @@ class AndroidBluetoothController @Inject constructor(
         if (!hasPermission(getConnectPermission())) return
         registerReceiver()
         bluetoothAdapter?.getRemoteDevice(address)?.fetchUuidsWithSdp()
+    }
+
+    override fun refreshPairedDevices() {
+        updatePairedDevices()
     }
 
     private fun registerReceiver() {

@@ -138,6 +138,10 @@ class BluetoothViewModel @Inject constructor(
         _state.update { it.copy(selectedDevice = device) }
     }
 
+    fun refreshPairedDevices() {
+        bluetoothController.refreshPairedDevices()
+    }
+
     override fun onCleared() {
         super.onCleared()
         bluetoothController.release()
