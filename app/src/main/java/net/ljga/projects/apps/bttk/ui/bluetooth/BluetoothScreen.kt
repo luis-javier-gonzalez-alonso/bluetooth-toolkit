@@ -97,7 +97,7 @@ fun BluetoothScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = "\u2304 Pull down to scan \u2304",
+                    text = "Pull down to scan",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline,
                     modifier = Modifier
@@ -116,6 +116,7 @@ fun BluetoothScreen(
                     scannedDevices = state.scannedDevices,
                     onClick = onDeviceClick,
                     onDetailsClick = onDetailsClick,
+                    onPair = viewModel::pairDevice,
                     onForgetPaired = viewModel::forgetDevice,
                     onSave = viewModel::saveDevice,
                     onForgetSaved = viewModel::forgetSavedDevice,
@@ -134,6 +135,7 @@ fun BluetoothDeviceList(
     scannedDevices: List<BluetoothDeviceDomain>,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
+    onPair: (BluetoothDeviceDomain) -> Unit,
     onForgetPaired: (BluetoothDeviceDomain) -> Unit,
     onSave: (BluetoothDeviceDomain) -> Unit,
     onForgetSaved: (BluetoothDeviceDomain) -> Unit,
@@ -189,10 +191,12 @@ fun BluetoothDeviceList(
             }
         }
         items(savedDevices) { device ->
+            val isAlreadyPaired = pairedDevices.any { it.address == device.address }
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
+                onPair = if (!isAlreadyPaired) { { onPair(device) } } else null,
                 onForget = { onForgetSaved(device) },
                 onCheckReachability = { onCheckReachability(device) },
                 isSaved = true
@@ -217,12 +221,12 @@ fun BluetoothDeviceList(
             }
         }
         items(scannedDevices) { device ->
-            val isAlreadySaved = savedDevices.any { it.address == device.address }
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-                onSave = if (!isAlreadySaved) { { onSave(device) } } else null
+                onPair = { onPair(device) },
+                onSave = { onSave(device) }
             )
         }
     }
@@ -233,6 +237,7 @@ fun BluetoothDeviceItem(
     device: BluetoothDeviceDomain,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
+    onPair: (() -> Unit)? = null,
     onForget: (() -> Unit)? = null,
     onSave: (() -> Unit)? = null,
     onCheckReachability: (() -> Unit)? = null,
@@ -332,6 +337,15 @@ fun BluetoothDeviceItem(
                             showMenu = false
                         }
                     )
+                    onPair?.let {
+                        DropdownMenuItem(
+                            text = { Text("Pair") },
+                            onClick = {
+                                it()
+                                showMenu = false
+                            }
+                        )
+                    }
                     onCheckReachability?.let {
                         DropdownMenuItem(
                             text = { Text("Check Status") },

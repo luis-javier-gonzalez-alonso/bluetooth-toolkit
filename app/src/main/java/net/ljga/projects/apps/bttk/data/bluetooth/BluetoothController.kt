@@ -16,6 +16,7 @@ interface BluetoothController {
     fun connectToDevice(device: BluetoothDeviceDomain)
     fun disconnect()
     
+    fun pairDevice(address: String)
     fun forgetDevice(address: String)
     fun checkReachability(address: String)
     

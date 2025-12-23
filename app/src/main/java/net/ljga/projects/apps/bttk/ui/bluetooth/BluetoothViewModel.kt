@@ -78,6 +78,10 @@ class BluetoothViewModel @Inject constructor(
     fun disconnectFromDevice() {
         bluetoothController.disconnect()
     }
+
+    fun pairDevice(device: BluetoothDeviceDomain) {
+        bluetoothController.pairDevice(device.address)
+    }
     
     fun forgetDevice(device: BluetoothDeviceDomain) {
         bluetoothController.forgetDevice(device.address)

@@ -76,6 +76,9 @@ class AndroidBluetoothController @Inject constructor(
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
                     _isScanning.value = false
                 }
+                BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
+                    updatePairedDevices()
+                }
             }
         }
     }
@@ -123,6 +126,12 @@ class AndroidBluetoothController @Inject constructor(
         _isConnected.value = false
     }
 
+    override fun pairDevice(address: String) {
+        if (!hasPermission(getConnectPermission())) return
+        val device = bluetoothAdapter?.getRemoteDevice(address)
+        device?.createBond()
+    }
+
     override fun forgetDevice(address: String) {
         if (!hasPermission(getConnectPermission())) return
         val device = bluetoothAdapter?.getRemoteDevice(address)
@@ -163,6 +172,7 @@ class AndroidBluetoothController @Inject constructor(
         val filter = IntentFilter().apply {
             addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+            addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         }
         context.registerReceiver(scanStateReceiver, filter)
     }
