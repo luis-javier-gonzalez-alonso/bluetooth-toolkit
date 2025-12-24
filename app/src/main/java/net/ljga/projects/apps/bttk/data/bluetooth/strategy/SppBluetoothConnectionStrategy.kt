@@ -1,13 +1,14 @@
-package net.ljga.projects.apps.bttk.data.bluetooth
+package net.ljga.projects.apps.bttk.data.bluetooth.strategy
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
 import java.io.IOException
 import java.util.UUID
 

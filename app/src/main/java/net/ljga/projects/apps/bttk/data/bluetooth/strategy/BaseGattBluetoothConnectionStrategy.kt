@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.data.bluetooth
+package net.ljga.projects.apps.bttk.data.bluetooth.strategy
 
 import android.annotation.SuppressLint
 import android.bluetooth.*
@@ -8,6 +8,9 @@ import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothConnectionState
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler.GattCharacteristicHandler
 import java.util.*
 
 abstract class BaseGattBluetoothConnectionStrategy(

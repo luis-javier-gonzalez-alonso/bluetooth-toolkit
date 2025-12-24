@@ -1,7 +1,6 @@
 package net.ljga.projects.apps.bttk.ui.bluetooth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,22 +15,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.DataFormat
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import java.text.SimpleDateFormat
 import java.util.Locale

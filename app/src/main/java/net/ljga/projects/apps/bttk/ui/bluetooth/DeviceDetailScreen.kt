@@ -1,7 +1,6 @@
 package net.ljga.projects.apps.bttk.ui.bluetooth
 
 import android.bluetooth.BluetoothDevice
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -2,10 +2,9 @@ package net.ljga.projects.apps.bttk.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.local.database.GattAlias
 import net.ljga.projects.apps.bttk.data.local.database.GattAliasDao
 import net.ljga.projects.apps.bttk.data.local.database.SavedDevice

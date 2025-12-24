@@ -1,8 +1,10 @@
-package net.ljga.projects.apps.bttk.data.bluetooth
+package net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import java.util.*
 
 class DefaultGattCharacteristicHandler : GattCharacteristicHandler {

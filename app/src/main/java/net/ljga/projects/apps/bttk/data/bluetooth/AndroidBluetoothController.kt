@@ -23,6 +23,15 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.BluetoothConnectionStrategy
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.GattBluetoothConnectionStrategy
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.SppBluetoothConnectionStrategy
+import net.ljga.projects.apps.bttk.data.bluetooth.utils.DeviceFoundReceiver
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
@@ -68,7 +77,7 @@ class AndroidBluetoothController @Inject constructor(
     private var isReceiverRegistered = false
     private val deviceFoundReceiver = DeviceFoundReceiver { device, rssi ->
         val newDevice = device.toBluetoothDeviceDomain(isInRange = true, rssi = rssi)
-        
+
         _scannedDevices.update { devices ->
             if (devices.any { it.address == newDevice.address }) {
                 devices.map { if (it.address == newDevice.address) newDevice else it }
@@ -78,8 +87,12 @@ class AndroidBluetoothController @Inject constructor(
         }
 
         _pairedDevices.update { devices ->
-            devices.map { 
-                if (it.address == newDevice.address) it.copy(isInRange = true, rssi = rssi, uuids = newDevice.uuids) else it
+            devices.map {
+                if (it.address == newDevice.address) it.copy(
+                    isInRange = true,
+                    rssi = rssi,
+                    uuids = newDevice.uuids
+                ) else it
             }
         }
     }
@@ -299,14 +312,18 @@ class AndroidBluetoothController @Inject constructor(
     private fun hasPermission(permission: String) = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
     private fun getScanPermission() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Manifest.permission.BLUETOOTH_SCAN else Manifest.permission.ACCESS_FINE_LOCATION
     private fun getConnectPermission() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Manifest.permission.BLUETOOTH_CONNECT else Manifest.permission.BLUETOOTH
-    
-    private fun BluetoothDevice.toBluetoothDeviceDomain(isInRange: Boolean = false, rssi: Int? = null) = BluetoothDeviceDomain(
-        name = name,
-        address = address,
-        isInRange = isInRange,
-        bondState = bondState,
-        type = type,
-        uuids = uuids?.map { it.toString() } ?: emptyList(),
-        rssi = rssi
-    )
+
+    private fun BluetoothDevice.toBluetoothDeviceDomain(
+        isInRange: Boolean = false,
+        rssi: Int? = null
+    ) =
+        BluetoothDeviceDomain(
+            name = name,
+            address = address,
+            isInRange = isInRange,
+            bondState = bondState,
+            type = type,
+            uuids = uuids?.map { it.toString() } ?: emptyList(),
+            rssi = rssi
+        )
 }

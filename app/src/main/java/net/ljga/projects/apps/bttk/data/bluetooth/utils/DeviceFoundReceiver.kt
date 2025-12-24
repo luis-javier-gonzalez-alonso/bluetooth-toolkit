@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.data.bluetooth
+package net.ljga.projects.apps.bttk.data.bluetooth.utils
 
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver

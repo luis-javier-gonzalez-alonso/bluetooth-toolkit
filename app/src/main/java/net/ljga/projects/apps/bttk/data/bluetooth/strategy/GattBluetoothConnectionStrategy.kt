@@ -1,10 +1,18 @@
-package net.ljga.projects.apps.bttk.data.bluetooth
+package net.ljga.projects.apps.bttk.data.bluetooth.strategy
 
 import android.annotation.SuppressLint
-import android.bluetooth.*
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCharacteristic
 import android.content.Context
 import kotlinx.coroutines.channels.ProducerScope
-import java.util.*
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler.BatteryCharacteristicHandler
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler.DefaultGattCharacteristicHandler
+import java.util.UUID
 
 class GattBluetoothConnectionStrategy(
     context: Context,

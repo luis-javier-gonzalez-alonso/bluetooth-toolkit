@@ -8,10 +8,10 @@ import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothProfile
-import net.ljga.projects.apps.bttk.data.bluetooth.DataFormat
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import javax.inject.Inject
 
