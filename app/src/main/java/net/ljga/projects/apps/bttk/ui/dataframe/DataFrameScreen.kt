@@ -16,7 +16,6 @@
 
 package net.ljga.projects.apps.bttk.ui.dataframe
 
-import net.ljga.projects.apps.bttk.ui.theme.MyApplicationTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +35,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import net.ljga.projects.apps.bttk.data.local.database.DataFrame
+import net.ljga.projects.apps.bttk.ui.theme.MyApplicationTheme
 
 @Composable
 fun DataFrameScreen(modifier: Modifier = Modifier, viewModel: DataFrameViewModel = hiltViewModel()) {
@@ -43,7 +44,7 @@ fun DataFrameScreen(modifier: Modifier = Modifier, viewModel: DataFrameViewModel
     if (items is DataFrameUiState.Success) {
         DataFrameScreen(
             items = (items as DataFrameUiState.Success).data,
-            onSave = viewModel::addDataFrame,
+            onSave = { name -> viewModel.addDataFrame(name, byteArrayOf()) },
             modifier = modifier
         )
     }
@@ -51,7 +52,7 @@ fun DataFrameScreen(modifier: Modifier = Modifier, viewModel: DataFrameViewModel
 
 @Composable
 internal fun DataFrameScreen(
-    items: List<String>,
+    items: List<DataFrame>,
     onSave: (name: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -71,7 +72,7 @@ internal fun DataFrameScreen(
             }
         }
         items.forEach {
-            Text("Saved item: $it")
+            Text("Saved item: ${it.name}")
         }
     }
 }
@@ -82,7 +83,7 @@ internal fun DataFrameScreen(
 @Composable
 private fun DefaultPreview() {
     MyApplicationTheme {
-        DataFrameScreen(listOf("Compose", "Room", "Kotlin"), onSave = {})
+        DataFrameScreen(listOf(DataFrame("Compose", byteArrayOf())), onSave = {})
     }
 }
 
@@ -90,6 +91,6 @@ private fun DefaultPreview() {
 @Composable
 private fun PortraitPreview() {
     MyApplicationTheme {
-        DataFrameScreen(listOf("Compose", "Room", "Kotlin"), onSave = {})
+        DataFrameScreen(listOf(DataFrame("Compose", byteArrayOf())), onSave = {})
     }
 }

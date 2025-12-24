@@ -5,28 +5,39 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.data.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothProfile
 import net.ljga.projects.apps.bttk.data.bluetooth.DataFormat
+import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import javax.inject.Inject
 
 @HiltViewModel
 class BluetoothViewModel @Inject constructor(
     private val bluetoothController: BluetoothController,
-    private val savedDeviceRepository: SavedDeviceRepository
+    private val savedDeviceRepository: SavedDeviceRepository,
+    private val dataFrameRepository: DataFrameRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BluetoothUiState())
-    val state = combine(
+    
+    private val devicesFlow = combine(
         bluetoothController.scannedDevices,
         bluetoothController.pairedDevices,
-        savedDeviceRepository.savedDevices,
+        savedDeviceRepository.savedDevices
+    ) { scanned, paired, saved ->
+        Triple(scanned, paired, saved)
+    }
+
+    val state = combine(
+        devicesFlow,
         savedDeviceRepository.gattAliases,
+        dataFrameRepository.dataFrames,
         _state
-    ) { scannedDevices, pairedDevices, savedDevices, aliases, state ->
+    ) { (scannedDevices, pairedDevices, savedDevices), aliases, dataFrames, state ->
 
         val allAddresses = (scannedDevices.map { it.address } +
                 pairedDevices.map { it.address } +
@@ -68,7 +79,8 @@ class BluetoothViewModel @Inject constructor(
             pairedDevices = updatedPaired,
             savedDevices = updatedSaved,
             selectedDevice = selectedDevice,
-            gattAliases = aliases
+            gattAliases = aliases,
+            savedDataFrames = dataFrames
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -177,6 +189,22 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
+    fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
+        bluetoothController.writeCharacteristic(serviceUuid, characteristicUuid, data)
+    }
+
+    fun saveDataFrame(name: String, data: ByteArray) {
+        viewModelScope.launch {
+            dataFrameRepository.add(name, data)
+        }
+    }
+
+    fun deleteDataFrame(uid: Int) {
+        viewModelScope.launch {
+            dataFrameRepository.remove(uid)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         bluetoothController.release()
@@ -195,5 +223,6 @@ data class BluetoothUiState(
     val dataLogs: List<BluetoothDataPacket> = emptyList(),
     val profilesToSelect: List<BluetoothProfile> = emptyList(),
     val enabledNotifications: Set<String> = emptySet(),
-    val gattAliases: Map<String, String> = emptyMap()
+    val gattAliases: Map<String, String> = emptyMap(),
+    val savedDataFrames: List<DataFrame> = emptyList()
 )

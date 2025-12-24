@@ -26,6 +26,7 @@ import net.ljga.projects.apps.bttk.data.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.DefaultDataFrameRepository
 import net.ljga.projects.apps.bttk.data.DefaultSavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,11 +48,19 @@ interface DataModule {
 }
 
 class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
-    override val dataFrames: Flow<List<String>> = flowOf(fakeDataFrames)
+    override val dataFrames: Flow<List<DataFrame>> = flowOf(fakeDataFrames)
 
-    override suspend fun add(name: String) {
+    override suspend fun add(name: String, data: ByteArray) {
+        throw NotImplementedError()
+    }
+
+    override suspend fun remove(uid: Int) {
         throw NotImplementedError()
     }
 }
 
-val fakeDataFrames = listOf("One", "Two", "Three")
+val fakeDataFrames = listOf(
+    DataFrame(name = "One", data = byteArrayOf(1, 2, 3)),
+    DataFrame(name = "Two", data = byteArrayOf(4, 5, 6)),
+    DataFrame(name = "Three", data = byteArrayOf(7, 8, 9))
+)

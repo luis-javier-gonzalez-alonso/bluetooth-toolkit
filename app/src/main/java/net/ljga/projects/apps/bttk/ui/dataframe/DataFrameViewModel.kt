@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Error
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Loading
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Success
@@ -37,13 +38,19 @@ class DataFrameViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<DataFrameUiState> = dataFrameRepository
-        .dataFrames.map<List<String>, DataFrameUiState>(::Success)
+        .dataFrames.map<List<DataFrame>, DataFrameUiState>(::Success)
         .catch { emit(Error(it)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Loading)
 
-    fun addDataFrame(name: String) {
+    fun addDataFrame(name: String, data: ByteArray) {
         viewModelScope.launch {
-            dataFrameRepository.add(name)
+            dataFrameRepository.add(name, data)
+        }
+    }
+    
+    fun deleteDataFrame(uid: Int) {
+        viewModelScope.launch {
+            dataFrameRepository.remove(uid)
         }
     }
 }
@@ -51,5 +58,5 @@ class DataFrameViewModel @Inject constructor(
 sealed interface DataFrameUiState {
     object Loading : DataFrameUiState
     data class Error(val throwable: Throwable) : DataFrameUiState
-    data class Success(val data: List<String>) : DataFrameUiState
+    data class Success(val data: List<DataFrame>) : DataFrameUiState
 }

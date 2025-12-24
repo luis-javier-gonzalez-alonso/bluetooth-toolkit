@@ -237,6 +237,10 @@ class AndroidBluetoothController @Inject constructor(
         currentStrategy?.toggleNotification(serviceUuid, characteristicUuid, enable)
     }
 
+    override fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
+        currentStrategy?.writeCharacteristic(serviceUuid, characteristicUuid, data)
+    }
+
     private fun registerReceiver() {
         if (!isReceiverRegistered) {
             val filter = IntentFilter().apply {

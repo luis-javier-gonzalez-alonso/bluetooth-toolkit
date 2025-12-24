@@ -1,20 +1,25 @@
 package net.ljga.projects.apps.bttk.ui.bluetooth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -23,6 +28,7 @@ import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.DataFormat
+import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -34,13 +40,18 @@ fun ConnectionScreen(
     logs: List<BluetoothDataPacket>,
     enabledNotifications: Set<String> = emptySet(),
     gattAliases: Map<String, String> = emptyMap(),
+    savedDataFrames: List<DataFrame> = emptyList(),
     onBackClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onReadCharacteristic: (String, String) -> Unit = { _, _ -> },
+    onWriteCharacteristic: (String, String, ByteArray) -> Unit = { _, _, _ -> },
     onToggleNotification: (String, String, Boolean) -> Unit = { _, _, _ -> },
-    onSaveAlias: (String, String, String) -> Unit = { _, _, _ -> }
+    onSaveAlias: (String, String, String) -> Unit = { _, _, _ -> },
+    onSaveDataFrame: (String, ByteArray) -> Unit = { _, _ -> },
+    onDeleteDataFrame: (Int) -> Unit = { _ -> }
 ) {
     var showAliasDialog by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+    var showWriteDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     Scaffold(
         topBar = {
@@ -92,6 +103,7 @@ fun ConnectionScreen(
                                         properties = characteristic.properties,
                                         isNotifying = enabledNotifications.contains(aliasKey),
                                         onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
+                                        onWrite = { showWriteDialog = service.uuid to characteristic.uuid },
                                         onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) },
                                         onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) }
                                     )
@@ -157,6 +169,21 @@ fun ConnectionScreen(
             }
         )
     }
+
+    if (showWriteDialog != null) {
+        PacketSelectorDialog(
+            serviceUuid = showWriteDialog!!.first,
+            characteristicUuid = showWriteDialog!!.second,
+            savedDataFrames = savedDataFrames,
+            onDismiss = { showWriteDialog = null },
+            onSend = { data ->
+                onWriteCharacteristic(showWriteDialog!!.first, showWriteDialog!!.second, data)
+                showWriteDialog = null
+            },
+            onSave = onSaveDataFrame,
+            onDelete = onDeleteDataFrame
+        )
+    }
 }
 
 @Composable
@@ -167,6 +194,7 @@ fun CharacteristicRow(
     properties: List<String>,
     isNotifying: Boolean,
     onRead: () -> Unit,
+    onWrite: () -> Unit,
     onToggleNotify: (Boolean) -> Unit,
     onEditAlias: () -> Unit
 ) {
@@ -217,7 +245,9 @@ fun CharacteristicRow(
                         text = "WRITE",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(4.dp)
+                        modifier = Modifier
+                            .clickable { onWrite() }
+                            .padding(4.dp)
                     )
                 }
             }
@@ -237,6 +267,153 @@ fun CharacteristicRow(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun PacketSelectorDialog(
+    serviceUuid: String,
+    characteristicUuid: String,
+    savedDataFrames: List<DataFrame>,
+    onDismiss: () -> Unit,
+    onSend: (ByteArray) -> Unit,
+    onSave: (String, ByteArray) -> Unit,
+    onDelete: (Int) -> Unit
+) {
+    var hexString by remember { mutableStateOf("") }
+    var saveName by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Write to Characteristic") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                TabRow(selectedTabIndex = selectedTab) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                        Text(text = "Creator", modifier = Modifier.padding(8.dp))
+                    }
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                        Text(text = "Stored", modifier = Modifier.padding(8.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (selectedTab == 0) {
+                    OutlinedTextField(
+                        value = hexString,
+                        onValueChange = { 
+                            // Only allow hex chars and spaces
+                            if (it.all { c -> c.isDigit() || c in 'a'..'f' || c in 'A'..'F' || c == ' ' }) {
+                                hexString = it 
+                            }
+                        },
+                        label = { Text("Hex Data (e.g. 01 0A FF)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                    )
+
+                    val data = remember(hexString) { parseHex(hexString) }
+                    if (data.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Preview (ASCII):", style = MaterialTheme.typography.labelSmall)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = data.toAsciiString(),
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = saveName,
+                        onValueChange = { saveName = it },
+                        label = { Text("Save as (optional)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.height(200.dp)) {
+                        items(savedDataFrames) { frame ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { 
+                                        hexString = frame.data.joinToString(" ") { "%02X".format(it) }
+                                        selectedTab = 0
+                                    }
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(frame.name, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        frame.data.joinToString(" ") { "%02X".format(it) },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                IconButton(onClick = { onDelete(frame.uid) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Row {
+                if (selectedTab == 0 && saveName.isNotBlank() && hexString.isNotBlank()) {
+                    TextButton(onClick = { 
+                        val data = parseHex(hexString)
+                        if (data.isNotEmpty()) {
+                            onSave(saveName, data)
+                            saveName = ""
+                        }
+                    }) {
+                        Text("Save")
+                    }
+                }
+                Button(
+                    onClick = {
+                        val data = parseHex(hexString)
+                        if (data.isNotEmpty()) {
+                            onSend(data)
+                        }
+                    },
+                    enabled = hexString.isNotBlank()
+                ) {
+                    Text("Send")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+private fun parseHex(hex: String): ByteArray {
+    return try {
+        hex.split(" ")
+            .filter { it.isNotBlank() }
+            .map { it.toInt(16).toByte() }
+            .toByteArray()
+    } catch (e: Exception) {
+        byteArrayOf()
     }
 }
 

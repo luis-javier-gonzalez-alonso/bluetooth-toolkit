@@ -54,4 +54,12 @@ class SppBluetoothConnectionStrategy(
         }
         socket = null
     }
+
+    override fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
+        try {
+            socket?.outputStream?.write(data)
+        } catch (e: IOException) {
+            // Ignore
+        }
+    }
 }

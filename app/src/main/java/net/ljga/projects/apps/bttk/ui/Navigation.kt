@@ -79,14 +79,18 @@ fun MainNavigation() {
                 logs = state.dataLogs,
                 enabledNotifications = state.enabledNotifications,
                 gattAliases = state.gattAliases,
+                savedDataFrames = state.savedDataFrames,
                 onBackClick = { navController.popBackStack() },
                 onDisconnectClick = {
                     viewModel.disconnectFromDevice()
                     navController.popBackStack()
                 },
                 onReadCharacteristic = { s, c -> viewModel.readCharacteristic(s, c) },
+                onWriteCharacteristic = { s, c, d -> viewModel.writeCharacteristic(s, c, d) },
                 onToggleNotification = { s, c, e -> viewModel.toggleNotification(s, c, e) },
-                onSaveAlias = { s, c, a -> viewModel.saveAlias(s, c, a) }
+                onSaveAlias = { s, c, a -> viewModel.saveAlias(s, c, a) },
+                onSaveDataFrame = { n, d -> viewModel.saveDataFrame(n, d) },
+                onDeleteDataFrame = { id -> viewModel.deleteDataFrame(id) }
             )
         }
     }

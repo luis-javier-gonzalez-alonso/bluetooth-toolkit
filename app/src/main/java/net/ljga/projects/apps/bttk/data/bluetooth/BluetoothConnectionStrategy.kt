@@ -12,6 +12,7 @@ interface BluetoothConnectionStrategy {
 
     fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {}
     fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean) {}
+    fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {}
 }
 
 enum class BluetoothConnectionState(val state: Int) {
