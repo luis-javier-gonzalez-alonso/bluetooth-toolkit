@@ -27,6 +27,8 @@ interface BluetoothController {
     fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean)
     fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray)
     
+    fun emitPacket(packet: BluetoothDataPacket)
+    
     fun release()
 }
 

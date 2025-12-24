@@ -61,7 +61,7 @@ class AndroidBluetoothController @Inject constructor(
     override val errors: Flow<String>
         get() = _errors.asSharedFlow()
 
-    private val _incomingData = MutableSharedFlow<BluetoothDataPacket>()
+    private val _incomingData = MutableSharedFlow<BluetoothDataPacket>(extraBufferCapacity = 10)
     override val incomingData: Flow<BluetoothDataPacket>
         get() = _incomingData.asSharedFlow()
 
@@ -239,6 +239,24 @@ class AndroidBluetoothController @Inject constructor(
 
     override fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
         currentStrategy?.writeCharacteristic(serviceUuid, characteristicUuid, data)
+        // Log the write operation
+        scope.launch {
+            _incomingData.emit(
+                BluetoothDataPacket(
+                    data = data,
+                    source = "Write: ${characteristicUuid.take(8)}...",
+                    format = DataFormat.HEX_ASCII,
+                    serviceUuid = serviceUuid,
+                    characteristicUuid = characteristicUuid
+                )
+            )
+        }
+    }
+
+    override fun emitPacket(packet: BluetoothDataPacket) {
+        scope.launch {
+            _incomingData.emit(packet)
+        }
     }
 
     private fun registerReceiver() {

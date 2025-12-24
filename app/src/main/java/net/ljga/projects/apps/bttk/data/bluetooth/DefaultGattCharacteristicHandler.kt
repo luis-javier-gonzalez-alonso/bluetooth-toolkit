@@ -19,7 +19,7 @@ class DefaultGattCharacteristicHandler : GattCharacteristicHandler {
     override fun handleData(characteristic: BluetoothGattCharacteristic, value: ByteArray): BluetoothDataPacket? {
         return BluetoothDataPacket(
             data = value,
-            source = "GATT: ${characteristic.uuid.toString().take(8)}...",
+            source = "Read: ${characteristic.uuid.toString().take(8)}...",
             format = DataFormat.HEX_ASCII,
             serviceUuid = characteristic.service.uuid.toString(),
             characteristicUuid = characteristic.uuid.toString()

@@ -17,8 +17,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -304,17 +308,17 @@ fun PacketSelectorDialog(
                     OutlinedTextField(
                         value = hexString,
                         onValueChange = { 
-                            // Only allow hex chars and spaces
-                            if (it.all { c -> c.isDigit() || c in 'a'..'f' || c in 'A'..'F' || c == ' ' }) {
-                                hexString = it 
-                            }
+                            // Only allow hex chars (input logic handles stripping existing spaces)
+                            val clean = it.filter { c -> c.isDigit() || c in 'a'..'f' || c in 'A'..'F' }
+                            hexString = clean
                         },
-                        label = { Text("Hex Data (e.g. 01 0A FF)") },
+                        label = { Text("Hex Data (e.g. 010AFF)") },
                         modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                        visualTransformation = HexVisualTransformation()
                     )
 
-                    val data = remember(hexString) { parseHex(hexString) }
+                    val data = remember(hexString) { parseHexNoSpaces(hexString) }
                     if (data.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Preview (ASCII):", style = MaterialTheme.typography.labelSmall)
@@ -346,7 +350,7 @@ fun PacketSelectorDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { 
-                                        hexString = frame.data.joinToString(" ") { "%02X".format(it) }
+                                        hexString = frame.data.joinToString("") { "%02X".format(it) }
                                         selectedTab = 0
                                     }
                                     .padding(8.dp),
@@ -376,7 +380,7 @@ fun PacketSelectorDialog(
             Row {
                 if (selectedTab == 0 && saveName.isNotBlank() && hexString.isNotBlank()) {
                     TextButton(onClick = { 
-                        val data = parseHex(hexString)
+                        val data = parseHexNoSpaces(hexString)
                         if (data.isNotEmpty()) {
                             onSave(saveName, data)
                             saveName = ""
@@ -387,7 +391,7 @@ fun PacketSelectorDialog(
                 }
                 Button(
                     onClick = {
-                        val data = parseHex(hexString)
+                        val data = parseHexNoSpaces(hexString)
                         if (data.isNotEmpty()) {
                             onSend(data)
                         }
@@ -406,10 +410,38 @@ fun PacketSelectorDialog(
     )
 }
 
-private fun parseHex(hex: String): ByteArray {
+class HexVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val out = StringBuilder()
+        for (i in text.indices) {
+            out.append(text[i])
+            if (i % 2 == 1 && i != text.lastIndex) {
+                out.append(" ")
+            }
+        }
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (offset <= 0) return 0
+                val spaces = (offset - 1) / 2
+                return offset + spaces
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (offset <= 0) return 0
+                val spaces = offset / 3
+                return (offset - spaces).coerceAtMost(text.length)
+            }
+        }
+
+        return TransformedText(AnnotatedString(out.toString()), offsetMapping)
+    }
+}
+
+private fun parseHexNoSpaces(hex: String): ByteArray {
     return try {
-        hex.split(" ")
-            .filter { it.isNotBlank() }
+        hex.chunked(2)
+            .filter { it.length == 2 }
             .map { it.toInt(16).toByte() }
             .toByteArray()
     } catch (e: Exception) {
