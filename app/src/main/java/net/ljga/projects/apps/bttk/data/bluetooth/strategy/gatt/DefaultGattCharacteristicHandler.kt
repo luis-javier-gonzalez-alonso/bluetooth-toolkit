@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyName
 import java.util.*
 
 class DefaultGattCharacteristicHandler : GattCharacteristicHandler {
@@ -21,7 +22,7 @@ class DefaultGattCharacteristicHandler : GattCharacteristicHandler {
     override fun handleData(characteristic: BluetoothGattCharacteristic, value: ByteArray): BluetoothDataPacket? {
         return BluetoothDataPacket(
             data = value,
-            source = "Read: ${characteristic.uuid.toString().take(8)}...",
+            source = "Read: ${characteristic.prettyName()}...",
             format = DataFormat.HEX_ASCII,
             serviceUuid = characteristic.service.uuid.toString(),
             characteristicUuid = characteristic.uuid.toString()

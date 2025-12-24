@@ -1,7 +1,11 @@
 package net.ljga.projects.apps.bttk.data.bluetooth.strategy
 
 import android.annotation.SuppressLint
-import android.bluetooth.*
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.content.Context
 import android.os.Build
 import kotlinx.coroutines.channels.ProducerScope
@@ -16,7 +20,8 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.BatteryCharacteristicHandler
 import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.DefaultGattCharacteristicHandler
 import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.GattCharacteristicHandler
-import java.util.*
+import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyName
+import java.util.UUID
 
 class GattBluetoothConnectionStrategy(
     private val context: Context,
@@ -79,13 +84,28 @@ class GattBluetoothConnectionStrategy(
             }
 
             private fun processData(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+                var handled: Boolean = false
                 handlers.forEach { handler ->
                     val packet = handler.handleData(characteristic, value)
                     if (packet != null) {
                         trySend(packet)
+                        handled = true
+
                     }
                 }
-                onDataReceived(characteristic, value, this@callbackFlow)
+
+                // If no specific handler took interest in this data, the default handler logs it
+                if (!handled) {
+                    trySend(
+                        BluetoothDataPacket(
+                            data = value,
+                            source = "Read: ${characteristic.prettyName()}...",
+                            format = DataFormat.HEX_ASCII,
+                            serviceUuid = characteristic.service.uuid.toString(),
+                            characteristicUuid = characteristic.uuid.toString()
+                        )
+                    )
+                }
             }
         }
 
@@ -136,13 +156,7 @@ class GattBluetoothConnectionStrategy(
     }
 
     fun onDataReceived(characteristic: BluetoothGattCharacteristic, value: ByteArray, scope: ProducerScope<BluetoothDataPacket>) {
-        // If no specific handler took interest in this data, the default handler logs it
-        if (handlers.none { it.characteristicUuid == characteristic.uuid }) {
-            val packet = defaultHandler.handleData(characteristic, value)
-            if (packet != null) {
-                scope.trySend(packet)
-            }
-        }
+
     }
 
     @SuppressLint("MissingPermission")

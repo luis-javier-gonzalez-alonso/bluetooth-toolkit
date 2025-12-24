@@ -32,6 +32,7 @@ import net.ljga.projects.apps.bttk.data.bluetooth.strategy.BluetoothConnectionSt
 import net.ljga.projects.apps.bttk.data.bluetooth.strategy.GattBluetoothConnectionStrategy
 import net.ljga.projects.apps.bttk.data.bluetooth.strategy.SppBluetoothConnectionStrategy
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.DeviceFoundReceiver
+import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
@@ -257,7 +258,7 @@ class AndroidBluetoothController @Inject constructor(
             _incomingData.emit(
                 BluetoothDataPacket(
                     data = data,
-                    source = "Write: ${characteristicUuid.take(8)}...",
+                    source = "Write: ${characteristicUuid.prettyCharacteristicName()}...",
                     format = DataFormat.HEX_ASCII,
                     serviceUuid = serviceUuid,
                     characteristicUuid = characteristicUuid

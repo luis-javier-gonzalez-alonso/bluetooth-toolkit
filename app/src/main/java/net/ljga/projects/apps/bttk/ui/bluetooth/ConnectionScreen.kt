@@ -29,6 +29,7 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
 import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -145,7 +146,7 @@ fun ConnectionScreen(
             title = { Text("Set Alias") },
             text = {
                 Column {
-                    Text("UUID: ${charUuid.take(8)}...", style = MaterialTheme.typography.bodySmall)
+                    Text("UUID: ${charUuid.prettyCharacteristicName()}...", style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = text,
@@ -214,7 +215,7 @@ fun CharacteristicRow(
             }
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = characteristicUuid.take(8) + "..." + (if (alias.isNotBlank()) " ($alias)" else ""),
+                text = characteristicUuid.prettyCharacteristicName() + "..." + (if (alias.isNotBlank()) " ($alias)" else ""),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -513,7 +514,7 @@ private fun formatGattServices(services: List<BluetoothServiceDomain>, gattAlias
         "Service: ${service.uuid}\n" + service.characteristics.joinToString("\n") { char ->
             val alias = gattAliases["${service.uuid}-${char.uuid}"]
             val aliasSuffix = if (alias != null) " ($alias)" else ""
-            "  └─ ${char.uuid.take(8)}...$aliasSuffix (${char.properties.joinToString(", ")})"
+            "  └─ ${char.uuid.prettyCharacteristicName()}...$aliasSuffix (${char.properties.joinToString(", ")})"
         }
     }
 }
