@@ -1,6 +1,7 @@
 package net.ljga.projects.apps.bttk.ui.bluetooth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
@@ -128,43 +130,47 @@ fun CharacteristicRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = characteristicUuid.take(8) + "...",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = properties.joinToString(", "),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
+        Text(
+            text = characteristicUuid.take(8) + "...",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
+        )
         
-        Row {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             if (properties.contains("READ")) {
-                IconButton(onClick = onRead) {
-                    Text("R", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
+                Text(
+                    text = "READ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clickable { onRead() }
+                        .padding(horizontal = 4.dp)
+                )
+            }
+            if (properties.contains("WRITE") || properties.contains("WRITE_NO_RESPONSE")) {
+                Text(
+                    text = "WRITE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
             }
             if (properties.contains("NOTIFY") || properties.contains("INDICATE")) {
-                Switch(
-                    checked = isNotifying,
-                    onCheckedChange = onToggleNotify,
-                    modifier = Modifier//.scale(0.7f)
+                Text(
+                    text = "NOTIFICATION",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        textDecoration = if (isNotifying) TextDecoration.None else TextDecoration.LineThrough
+                    ),
+                    color = if (isNotifying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    modifier = Modifier
+                        .clickable { onToggleNotify(!isNotifying) }
+                        .padding(horizontal = 4.dp)
                 )
             }
         }
     }
 }
-
-//// Add scale extension for switch
-//fun Modifier.scale(scale: Float): Modifier = this.then(
-//    androidx.compose.ui.graphics.graphicsLayer {
-//        scaleX = scale
-//        scaleY = scale
-//    }
-//)
 
 @Composable
 fun LogListView(
