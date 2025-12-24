@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler
+package net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt
 
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic

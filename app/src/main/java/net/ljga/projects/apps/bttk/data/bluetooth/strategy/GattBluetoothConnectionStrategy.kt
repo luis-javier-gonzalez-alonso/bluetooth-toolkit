@@ -13,9 +13,9 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothConnectionState
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
-import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler.BatteryCharacteristicHandler
-import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler.DefaultGattCharacteristicHandler
-import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.handler.GattCharacteristicHandler
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.BatteryCharacteristicHandler
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.DefaultGattCharacteristicHandler
+import net.ljga.projects.apps.bttk.data.bluetooth.strategy.gatt.GattCharacteristicHandler
 import java.util.*
 
 class GattBluetoothConnectionStrategy(
