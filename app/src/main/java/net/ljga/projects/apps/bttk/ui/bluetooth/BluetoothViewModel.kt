@@ -24,8 +24,9 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.scannedDevices,
         bluetoothController.pairedDevices,
         savedDeviceRepository.savedDevices,
+        savedDeviceRepository.gattAliases,
         _state
-    ) { scannedDevices, pairedDevices, savedDevices, state ->
+    ) { scannedDevices, pairedDevices, savedDevices, aliases, state ->
 
         val allAddresses = (scannedDevices.map { it.address } +
                 pairedDevices.map { it.address } +
@@ -66,7 +67,8 @@ class BluetoothViewModel @Inject constructor(
             scannedDevices = filteredScannedDevices,
             pairedDevices = updatedPaired,
             savedDevices = updatedSaved,
-            selectedDevice = selectedDevice
+            selectedDevice = selectedDevice,
+            gattAliases = aliases
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -169,6 +171,12 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.toggleNotification(serviceUuid, characteristicUuid, enable)
     }
 
+    fun saveAlias(serviceUuid: String, characteristicUuid: String, alias: String) {
+        viewModelScope.launch {
+            savedDeviceRepository.saveAlias(serviceUuid, characteristicUuid, alias)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         bluetoothController.release()
@@ -186,5 +194,6 @@ data class BluetoothUiState(
     val selectedDevice: BluetoothDeviceDomain? = null,
     val dataLogs: List<BluetoothDataPacket> = emptyList(),
     val profilesToSelect: List<BluetoothProfile> = emptyList(),
-    val enabledNotifications: Set<String> = emptySet()
+    val enabledNotifications: Set<String> = emptySet(),
+    val gattAliases: Map<String, String> = emptyMap()
 )

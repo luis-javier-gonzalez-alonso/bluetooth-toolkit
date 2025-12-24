@@ -32,7 +32,9 @@ class BatteryCharacteristicHandler : GattCharacteristicHandler {
                 data = byteArrayOf(),
                 text = "Battery Service Found - Monitoring level...",
                 source = "Battery",
-                format = DataFormat.STRUCTURED
+                format = DataFormat.STRUCTURED,
+                serviceUuid = serviceUuid.toString(),
+                characteristicUuid = characteristicUuid.toString()
             )
         }
         return null
@@ -45,7 +47,9 @@ class BatteryCharacteristicHandler : GattCharacteristicHandler {
                 data = value,
                 text = "Battery Level: $level%",
                 source = "Battery",
-                format = DataFormat.STRUCTURED
+                format = DataFormat.STRUCTURED,
+                serviceUuid = serviceUuid.toString(),
+                characteristicUuid = characteristicUuid.toString()
             )
         }
         return null

@@ -21,6 +21,7 @@ import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothServiceDomain
 @Composable
 fun DeviceDetailScreen(
     device: BluetoothDeviceDomain?,
+    gattAliases: Map<String, String> = emptyMap(),
     onBackClick: () -> Unit
 ) {
     Scaffold(
@@ -100,7 +101,7 @@ fun DeviceDetailScreen(
                         )
                     }
                     items(device.services) { service ->
-                        ServiceItem(service)
+                        ServiceItem(service, gattAliases)
                     }
                 } else if (device.uuids.isNotEmpty()) {
                     item {
@@ -125,7 +126,7 @@ fun DeviceDetailScreen(
 }
 
 @Composable
-private fun ServiceItem(service: BluetoothServiceDomain) {
+private fun ServiceItem(service: BluetoothServiceDomain, gattAliases: Map<String, String>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -142,8 +143,10 @@ private fun ServiceItem(service: BluetoothServiceDomain) {
             Spacer(modifier = Modifier.height(8.dp))
             service.characteristics.forEach { char ->
                 Column(modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)) {
+                    val alias = gattAliases["${service.uuid}-${char.uuid}"]
+                    val displayText = if (alias != null) "${char.uuid} ($alias)" else char.uuid
                     Text(
-                        text = "Characteristic: ${char.uuid}",
+                        text = "Characteristic: $displayText",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium
                     )

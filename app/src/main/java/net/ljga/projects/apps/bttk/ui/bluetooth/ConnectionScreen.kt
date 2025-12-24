@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothDataPacket
@@ -31,11 +33,15 @@ fun ConnectionScreen(
     isConnected: Boolean,
     logs: List<BluetoothDataPacket>,
     enabledNotifications: Set<String> = emptySet(),
+    gattAliases: Map<String, String> = emptyMap(),
     onBackClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onReadCharacteristic: (String, String) -> Unit = { _, _ -> },
-    onToggleNotification: (String, String, Boolean) -> Unit = { _, _, _ -> }
+    onToggleNotification: (String, String, Boolean) -> Unit = { _, _, _ -> },
+    onSaveAlias: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
+    var showAliasDialog by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,16 +80,20 @@ fun ConnectionScreen(
                         Text(text = "Characteristics", fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                        LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
                             device.services.forEach { service ->
                                 items(service.characteristics) { characteristic ->
+                                    val aliasKey = "${service.uuid}-${characteristic.uuid}"
+                                    val alias = gattAliases[aliasKey] ?: ""
                                     CharacteristicRow(
                                         serviceUuid = service.uuid,
                                         characteristicUuid = characteristic.uuid,
+                                        alias = alias,
                                         properties = characteristic.properties,
-                                        isNotifying = enabledNotifications.contains("${service.uuid}-${characteristic.uuid}"),
+                                        isNotifying = enabledNotifications.contains(aliasKey),
                                         onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
-                                        onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) }
+                                        onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) },
+                                        onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) }
                                     )
                                 }
                             }
@@ -105,6 +115,7 @@ fun ConnectionScreen(
             
             LogListView(
                 logs = logs,
+                gattAliases = gattAliases,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -112,61 +123,118 @@ fun ConnectionScreen(
             )
         }
     }
+
+    if (showAliasDialog != null) {
+        val (serviceUuid, charUuid, currentAlias) = showAliasDialog!!
+        var text by remember { mutableStateOf(currentAlias) }
+        AlertDialog(
+            onDismissRequest = { showAliasDialog = null },
+            title = { Text("Set Alias") },
+            text = {
+                Column {
+                    Text("UUID: ${charUuid.take(8)}...", style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        label = { Text("Alias") },
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onSaveAlias(serviceUuid, charUuid, text)
+                    showAliasDialog = null
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAliasDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun CharacteristicRow(
     serviceUuid: String,
     characteristicUuid: String,
+    alias: String,
     properties: List<String>,
     isNotifying: Boolean,
     onRead: () -> Unit,
-    onToggleNotify: (Boolean) -> Unit
+    onToggleNotify: (Boolean) -> Unit,
+    onEditAlias: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = characteristicUuid.take(8) + "...",
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onEditAlias, modifier = Modifier.size(24.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Alias", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = characteristicUuid.take(8) + "..." + (if (alias.isNotBlank()) " ($alias)" else ""),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (properties.contains("READ")) {
-                Text(
-                    text = "READ",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .clickable { onRead() }
-                        .padding(horizontal = 4.dp)
-                )
+        Row(
+            modifier = Modifier.width(180.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ) {
+            Box(modifier = Modifier.width(50.dp), contentAlignment = Alignment.CenterEnd) {
+                if (properties.contains("READ")) {
+                    Text(
+                        text = "READ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable { onRead() }
+                            .padding(4.dp)
+                    )
+                }
             }
-            if (properties.contains("WRITE") || properties.contains("WRITE_NO_RESPONSE")) {
-                Text(
-                    text = "WRITE",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
+            
+            Box(modifier = Modifier.width(55.dp), contentAlignment = Alignment.CenterEnd) {
+                if (properties.contains("WRITE") || properties.contains("WRITE_NO_RESPONSE")) {
+                    Text(
+                        text = "WRITE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
             }
-            if (properties.contains("NOTIFY") || properties.contains("INDICATE")) {
-                Text(
-                    text = "NOTIFICATION",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        textDecoration = if (isNotifying) TextDecoration.None else TextDecoration.LineThrough
-                    ),
-                    color = if (isNotifying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                    modifier = Modifier
-                        .clickable { onToggleNotify(!isNotifying) }
-                        .padding(horizontal = 4.dp)
-                )
+
+            Box(modifier = Modifier.width(75.dp), contentAlignment = Alignment.CenterEnd) {
+                if (properties.contains("NOTIFY") || properties.contains("INDICATE")) {
+                    Text(
+                        text = "NOTIFY",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            textDecoration = if (isNotifying) TextDecoration.None else TextDecoration.LineThrough
+                        ),
+                        color = if (isNotifying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier
+                            .clickable { onToggleNotify(!isNotifying) }
+                            .padding(4.dp)
+                    )
+                }
             }
         }
     }
@@ -175,6 +243,7 @@ fun CharacteristicRow(
 @Composable
 fun LogListView(
     logs: List<BluetoothDataPacket>,
+    gattAliases: Map<String, String> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -190,14 +259,14 @@ fun LogListView(
         modifier = modifier.padding(horizontal = 8.dp)
     ) {
         items(logs) { packet ->
-            LogEntry(packet)
+            LogEntry(packet, gattAliases)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         }
     }
 }
 
 @Composable
-fun LogEntry(packet: BluetoothDataPacket) {
+fun LogEntry(packet: BluetoothDataPacket, gattAliases: Map<String, String>) {
     val timeFormatter = remember { SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()) }
 
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -207,9 +276,13 @@ fun LogEntry(packet: BluetoothDataPacket) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondary
             )
-            packet.source?.let {
+            packet.source?.let { source ->
+                val alias = if (packet.serviceUuid != null && packet.characteristicUuid != null) {
+                    gattAliases["${packet.serviceUuid}-${packet.characteristicUuid}"]
+                } else null
+                
                 Text(
-                    text = it,
+                    text = if (alias != null) "$source ($alias)" else source,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -221,7 +294,7 @@ fun LogEntry(packet: BluetoothDataPacket) {
             DataFormat.STRUCTURED -> StructuredDataEntry(packet.text ?: String(packet.data))
             DataFormat.GATT_STRUCTURE -> {
                 val gattText = remember(packet.gattServices) {
-                    packet.gattServices?.let { formatGattServices(it) } ?: "No services discovered"
+                    packet.gattServices?.let { formatGattServices(it, gattAliases) } ?: "No services discovered"
                 }
                 StructuredDataEntry(gattText)
             }
@@ -229,10 +302,12 @@ fun LogEntry(packet: BluetoothDataPacket) {
     }
 }
 
-private fun formatGattServices(services: List<BluetoothServiceDomain>): String {
+private fun formatGattServices(services: List<BluetoothServiceDomain>, gattAliases: Map<String, String>): String {
     return services.joinToString("\n") { service ->
         "Service: ${service.uuid}\n" + service.characteristics.joinToString("\n") { char ->
-            "  └─ ${char.uuid.take(8)}... (${char.properties.joinToString(", ")})"
+            val alias = gattAliases["${service.uuid}-${char.uuid}"]
+            val aliasSuffix = if (alias != null) " ($alias)" else ""
+            "  └─ ${char.uuid.take(8)}...$aliasSuffix (${char.properties.joinToString(", ")})"
         }
     }
 }

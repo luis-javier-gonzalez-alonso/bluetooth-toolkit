@@ -20,7 +20,9 @@ class DefaultGattCharacteristicHandler : GattCharacteristicHandler {
         return BluetoothDataPacket(
             data = value,
             source = "GATT: ${characteristic.uuid.toString().take(8)}...",
-            format = DataFormat.HEX_ASCII
+            format = DataFormat.HEX_ASCII,
+            serviceUuid = characteristic.service.uuid.toString(),
+            characteristicUuid = characteristic.uuid.toString()
         )
     }
 }

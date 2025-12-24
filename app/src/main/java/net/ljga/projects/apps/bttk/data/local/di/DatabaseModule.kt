@@ -25,6 +25,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.ljga.projects.apps.bttk.data.local.database.AppDatabase
 import net.ljga.projects.apps.bttk.data.local.database.DataFrameDao
+import net.ljga.projects.apps.bttk.data.local.database.GattAliasDao
 import net.ljga.projects.apps.bttk.data.local.database.SavedDeviceDao
 import javax.inject.Singleton
 
@@ -43,12 +44,18 @@ class DatabaseModule {
     }
 
     @Provides
+    fun provideGattAliasDao(appDatabase: AppDatabase): GattAliasDao {
+        return appDatabase.gattAliasDao()
+    }
+
+    @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
         return Room.databaseBuilder(
             appContext,
             AppDatabase::class.java,
             "BluetoothToolkit"
-        ).build()
+        ).fallbackToDestructiveMigration()
+            .build()
     }
 }

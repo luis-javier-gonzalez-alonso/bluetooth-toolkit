@@ -62,6 +62,7 @@ fun MainNavigation() {
             
             DeviceDetailScreen(
                 device = state.selectedDevice,
+                gattAliases = state.gattAliases,
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -77,13 +78,15 @@ fun MainNavigation() {
                 isConnected = state.isConnected,
                 logs = state.dataLogs,
                 enabledNotifications = state.enabledNotifications,
+                gattAliases = state.gattAliases,
                 onBackClick = { navController.popBackStack() },
                 onDisconnectClick = {
                     viewModel.disconnectFromDevice()
                     navController.popBackStack()
                 },
                 onReadCharacteristic = { s, c -> viewModel.readCharacteristic(s, c) },
-                onToggleNotification = { s, c, e -> viewModel.toggleNotification(s, c, e) }
+                onToggleNotification = { s, c, e -> viewModel.toggleNotification(s, c, e) },
+                onSaveAlias = { s, c, a -> viewModel.saveAlias(s, c, a) }
             )
         }
     }
