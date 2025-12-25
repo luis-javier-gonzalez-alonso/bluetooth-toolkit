@@ -15,6 +15,7 @@ import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothScreen
 import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothViewModel
 import net.ljga.projects.apps.bttk.ui.bluetooth.ConnectionScreen
 import net.ljga.projects.apps.bttk.ui.bluetooth.DeviceDetailScreen
+import net.ljga.projects.apps.bttk.ui.bluetooth.GattServerScreen
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameScreen
 
 @Composable
@@ -34,7 +35,15 @@ fun MainNavigation() {
                 onDetailsClick = { device ->
                     viewModel.showDeviceDetails(device)
                     navController.navigate("device_details")
+                },
+                onGattServerClick = {
+                    navController.navigate("gatt_server")
                 }
+            )
+        }
+        composable("gatt_server") {
+            GattServerScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable("device_details") {

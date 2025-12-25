@@ -4,13 +4,22 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattServer
+import android.bluetooth.BluetoothGattServerCallback
+import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
+import android.bluetooth.le.AdvertiseCallback
+import android.bluetooth.le.AdvertiseData
+import android.bluetooth.le.AdvertiseSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.ParcelUuid
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,6 +32,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
@@ -33,6 +43,7 @@ import net.ljga.projects.apps.bttk.data.bluetooth.strategy.GattBluetoothConnecti
 import net.ljga.projects.apps.bttk.data.bluetooth.strategy.SppBluetoothConnectionStrategy
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.DeviceFoundReceiver
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
+import java.util.UUID
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")
@@ -74,6 +85,69 @@ class AndroidBluetoothController @Inject constructor(
     private val _incomingData = MutableSharedFlow<BluetoothDataPacket>(extraBufferCapacity = 10)
     override val incomingData: Flow<BluetoothDataPacket>
         get() = _incomingData.asSharedFlow()
+
+    // GATT Server State
+    private val _isGattServerRunning = MutableStateFlow(false)
+    override val isGattServerRunning: StateFlow<Boolean> = _isGattServerRunning.asStateFlow()
+
+    private val _gattServerServices = MutableStateFlow<List<BluetoothServiceDomain>>(emptyList())
+    override val gattServerServices: StateFlow<List<BluetoothServiceDomain>> = _gattServerServices.asStateFlow()
+
+    private var gattServer: BluetoothGattServer? = null
+    private var isAdvertising = false
+
+    private val gattServerCallback = object : BluetoothGattServerCallback() {
+        override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
+            super.onConnectionStateChange(device, status, newState)
+            Log.d("GattServer", "Connection state change: ${device?.address} status: $status newState: $newState")
+        }
+
+        override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
+            super.onServiceAdded(status, service)
+            Log.d("GattServer", "Service added: ${service?.uuid} status: $status")
+        }
+
+        override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {
+            super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
+            gattServer?.sendResponse(device, requestId, 0, offset, characteristic?.value)
+        }
+
+        override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
+            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
+            if (value != null) {
+                @Suppress("DEPRECATION")
+                characteristic?.value = value
+                scope.launch {
+                    _incomingData.emit(
+                        BluetoothDataPacket(
+                            data = value,
+                            source = "GATT Server Write: ${characteristic?.uuid}",
+                            format = DataFormat.HEX_ASCII,
+                            serviceUuid = characteristic?.service?.uuid.toString(),
+                            characteristicUuid = characteristic?.uuid.toString()
+                        )
+                    )
+                }
+            }
+            if (responseNeeded) {
+                gattServer?.sendResponse(device, requestId, 0, offset, value)
+            }
+        }
+    }
+
+    private val advertiseCallback = object : AdvertiseCallback() {
+        override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+            super.onStartSuccess(settingsInEffect)
+            isAdvertising = true
+            Log.d("GattServer", "Advertising started successfully")
+        }
+
+        override fun onStartFailure(errorCode: Int) {
+            super.onStartFailure(errorCode)
+            isAdvertising = false
+            _errors.tryEmit("Advertising failed with error code: $errorCode")
+        }
+    }
 
     private var isReceiverRegistered = false
     private val deviceFoundReceiver = DeviceFoundReceiver { device, rssi ->
@@ -129,7 +203,6 @@ class AndroidBluetoothController @Inject constructor(
             return
         }
 
-        // Always update paired devices when starting discovery, as permissions are now guaranteed
         updatePairedDevices()
 
         _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false, rssi = null) } }
@@ -146,7 +219,6 @@ class AndroidBluetoothController @Inject constructor(
 
     override fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile?) {
         if (_isConnected.value && _connectedAddress.value == device.address) {
-            // Already connected to this device, nothing to do
             return
         }
 
@@ -157,12 +229,10 @@ class AndroidBluetoothController @Inject constructor(
 
         val adapter = bluetoothAdapter ?: return
         
-        // Select strategy based on profile
         val strategy: BluetoothConnectionStrategy = when (profile) {
             BluetoothProfile.SPP -> SppBluetoothConnectionStrategy(adapter)
             BluetoothProfile.GATT -> GattBluetoothConnectionStrategy(context, adapter)
             else -> {
-                // If no profile selected, check if device supports SPP or defaults to GATT
                 val supportsSpp = device.uuids.any { it.equals(BluetoothProfile.SPP.uuid.toString(), ignoreCase = true) }
                 
                 when {
@@ -253,7 +323,6 @@ class AndroidBluetoothController @Inject constructor(
 
     override fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
         currentStrategy?.writeCharacteristic(serviceUuid, characteristicUuid, data)
-        // Log the write operation
         scope.launch {
             _incomingData.emit(
                 BluetoothDataPacket(
@@ -274,6 +343,108 @@ class AndroidBluetoothController @Inject constructor(
     override fun emitPacket(packet: BluetoothDataPacket) {
         scope.launch {
             _incomingData.emit(packet)
+        }
+    }
+
+    // GATT Server implementation
+    override fun startGattServer() {
+        if (!hasPermission(getConnectPermission()) || !hasPermission(getAdvertisePermission())) {
+            _errors.tryEmit("Missing permissions for GATT Server")
+            return
+        }
+
+        if (gattServer != null) return
+
+        gattServer = bluetoothManager?.openGattServer(context, gattServerCallback)
+        if (gattServer == null) {
+            _errors.tryEmit("Failed to open GATT Server")
+            return
+        }
+
+        // Add configured services
+        _gattServerServices.value.forEach { serviceDomain ->
+            val gattService = BluetoothGattService(
+                UUID.fromString(serviceDomain.uuid),
+                BluetoothGattService.SERVICE_TYPE_PRIMARY
+            )
+            serviceDomain.characteristics.forEach { charDomain ->
+                val gattChar = BluetoothGattCharacteristic(
+                    UUID.fromString(charDomain.uuid),
+                    charDomain.propertyInts,
+                    charDomain.permissionInts
+                )
+                gattService.addCharacteristic(gattChar)
+            }
+            gattServer?.addService(gattService)
+        }
+
+        startAdvertising()
+        _isGattServerRunning.value = true
+    }
+
+    private fun startAdvertising() {
+        val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser ?: return
+        val settings = AdvertiseSettings.Builder()
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+            .setConnectable(true)
+            .setTimeout(0)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+            .build()
+
+        val dataBuilder = AdvertiseData.Builder()
+            .setIncludeDeviceName(true)
+        
+        _gattServerServices.value.firstOrNull()?.let {
+            dataBuilder.addServiceUuid(ParcelUuid(UUID.fromString(it.uuid)))
+        }
+        
+        val data = dataBuilder.build()
+
+        advertiser.startAdvertising(settings, data, advertiseCallback)
+    }
+
+    override fun stopGattServer() {
+        if (isAdvertising) {
+            bluetoothAdapter?.bluetoothLeAdvertiser?.stopAdvertising(advertiseCallback)
+            isAdvertising = false
+        }
+        gattServer?.close()
+        gattServer = null
+        _isGattServerRunning.value = false
+    }
+
+    override fun addGattService(service: BluetoothServiceDomain) {
+        _gattServerServices.update { it + service }
+        if (_isGattServerRunning.value) {
+            val gattService = BluetoothGattService(
+                UUID.fromString(service.uuid),
+                BluetoothGattService.SERVICE_TYPE_PRIMARY
+            )
+            service.characteristics.forEach { charDomain ->
+                val gattChar = BluetoothGattCharacteristic(
+                    UUID.fromString(charDomain.uuid),
+                    charDomain.propertyInts,
+                    charDomain.permissionInts
+                )
+                gattService.addCharacteristic(gattChar)
+            }
+            gattServer?.addService(gattService)
+        }
+    }
+
+    override fun removeGattService(serviceUuid: String) {
+        _gattServerServices.update { it.filter { service -> service.uuid != serviceUuid } }
+        if (_isGattServerRunning.value) {
+            gattServer?.getService(UUID.fromString(serviceUuid))?.let {
+                gattServer?.removeService(it)
+            }
+        }
+    }
+
+    override fun clearGattServices() {
+        _gattServerServices.value = emptyList()
+        if (_isGattServerRunning.value) {
+            gattServer?.clearServices()
         }
     }
 
@@ -305,6 +476,7 @@ class AndroidBluetoothController @Inject constructor(
         try { context.unregisterReceiver(scanStateReceiver) } catch (e: Exception) {}
         disconnect()
         stopDiscovery()
+        stopGattServer()
     }
 
     private fun updatePairedDevices() {
@@ -317,6 +489,7 @@ class AndroidBluetoothController @Inject constructor(
     private fun hasPermission(permission: String) = context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
     private fun getScanPermission() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Manifest.permission.BLUETOOTH_SCAN else Manifest.permission.ACCESS_FINE_LOCATION
     private fun getConnectPermission() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Manifest.permission.BLUETOOTH_CONNECT else Manifest.permission.BLUETOOTH
+    private fun getAdvertisePermission() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Manifest.permission.BLUETOOTH_ADVERTISE else Manifest.permission.BLUETOOTH
 
     private fun BluetoothDevice.toBluetoothDeviceDomain(
         isInRange: Boolean = false,

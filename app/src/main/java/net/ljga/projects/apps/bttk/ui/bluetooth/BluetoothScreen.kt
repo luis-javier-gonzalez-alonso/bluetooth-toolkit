@@ -14,13 +14,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -51,15 +54,18 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 fun BluetoothScreen(
     viewModel: BluetoothViewModel,
     onDeviceClick: (BluetoothDeviceDomain) -> Unit,
-    onDetailsClick: (BluetoothDeviceDomain) -> Unit
+    onDetailsClick: (BluetoothDeviceDomain) -> Unit,
+    onGattServerClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showFabMenu by remember { mutableStateOf(false) }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
             Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_ADVERTISE
         )
     } else {
         arrayOf(
@@ -84,7 +90,33 @@ fun BluetoothScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            Box {
+                FloatingActionButton(
+                    onClick = { showFabMenu = true },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Actions")
+                }
+                DropdownMenu(
+                    expanded = showFabMenu,
+                    onDismissRequest = { showFabMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("GATT Server") },
+                        onClick = {
+                            showFabMenu = false
+                            onGattServerClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Storage, contentDescription = null)
+                        }
+                    )
+                }
+            }
+        }
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,

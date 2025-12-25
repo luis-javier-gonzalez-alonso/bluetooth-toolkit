@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 
 interface BluetoothController {
     val scannedDevices: StateFlow<List<BluetoothDeviceDomain>>
@@ -14,6 +15,10 @@ interface BluetoothController {
     val isScanning: StateFlow<Boolean>
     val errors: Flow<String>
     val incomingData: Flow<BluetoothDataPacket>
+    
+    // GATT Server
+    val isGattServerRunning: StateFlow<Boolean>
+    val gattServerServices: StateFlow<List<BluetoothServiceDomain>>
 
     fun startDiscovery()
     fun stopDiscovery()
@@ -32,6 +37,13 @@ interface BluetoothController {
     fun readDescriptors(serviceUuid: String, characteristicUuid: String)
     
     fun emitPacket(packet: BluetoothDataPacket)
+    
+    // GATT Server operations
+    fun startGattServer()
+    fun stopGattServer()
+    fun addGattService(service: BluetoothServiceDomain)
+    fun removeGattService(serviceUuid: String)
+    fun clearGattServices()
     
     fun release()
 }

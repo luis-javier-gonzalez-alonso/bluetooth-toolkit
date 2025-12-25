@@ -8,11 +8,14 @@ import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.local.database.DataFrame
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,12 +35,20 @@ class BluetoothViewModel @Inject constructor(
         Triple(scanned, paired, saved)
     }
 
+    private val gattServerFlow = combine(
+        bluetoothController.isGattServerRunning,
+        bluetoothController.gattServerServices
+    ) { isRunning, services ->
+        isRunning to services
+    }
+
     val state = combine(
         devicesFlow,
         savedDeviceRepository.gattAliases,
         dataFrameRepository.dataFrames,
+        gattServerFlow,
         _state
-    ) { (scannedDevices, pairedDevices, savedDevices), aliases, dataFrames, state ->
+    ) { (scannedDevices, pairedDevices, savedDevices), aliases, dataFrames, (isGattServerRunning, gattServerServices), state ->
 
         val allAddresses = (scannedDevices.map { it.address } +
                 pairedDevices.map { it.address } +
@@ -80,7 +91,9 @@ class BluetoothViewModel @Inject constructor(
             savedDevices = updatedSaved,
             selectedDevice = selectedDevice,
             gattAliases = aliases,
-            savedDataFrames = dataFrames
+            savedDataFrames = dataFrames,
+            isGattServerRunning = isGattServerRunning,
+            gattServerServices = gattServerServices
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -209,6 +222,45 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
+    // GATT Server Actions
+    fun toggleGattServer() {
+        if (state.value.isGattServerRunning) {
+            bluetoothController.stopGattServer()
+        } else {
+            bluetoothController.startGattServer()
+        }
+    }
+
+    fun addGattService(uuid: String = UUID.randomUUID().toString()) {
+        bluetoothController.addGattService(
+            BluetoothServiceDomain(
+                uuid = uuid,
+                characteristics = emptyList()
+            )
+        )
+    }
+
+    fun removeGattService(serviceUuid: String) {
+        bluetoothController.removeGattService(serviceUuid)
+    }
+
+    fun addCharacteristicToService(serviceUuid: String, charUuid: String = UUID.randomUUID().toString()) {
+        val currentServices = state.value.gattServerServices
+        val service = currentServices.find { it.uuid == serviceUuid } ?: return
+        
+        val newChar = BluetoothCharacteristicDomain(
+            uuid = charUuid,
+            properties = listOf("READ", "WRITE")
+        )
+        
+        val updatedService = service.copy(
+            characteristics = service.characteristics + newChar
+        )
+        
+        bluetoothController.removeGattService(serviceUuid)
+        bluetoothController.addGattService(updatedService)
+    }
+
     override fun onCleared() {
         super.onCleared()
         bluetoothController.release()
@@ -228,5 +280,7 @@ data class BluetoothUiState(
     val profilesToSelect: List<BluetoothProfile> = emptyList(),
     val enabledNotifications: Set<String> = emptySet(),
     val gattAliases: Map<String, String> = emptyMap(),
-    val savedDataFrames: List<DataFrame> = emptyList()
+    val savedDataFrames: List<DataFrame> = emptyList(),
+    val isGattServerRunning: Boolean = false,
+    val gattServerServices: List<BluetoothServiceDomain> = emptyList()
 )
