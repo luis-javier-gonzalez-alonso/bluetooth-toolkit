@@ -534,7 +534,7 @@ fun RunningServerView(state: BluetoothUiState) {
         )
         
         LogListView(
-            logs = state.dataLogs,
+            logs = state.gattServerLogs,
             gattAliases = emptyMap(),
             modifier = Modifier
                 .fillMaxWidth()

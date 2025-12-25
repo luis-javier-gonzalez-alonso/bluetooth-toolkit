@@ -53,13 +53,23 @@ class BluetoothViewModel @Inject constructor(
         isRunning to services
     }
 
+    private val logsFlow = combine(
+        bluetoothController.incomingData,
+        bluetoothController.gattServerLogs
+    ) { incoming, gatt -> incoming to gatt }
+
+    private val repositoryFlow = combine(
+        savedDeviceRepository.gattAliases,
+        dataFrameRepository.dataFrames
+    ) { aliases, dataFrames -> aliases to dataFrames }
+
     val state = combine(
         devicesFlow,
-        savedDeviceRepository.gattAliases,
-        dataFrameRepository.dataFrames,
+        repositoryFlow,
         gattServerFlow,
+        logsFlow,
         _state
-    ) { (scannedDevices, pairedDevices, savedDevices), aliases, dataFrames, (isGattServerRunning, gattServerServices), state ->
+    ) { (scannedDevices, pairedDevices, savedDevices), (aliases, dataFrames), (isGattServerRunning, gattServerServices), (incomingData, gattServerLogs), state ->
 
         val allAddresses = (scannedDevices.map { it.address } +
                 pairedDevices.map { it.address } +
@@ -105,6 +115,8 @@ class BluetoothViewModel @Inject constructor(
             savedDataFrames = dataFrames,
             isGattServerRunning = isGattServerRunning,
             gattServerServices = gattServerServices,
+            dataLogs = incomingData,
+            gattServerLogs = gattServerLogs,
             localAddress = bluetoothController.localAddress
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
@@ -122,14 +134,16 @@ class BluetoothViewModel @Inject constructor(
             _state.update { it.copy(errorMessage = error, isConnecting = false) }
         }.launchIn(viewModelScope)
 
-        bluetoothController.incomingData.onEach { packet ->
-            if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
-                state.value.selectedDevice?.let { device ->
-                    savedDeviceRepository.updateServices(device.address, packet.gattServices)
+        // Handle service discovery persistence
+        bluetoothController.incomingData
+            .mapNotNull { it.lastOrNull() }
+            .onEach { packet ->
+                if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
+                    packet.source?.let { address ->
+                        savedDeviceRepository.updateServices(address, packet.gattServices)
+                    }
                 }
-            }
-            _state.update { it.copy(dataLogs = (it.dataLogs + packet).takeLast(100)) }
-        }.launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
 
         // Load saved GATT Server config
         viewModelScope.launch {
@@ -365,6 +379,7 @@ data class BluetoothUiState(
     val errorMessage: String? = null,
     val selectedDevice: BluetoothDeviceDomain? = null,
     val dataLogs: List<BluetoothDataPacket> = emptyList(),
+    val gattServerLogs: List<BluetoothDataPacket> = emptyList(),
     val profilesToSelect: List<BluetoothProfile> = emptyList(),
     val enabledNotifications: Set<String> = emptySet(),
     val gattAliases: Map<String, String> = emptyMap(),

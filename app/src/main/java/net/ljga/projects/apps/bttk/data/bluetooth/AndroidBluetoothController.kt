@@ -86,9 +86,9 @@ class AndroidBluetoothController @Inject constructor(
     override val errors: Flow<String>
         get() = _errors.asSharedFlow()
 
-    private val _incomingData = MutableSharedFlow<BluetoothDataPacket>(extraBufferCapacity = 10)
-    override val incomingData: Flow<BluetoothDataPacket>
-        get() = _incomingData.asSharedFlow()
+    private val _incomingData = MutableStateFlow<List<BluetoothDataPacket>>(emptyList())
+    override val incomingData: StateFlow<List<BluetoothDataPacket>>
+        get() = _incomingData.asStateFlow()
 
     // GATT Server State
     private val _isGattServerRunning = MutableStateFlow(false)
@@ -96,6 +96,9 @@ class AndroidBluetoothController @Inject constructor(
 
     private val _gattServerServices = MutableStateFlow<List<BluetoothServiceDomain>>(emptyList())
     override val gattServerServices: StateFlow<List<BluetoothServiceDomain>> = _gattServerServices.asStateFlow()
+
+    private val _gattServerLogs = MutableStateFlow<List<BluetoothDataPacket>>(emptyList())
+    override val gattServerLogs: StateFlow<List<BluetoothDataPacket>> = _gattServerLogs.asStateFlow()
 
     private var gattServer: BluetoothGattServer? = null
     private var isAdvertising = false
@@ -110,16 +113,14 @@ class AndroidBluetoothController @Inject constructor(
                 2 -> "Connected"
                 else -> "State $newState"
             }
-            scope.launch {
-                _incomingData.emit(
-                    BluetoothDataPacket(
-                        data = byteArrayOf(),
-                        source = device?.address ?: "Unknown",
-                        format = DataFormat.STRUCTURED,
-                        text = "Device $stateStr (status: $status)"
-                    )
+            emitGattLog(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = device?.address ?: "Unknown",
+                    format = DataFormat.STRUCTURED,
+                    text = "Device $stateStr (status: $status)"
                 )
-            }
+            )
         }
 
         override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
@@ -130,33 +131,31 @@ class AndroidBluetoothController @Inject constructor(
                 "Failed to add service: ${service?.uuid}, status: $status"
             }
             Log.d("GattServer", text)
-            scope.launch {
-                _incomingData.emit(
-                    BluetoothDataPacket(
-                        data = byteArrayOf(),
-                        source = "GATT Server",
-                        format = DataFormat.STRUCTURED,
-                        text = text
-                    )
+            emitGattLog(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = "GATT Server",
+                    format = DataFormat.STRUCTURED,
+                    text = text
                 )
-            }
+            )
         }
 
         override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
-            scope.launch {
-                _incomingData.emit(
-                    BluetoothDataPacket(
-                        data = characteristic?.value ?: byteArrayOf(),
-                        source = device?.address ?: "Unknown",
-                        format = DataFormat.HEX_ASCII,
-                        text = "Read Request: ${characteristic?.uuid?.prettyCharacteristicName() ?: "Unknown"}",
-                        serviceUuid = characteristic?.service?.uuid.toString(),
-                        characteristicUuid = characteristic?.uuid.toString()
-                    )
+            @Suppress("DEPRECATION")
+            val valBytes = characteristic?.value ?: byteArrayOf()
+            emitGattLog(
+                BluetoothDataPacket(
+                    data = valBytes,
+                    source = device?.address ?: "Unknown",
+                    format = DataFormat.HEX_ASCII,
+                    text = "Read Request: ${characteristic?.uuid?.prettyCharacteristicName() ?: "Unknown"}",
+                    serviceUuid = characteristic?.service?.uuid.toString(),
+                    characteristicUuid = characteristic?.uuid.toString()
                 )
-            }
-            gattServer?.sendResponse(device, requestId, 0, offset, characteristic?.value)
+            )
+            gattServer?.sendResponse(device, requestId, 0, offset, valBytes)
         }
 
         override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
@@ -164,18 +163,16 @@ class AndroidBluetoothController @Inject constructor(
             if (value != null) {
                 @Suppress("DEPRECATION")
                 characteristic?.value = value
-                scope.launch {
-                    _incomingData.emit(
-                        BluetoothDataPacket(
-                            data = value,
-                            source = device?.address ?: "Unknown",
-                            format = DataFormat.HEX_ASCII,
-                            text = "Write Request: ${characteristic?.uuid?.prettyCharacteristicName() ?: "Unknown"}",
-                            serviceUuid = characteristic?.service?.uuid.toString(),
-                            characteristicUuid = characteristic?.uuid.toString()
-                        )
+                emitGattLog(
+                    BluetoothDataPacket(
+                        data = value,
+                        source = device?.address ?: "Unknown",
+                        format = DataFormat.HEX_ASCII,
+                        text = "Write Request: ${characteristic?.uuid?.prettyCharacteristicName() ?: "Unknown"}",
+                        serviceUuid = characteristic?.service?.uuid.toString(),
+                        characteristicUuid = characteristic?.uuid.toString()
                     )
-                }
+                )
             }
             if (responseNeeded) {
                 gattServer?.sendResponse(device, requestId, 0, offset, value)
@@ -183,21 +180,30 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
 
+    private fun emitGattLog(packet: BluetoothDataPacket) {
+        _gattServerLogs.update { (it + packet).takeLast(100) }
+    }
+
+    private fun emitIncomingData(packet: BluetoothDataPacket) {
+        if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null && packet.source != null) {
+            updateDeviceServices(packet.source, packet.gattServices)
+        }
+        _incomingData.update { (it + packet).takeLast(100) }
+    }
+
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             super.onStartSuccess(settingsInEffect)
             isAdvertising = true
             Log.d("GattServer", "Advertising started successfully")
-            scope.launch {
-                _incomingData.emit(
-                    BluetoothDataPacket(
-                        data = byteArrayOf(),
-                        source = "GATT Server",
-                        format = DataFormat.STRUCTURED,
-                        text = "Advertising started successfully"
-                    )
+            emitGattLog(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = "GATT Server",
+                    format = DataFormat.STRUCTURED,
+                    text = "Advertising started successfully"
                 )
-            }
+            )
         }
 
         override fun onStartFailure(errorCode: Int) {
@@ -212,16 +218,14 @@ class AndroidBluetoothController @Inject constructor(
                 else -> "Advertising failed with error code: $errorCode"
             }
             _errors.tryEmit(errorMsg)
-            scope.launch {
-                _incomingData.emit(
-                    BluetoothDataPacket(
-                        data = byteArrayOf(),
-                        source = "GATT Server",
-                        format = DataFormat.STRUCTURED,
-                        text = errorMsg
-                    )
+            emitGattLog(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = "GATT Server",
+                    format = DataFormat.STRUCTURED,
+                    text = errorMsg
                 )
-            }
+            )
         }
     }
 
@@ -332,10 +336,7 @@ class AndroidBluetoothController @Inject constructor(
                 strategy.connect(device.address).collect { packet ->
                     _isConnected.value = true
                     _connectedAddress.value = device.address
-                    if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
-                        updateDeviceServices(device.address, packet.gattServices)
-                    }
-                    _incomingData.emit(packet)
+                    emitIncomingData(packet)
                 }
             } catch (e: Exception) {
                 _errors.tryEmit("Connection failed: ${e.message}")
@@ -362,6 +363,7 @@ class AndroidBluetoothController @Inject constructor(
             currentAddress = null
             _isConnected.value = false
             _connectedAddress.value = null
+            _incomingData.value = emptyList() // Clear logs on disconnect
         }
     }
 
@@ -403,17 +405,15 @@ class AndroidBluetoothController @Inject constructor(
 
     override fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
         currentStrategy?.writeCharacteristic(serviceUuid, characteristicUuid, data)
-        scope.launch {
-            _incomingData.emit(
-                BluetoothDataPacket(
-                    data = data,
-                    source = "Write: ${characteristicUuid.prettyCharacteristicName()}...",
-                    format = DataFormat.HEX_ASCII,
-                    serviceUuid = serviceUuid,
-                    characteristicUuid = characteristicUuid
-                )
+        emitIncomingData(
+            BluetoothDataPacket(
+                data = data,
+                source = "Write: ${characteristicUuid.prettyCharacteristicName()}...",
+                format = DataFormat.HEX_ASCII,
+                serviceUuid = serviceUuid,
+                characteristicUuid = characteristicUuid
             )
-        }
+        )
     }
 
     override fun readDescriptors(serviceUuid: String, characteristicUuid: String) {
@@ -421,9 +421,7 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     override fun emitPacket(packet: BluetoothDataPacket) {
-        scope.launch {
-            _incomingData.emit(packet)
-        }
+        emitIncomingData(packet)
     }
 
     // GATT Server implementation
@@ -444,29 +442,26 @@ class AndroidBluetoothController @Inject constructor(
         if (gattServer == null) {
             val errorMsg = "Failed to open GATT Server"
             _errors.tryEmit(errorMsg)
-            scope.launch {
-                _incomingData.emit(
-                    BluetoothDataPacket(
-                        data = byteArrayOf(),
-                        source = "GATT Server",
-                        format = DataFormat.STRUCTURED,
-                        text = errorMsg
-                    )
-                )
-            }
-            return
-        }
-
-        scope.launch {
-            _incomingData.emit(
+            emitGattLog(
                 BluetoothDataPacket(
                     data = byteArrayOf(),
                     source = "GATT Server",
                     format = DataFormat.STRUCTURED,
-                    text = "Server started${deviceName?.let { " as $it" } ?: ""}"
+                    text = errorMsg
                 )
             )
+            return
         }
+
+        _gattServerLogs.value = emptyList() // Clear logs on start
+        emitGattLog(
+            BluetoothDataPacket(
+                data = byteArrayOf(),
+                source = "GATT Server",
+                format = DataFormat.STRUCTURED,
+                text = "Server started${deviceName?.let { " as $it" } ?: ""}"
+            )
+        )
 
         // Add configured services
         _gattServerServices.value.forEach { serviceDomain ->
@@ -483,6 +478,7 @@ class AndroidBluetoothController @Inject constructor(
                 charDomain.initialValue?.let { hexValue ->
                     try {
                         val bytes = hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                        @Suppress("DEPRECATION")
                         gattChar.value = bytes
                     } catch (e: Exception) {
                         Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
@@ -501,16 +497,14 @@ class AndroidBluetoothController @Inject constructor(
         val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser ?: run {
             val errorMsg = "BLE Advertising not supported"
             _errors.tryEmit(errorMsg)
-            scope.launch {
-                _incomingData.emit(
-                    BluetoothDataPacket(
-                        data = byteArrayOf(),
-                        source = "GATT Server",
-                        format = DataFormat.STRUCTURED,
-                        text = errorMsg
-                    )
+            emitGattLog(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = "GATT Server",
+                    format = DataFormat.STRUCTURED,
+                    text = errorMsg
                 )
-            }
+            )
             return
         }
 
@@ -538,16 +532,14 @@ class AndroidBluetoothController @Inject constructor(
         Log.d("GattServer", "Starting advertising...")
         advertiser.startAdvertising(settings, data, scanResponse, advertiseCallback)
         
-        scope.launch {
-            _incomingData.emit(
-                BluetoothDataPacket(
-                    data = byteArrayOf(),
-                    source = "GATT Server",
-                    format = DataFormat.STRUCTURED,
-                    text = "Starting advertising..."
-                )
+        emitGattLog(
+            BluetoothDataPacket(
+                data = byteArrayOf(),
+                source = "GATT Server",
+                format = DataFormat.STRUCTURED,
+                text = "Starting advertising..."
             )
-        }
+        )
     }
 
     override fun stopGattServer() {
@@ -559,16 +551,16 @@ class AndroidBluetoothController @Inject constructor(
         gattServer = null
         _isGattServerRunning.value = false
         
-        scope.launch {
-            _incomingData.emit(
-                BluetoothDataPacket(
-                    data = byteArrayOf(),
-                    source = "GATT Server",
-                    format = DataFormat.STRUCTURED,
-                    text = "Server stopped"
-                )
+        emitGattLog(
+            BluetoothDataPacket(
+                data = byteArrayOf(),
+                source = "GATT Server",
+                format = DataFormat.STRUCTURED,
+                text = "Server stopped"
             )
-        }
+        )
+        // Note: we don't clear logs here so they can be reviewed after stopping,
+        // they are cleared on next start.
 
         originalName?.let {
             bluetoothAdapter?.name = it
@@ -598,6 +590,7 @@ class AndroidBluetoothController @Inject constructor(
                 charDomain.initialValue?.let { hexValue ->
                     try {
                         val bytes = hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                        @Suppress("DEPRECATION")
                         gattChar.value = bytes
                     } catch (e: Exception) {
                         Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
@@ -646,6 +639,7 @@ class AndroidBluetoothController @Inject constructor(
                 charDomain.initialValue?.let { hexValue ->
                     try {
                         val bytes = hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                        @Suppress("DEPRECATION")
                         gattChar.value = bytes
                     } catch (e: Exception) {
                         Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)

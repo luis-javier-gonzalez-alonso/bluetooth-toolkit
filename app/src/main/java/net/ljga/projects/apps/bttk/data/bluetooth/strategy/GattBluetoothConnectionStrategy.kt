@@ -57,7 +57,7 @@ class GattBluetoothConnectionStrategy(
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    onGattServicesDiscovered(gatt, this@callbackFlow)
+                    onGattServicesDiscovered(gatt, this@callbackFlow, address)
                 }
             }
 
@@ -154,7 +154,7 @@ class GattBluetoothConnectionStrategy(
     }
 
     @SuppressLint("MissingPermission")
-    fun onGattServicesDiscovered(gatt: BluetoothGatt, scope: ProducerScope<BluetoothDataPacket>) {
+    fun onGattServicesDiscovered(gatt: BluetoothGatt, scope: ProducerScope<BluetoothDataPacket>, address: String) {
         val services = gatt.services.map { service ->
             BluetoothServiceDomain(
                 uuid = service.uuid.toString(),
@@ -173,7 +173,7 @@ class GattBluetoothConnectionStrategy(
             BluetoothDataPacket(
                 format = DataFormat.GATT_STRUCTURE,
                 gattServices = services,
-                source = "GATT Discovery"
+                source = address
             )
         )
 

@@ -72,8 +72,10 @@ fun ConnectionScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onDisconnectClick) {
-                        Text("Disconnect")
+                    if (isConnected) {
+                        TextButton(onClick = onDisconnectClick) {
+                            Text("Disconnect")
+                        }
                     }
                 }
             )
@@ -84,41 +86,51 @@ fun ConnectionScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (isConnected && device != null && device.services.isNotEmpty()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Characteristics", fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
-                            device.services.forEach { service ->
-                                items(service.characteristics) { characteristic ->
-                                    val aliasKey = "${service.uuid}-${characteristic.uuid}"
-                                    val alias = gattAliases[aliasKey] ?: ""
-                                    CharacteristicRow(
-                                        serviceUuid = service.uuid,
-                                        characteristicUuid = characteristic.uuid,
-                                        alias = alias,
-                                        properties = characteristic.properties,
-                                        isNotifying = enabledNotifications.contains(aliasKey),
-                                        onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
-                                        onReadDescriptors = { onReadDescriptors(service.uuid, characteristic.uuid) },
-                                        onWrite = { showWriteDialog = service.uuid to characteristic.uuid },
-                                        onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) },
-                                        onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) }
-                                    )
+            if (isConnected && device != null) {
+                if (device.services.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(text = "Characteristics", fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
+                                device.services.forEach { service ->
+                                    items(service.characteristics) { characteristic ->
+                                        val aliasKey = "${service.uuid}-${characteristic.uuid}"
+                                        val alias = gattAliases[aliasKey] ?: ""
+                                        CharacteristicRow(
+                                            serviceUuid = service.uuid,
+                                            characteristicUuid = characteristic.uuid,
+                                            alias = alias,
+                                            properties = characteristic.properties,
+                                            isNotifying = enabledNotifications.contains(aliasKey),
+                                            onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
+                                            onReadDescriptors = { onReadDescriptors(service.uuid, characteristic.uuid) },
+                                            onWrite = { showWriteDialog = service.uuid to characteristic.uuid },
+                                            onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) },
+                                            onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                } else {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Discovering services...", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
             } else if (!isConnected) {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
@@ -314,7 +326,6 @@ fun PacketSelectorDialog(
                     OutlinedTextField(
                         value = hexString,
                         onValueChange = { 
-                            // Only allow hex chars (input logic handles stripping existing spaces)
                             val clean = it.filter { c -> c.isDigit() || c in 'a'..'f' || c in 'A'..'F' }
                             hexString = clean
                         },

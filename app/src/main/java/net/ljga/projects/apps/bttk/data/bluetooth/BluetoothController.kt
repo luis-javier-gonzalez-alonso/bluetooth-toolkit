@@ -14,12 +14,13 @@ interface BluetoothController {
     val connectedAddress: StateFlow<String?>
     val isScanning: StateFlow<Boolean>
     val errors: Flow<String>
-    val incomingData: Flow<BluetoothDataPacket>
+    val incomingData: StateFlow<List<BluetoothDataPacket>>
     
     // GATT Server
     val isGattServerRunning: StateFlow<Boolean>
     val gattServerServices: StateFlow<List<BluetoothServiceDomain>>
     val localAddress: String?
+    val gattServerLogs: StateFlow<List<BluetoothDataPacket>>
 
     fun startDiscovery(): Boolean
     fun stopDiscovery()
