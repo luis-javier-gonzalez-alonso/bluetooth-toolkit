@@ -29,6 +29,10 @@ class BluetoothViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(BluetoothUiState())
     
+    private var nextServiceIndex = 0
+    private val serviceIndices = mutableMapOf<String, Int>()
+    private val serviceNextCharIndices = mutableMapOf<String, Int>()
+
     private val devicesFlow = combine(
         bluetoothController.scannedDevices,
         bluetoothController.pairedDevices,
@@ -123,7 +127,11 @@ class BluetoothViewModel @Inject constructor(
 
         // Load saved GATT Server config
         viewModelScope.launch {
-            gattServerRepository.config.first().forEach { service ->
+            val data = gattServerRepository.config.first()
+            nextServiceIndex = data.nextServiceIndex
+            serviceIndices.putAll(data.serviceIndices)
+            serviceNextCharIndices.putAll(data.serviceNextCharIndices)
+            data.services.forEach { service ->
                 bluetoothController.addGattService(service)
             }
         }
@@ -245,28 +253,31 @@ class BluetoothViewModel @Inject constructor(
             uuid = uuid,
             characteristics = emptyList()
         )
+        serviceIndices[uuid] = nextServiceIndex++
+        serviceNextCharIndices[uuid] = 0
         bluetoothController.addGattService(newService)
         saveGattServerConfig()
     }
 
     fun removeGattService(serviceUuid: String) {
         bluetoothController.removeGattService(serviceUuid)
+        // Note: we don't decrement nextServiceIndex to keep it incremental
         saveGattServerConfig()
     }
 
     fun addCharacteristicToService(serviceUuid: String, charUuid: String? = null) {
         val currentServices = state.value.gattServerServices
-        val serviceIndex = currentServices.indexOfFirst { it.uuid == serviceUuid }
-        if (serviceIndex == -1) return
-        
-        val service = currentServices[serviceIndex]
+        val service = currentServices.find { it.uuid == serviceUuid } ?: return
+        val sIndex = serviceIndices[serviceUuid] ?: 0
+        val cIndex = serviceNextCharIndices[serviceUuid] ?: 0
         
         val finalCharUuid = charUuid ?: run {
             val baseUuid = serviceUuid.substring(8)
-            val charCount = service.characteristics.size
-            val prefix = "a${serviceIndex.toString(16)}${charCount.toString(16).padStart(2, '0')}".padStart(8, '0')
+            val prefix = "a${sIndex.toString(16)}${cIndex.toString(16).padStart(2, '0')}".padStart(8, '0')
             "$prefix$baseUuid"
         }
+        
+        serviceNextCharIndices[serviceUuid] = cIndex + 1
         
         val newChar = BluetoothCharacteristicDomain(
             uuid = finalCharUuid,
@@ -277,14 +288,30 @@ class BluetoothViewModel @Inject constructor(
             characteristics = service.characteristics + newChar
         )
         
-        // Use addGattService which handles updates internally without reordering if we don't call remove first
-        bluetoothController.addGattService(updatedService)
+        bluetoothController.updateGattService(updatedService)
+        saveGattServerConfig()
+    }
+
+    fun removeCharacteristicFromService(serviceUuid: String, charUuid: String) {
+        val currentServices = state.value.gattServerServices
+        val service = currentServices.find { it.uuid == serviceUuid } ?: return
+        
+        val updatedService = service.copy(
+            characteristics = service.characteristics.filter { it.uuid != charUuid }
+        )
+        
+        bluetoothController.updateGattService(updatedService)
         saveGattServerConfig()
     }
 
     private fun saveGattServerConfig() {
         viewModelScope.launch {
-            gattServerRepository.saveConfig(bluetoothController.gattServerServices.value)
+            gattServerRepository.saveConfig(
+                bluetoothController.gattServerServices.value, 
+                nextServiceIndex,
+                serviceIndices,
+                serviceNextCharIndices
+            )
         }
     }
 

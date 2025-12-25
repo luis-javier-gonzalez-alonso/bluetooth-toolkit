@@ -458,6 +458,30 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
 
+    override fun updateGattService(service: BluetoothServiceDomain) {
+        _gattServerServices.update { current ->
+            current.map { if (it.uuid == service.uuid) service else it }
+        }
+        if (_isGattServerRunning.value) {
+            gattServer?.getService(UUID.fromString(service.uuid))?.let {
+                gattServer?.removeService(it)
+            }
+            val gattService = BluetoothGattService(
+                UUID.fromString(service.uuid),
+                BluetoothGattService.SERVICE_TYPE_PRIMARY
+            )
+            service.characteristics.forEach { charDomain ->
+                val gattChar = BluetoothGattCharacteristic(
+                    UUID.fromString(charDomain.uuid),
+                    charDomain.propertyInts,
+                    charDomain.permissionInts
+                )
+                gattService.addCharacteristic(gattChar)
+            }
+            gattServer?.addService(gattService)
+        }
+    }
+
     private fun registerReceiver() {
         if (!isReceiverRegistered) {
             val filter = IntentFilter().apply {

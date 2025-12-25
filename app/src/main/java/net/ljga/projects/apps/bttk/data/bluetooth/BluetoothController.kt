@@ -44,6 +44,7 @@ interface BluetoothController {
     fun addGattService(service: BluetoothServiceDomain)
     fun removeGattService(serviceUuid: String)
     fun clearGattServices()
+    fun updateGattService(service: BluetoothServiceDomain)
     
     fun release()
 }

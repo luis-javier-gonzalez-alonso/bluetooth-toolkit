@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -95,7 +96,8 @@ fun GattServerScreen(
     val state by viewModel.state.collectAsState()
     var newServiceRawUuid by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
-    val errorColor = remember { Animatable(Color.Transparent) }
+    val defaultErrorColor = MaterialTheme.colorScheme.error
+    val errorBorderColor = remember { Animatable(defaultErrorColor) }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
@@ -166,45 +168,48 @@ fun GattServerScreen(
                     isError = isError,
                     visualTransformation = UuidVisualTransformation(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        errorBorderColor = errorColor.value,
-                        errorLabelColor = if (errorColor.value != Color.Transparent) errorColor.value else MaterialTheme.colorScheme.error
+                        errorBorderColor = errorBorderColor.value,
+                        errorLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(onClick = {
-                    if (newServiceRawUuid.length == 32) {
-                        val formattedUuid = buildString {
-                            append(newServiceRawUuid.substring(0, 8))
-                            append("-")
-                            append(newServiceRawUuid.substring(8, 12))
-                            append("-")
-                            append(newServiceRawUuid.substring(12, 16))
-                            append("-")
-                            append(newServiceRawUuid.substring(16, 20))
-                            append("-")
-                            append(newServiceRawUuid.substring(20))
-                        }
-                        try {
-                            UUID.fromString(formattedUuid)
-                            viewModel.addGattService(formattedUuid)
-                            newServiceRawUuid = ""
-                            isError = false
-                        } catch (e: Exception) {
+                    val validateAndAdd = {
+                        if (newServiceRawUuid.length == 32) {
+                            val formattedUuid = buildString {
+                                append(newServiceRawUuid.substring(0, 8))
+                                append("-")
+                                append(newServiceRawUuid.substring(8, 12))
+                                append("-")
+                                append(newServiceRawUuid.substring(12, 16))
+                                append("-")
+                                append(newServiceRawUuid.substring(16, 20))
+                                append("-")
+                                append(newServiceRawUuid.substring(20))
+                            }
+                            try {
+                                UUID.fromString(formattedUuid)
+                                viewModel.addGattService(formattedUuid)
+                                newServiceRawUuid = ""
+                                isError = false
+                            } catch (e: Exception) {
+                                isError = true
+                                scope.launch {
+                                    errorBorderColor.animateTo(Color.Red, animationSpec = tween(1000))
+                                    errorBorderColor.animateTo(defaultErrorColor, animationSpec = tween(1000))
+                                }
+                            }
+                        } else if (newServiceRawUuid.isBlank()) {
+                            viewModel.addGattService()
+                        } else {
                             isError = true
                             scope.launch {
-                                errorColor.animateTo(Color.Red, animationSpec = tween(400))
-                                errorColor.animateTo(Color.Transparent, animationSpec = tween(400))
+                                errorBorderColor.animateTo(Color.Red, animationSpec = tween(1000))
+                                errorBorderColor.animateTo(defaultErrorColor, animationSpec = tween(1000))
                             }
                         }
-                    } else if (newServiceRawUuid.isBlank()) {
-                        viewModel.addGattService()
-                    } else {
-                        isError = true
-                        scope.launch {
-                            errorColor.animateTo(Color.Red, animationSpec = tween(400))
-                            errorColor.animateTo(Color.Transparent, animationSpec = tween(400))
-                        }
                     }
+                    validateAndAdd()
                 }) {
                     Icon(Icons.Default.Add, contentDescription = "Add Service")
                 }
@@ -219,8 +224,9 @@ fun GattServerScreen(
                     GattServiceItem(
                         service = service,
                         onDeleteService = { viewModel.removeGattService(service.uuid) },
-                        onAddCharacteristic = { 
-                            viewModel.addCharacteristicToService(service.uuid)
+                        onAddCharacteristic = { viewModel.addCharacteristicToService(service.uuid) },
+                        onDeleteCharacteristic = { charUuid -> 
+                            viewModel.removeCharacteristicFromService(service.uuid, charUuid)
                         }
                     )
                 }
@@ -233,7 +239,8 @@ fun GattServerScreen(
 fun GattServiceItem(
     service: BluetoothServiceDomain,
     onDeleteService: () -> Unit,
-    onAddCharacteristic: () -> Unit
+    onAddCharacteristic: () -> Unit,
+    onDeleteCharacteristic: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -257,7 +264,10 @@ fun GattServiceItem(
             Text(text = "Characteristics", style = MaterialTheme.typography.titleSmall)
 
             service.characteristics.forEach { characteristic ->
-                GattCharacteristicItem(characteristic = characteristic)
+                GattCharacteristicItem(
+                    characteristic = characteristic,
+                    onDelete = { onDeleteCharacteristic(characteristic.uuid) }
+                )
             }
 
             Button(
@@ -276,13 +286,31 @@ fun GattServiceItem(
 }
 
 @Composable
-fun GattCharacteristicItem(characteristic: BluetoothCharacteristicDomain) {
-    Column(modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp)) {
-        Text(text = "UUID: ${characteristic.uuid}", style = MaterialTheme.typography.bodySmall)
-        Text(
-            text = "Props: ${characteristic.properties.joinToString(", ")}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.secondary
-        )
+fun GattCharacteristicItem(
+    characteristic: BluetoothCharacteristicDomain,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            Text(text = "UUID: ${characteristic.uuid}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "Props: ${characteristic.properties.joinToString(", ")}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Remove Characteristic",
+                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                modifier = Modifier.padding(4.dp)
+            )
+        }
     }
 }
