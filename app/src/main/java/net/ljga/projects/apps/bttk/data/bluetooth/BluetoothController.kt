@@ -40,7 +40,7 @@ interface BluetoothController {
     fun emitPacket(packet: BluetoothDataPacket)
     
     // GATT Server operations
-    fun startGattServer()
+    fun startGattServer(deviceName: String? = null)
     fun stopGattServer()
     fun addGattService(service: BluetoothServiceDomain)
     fun removeGattService(serviceUuid: String)

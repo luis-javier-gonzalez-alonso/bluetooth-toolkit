@@ -137,10 +137,16 @@ class BluetoothViewModel @Inject constructor(
             nextServiceIndex = data.nextServiceIndex
             serviceIndices.putAll(data.serviceIndices)
             serviceNextCharIndices.putAll(data.serviceNextCharIndices)
+            _state.update { it.copy(gattServerDeviceName = data.deviceName ?: "") }
             data.services.forEach { service ->
                 bluetoothController.addGattService(service)
             }
         }
+    }
+
+    fun setGattServerDeviceName(name: String) {
+        _state.update { it.copy(gattServerDeviceName = name) }
+        saveGattServerConfig()
     }
 
     fun startScan() {
@@ -252,11 +258,12 @@ class BluetoothViewModel @Inject constructor(
                 action = GattServerService.ACTION_STOP
             }
             context.startService(intent)
-            _state.update { it.copy(dataLogs = emptyList()) }
         } else {
-            _state.update { it.copy(dataLogs = emptyList()) }
             val intent = Intent(context, GattServerService::class.java).apply {
                 action = GattServerService.ACTION_START
+                if (state.value.gattServerDeviceName.isNotBlank()) {
+                    putExtra(GattServerService.EXTRA_DEVICE_NAME, state.value.gattServerDeviceName)
+                }
             }
             context.startForegroundService(intent)
         }
@@ -341,14 +348,10 @@ class BluetoothViewModel @Inject constructor(
                 bluetoothController.gattServerServices.value, 
                 nextServiceIndex,
                 serviceIndices,
-                serviceNextCharIndices
+                serviceNextCharIndices,
+                state.value.gattServerDeviceName
             )
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        bluetoothController.release()
     }
 }
 
@@ -368,5 +371,6 @@ data class BluetoothUiState(
     val savedDataFrames: List<DataFrame> = emptyList(),
     val isGattServerRunning: Boolean = false,
     val gattServerServices: List<BluetoothServiceDomain> = emptyList(),
-    val localAddress: String? = null
+    val localAddress: String? = null,
+    val gattServerDeviceName: String = ""
 )

@@ -143,14 +143,18 @@ fun GattServerScreen(
                         onCheckedChange = { viewModel.toggleGattServer() }
                     )
                 }
-                
-                state.localAddress?.let { address ->
-                    Text(
-                        text = "Device Address: $address",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = state.gattServerDeviceName,
+                    onValueChange = { viewModel.setGattServerDeviceName(it) },
+                    label = { Text("Advertising Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !state.isGattServerRunning,
+                    placeholder = { Text("Device Name") }
+                )
             }
 
             if (state.isGattServerRunning) {

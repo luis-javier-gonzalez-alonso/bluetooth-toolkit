@@ -11,7 +11,6 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
-import net.ljga.projects.apps.bttk.R
 import net.ljga.projects.apps.bttk.ui.MainActivity
 import javax.inject.Inject
 
@@ -25,17 +24,20 @@ class GattServerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> startForegroundService()
+            ACTION_START -> {
+                val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
+                startForegroundService(deviceName)
+            }
             ACTION_STOP -> stopService()
         }
         return START_STICKY
     }
 
-    private fun startForegroundService() {
+    private fun startForegroundService(deviceName: String?) {
         createNotificationChannel()
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
-        bluetoothController.startGattServer()
+        bluetoothController.startGattServer(deviceName)
     }
 
     private fun stopService() {
@@ -92,5 +94,6 @@ class GattServerService : Service() {
         private const val NOTIFICATION_ID = 1
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
+        const val EXTRA_DEVICE_NAME = "EXTRA_DEVICE_NAME"
     }
 }

@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattServer
 import android.bluetooth.BluetoothGattServerCallback
@@ -98,6 +99,7 @@ class AndroidBluetoothController @Inject constructor(
 
     private var gattServer: BluetoothGattServer? = null
     private var isAdvertising = false
+    private var originalName: String? = null
 
     private val gattServerCallback = object : BluetoothGattServerCallback() {
         override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
@@ -114,7 +116,27 @@ class AndroidBluetoothController @Inject constructor(
                         data = byteArrayOf(),
                         source = device?.address ?: "Unknown",
                         format = DataFormat.STRUCTURED,
-                        text = "Device $stateStr"
+                        text = "Device $stateStr (status: $status)"
+                    )
+                )
+            }
+        }
+
+        override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
+            super.onServiceAdded(status, service)
+            val text = if (status == BluetoothGatt.GATT_SUCCESS) {
+                "Service added successfully: ${service?.uuid}"
+            } else {
+                "Failed to add service: ${service?.uuid}, status: $status"
+            }
+            Log.d("GattServer", text)
+            scope.launch {
+                _incomingData.emit(
+                    BluetoothDataPacket(
+                        data = byteArrayOf(),
+                        source = "GATT Server",
+                        format = DataFormat.STRUCTURED,
+                        text = text
                     )
                 )
             }
@@ -166,12 +188,40 @@ class AndroidBluetoothController @Inject constructor(
             super.onStartSuccess(settingsInEffect)
             isAdvertising = true
             Log.d("GattServer", "Advertising started successfully")
+            scope.launch {
+                _incomingData.emit(
+                    BluetoothDataPacket(
+                        data = byteArrayOf(),
+                        source = "GATT Server",
+                        format = DataFormat.STRUCTURED,
+                        text = "Advertising started successfully"
+                    )
+                )
+            }
         }
 
         override fun onStartFailure(errorCode: Int) {
             super.onStartFailure(errorCode)
             isAdvertising = false
-            _errors.tryEmit("Advertising failed with error code: $errorCode")
+            val errorMsg = when (errorCode) {
+                ADVERTISE_FAILED_ALREADY_STARTED -> "Advertising failed: Already started"
+                ADVERTISE_FAILED_DATA_TOO_LARGE -> "Advertising failed: Data too large"
+                ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "Advertising failed: Feature unsupported"
+                ADVERTISE_FAILED_INTERNAL_ERROR -> "Advertising failed: Internal error"
+                ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "Advertising failed: Too many advertisers"
+                else -> "Advertising failed with error code: $errorCode"
+            }
+            _errors.tryEmit(errorMsg)
+            scope.launch {
+                _incomingData.emit(
+                    BluetoothDataPacket(
+                        data = byteArrayOf(),
+                        source = "GATT Server",
+                        format = DataFormat.STRUCTURED,
+                        text = errorMsg
+                    )
+                )
+            }
         }
     }
 
@@ -377,7 +427,7 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     // GATT Server implementation
-    override fun startGattServer() {
+    override fun startGattServer(deviceName: String?) {
         if (!hasPermission(getConnectPermission()) || !hasPermission(getAdvertisePermission())) {
             _errors.tryEmit("Missing permissions for GATT Server")
             return
@@ -385,10 +435,37 @@ class AndroidBluetoothController @Inject constructor(
 
         if (gattServer != null) return
 
+        if (deviceName != null) {
+            originalName = bluetoothAdapter?.name
+            bluetoothAdapter?.name = deviceName
+        }
+
         gattServer = bluetoothManager?.openGattServer(context, gattServerCallback)
         if (gattServer == null) {
-            _errors.tryEmit("Failed to open GATT Server")
+            val errorMsg = "Failed to open GATT Server"
+            _errors.tryEmit(errorMsg)
+            scope.launch {
+                _incomingData.emit(
+                    BluetoothDataPacket(
+                        data = byteArrayOf(),
+                        source = "GATT Server",
+                        format = DataFormat.STRUCTURED,
+                        text = errorMsg
+                    )
+                )
+            }
             return
+        }
+
+        scope.launch {
+            _incomingData.emit(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = "GATT Server",
+                    format = DataFormat.STRUCTURED,
+                    text = "Server started${deviceName?.let { " as $it" } ?: ""}"
+                )
+            )
         }
 
         // Add configured services
@@ -421,7 +498,22 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     private fun startAdvertising() {
-        val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser ?: return
+        val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser ?: run {
+            val errorMsg = "BLE Advertising not supported"
+            _errors.tryEmit(errorMsg)
+            scope.launch {
+                _incomingData.emit(
+                    BluetoothDataPacket(
+                        data = byteArrayOf(),
+                        source = "GATT Server",
+                        format = DataFormat.STRUCTURED,
+                        text = errorMsg
+                    )
+                )
+            }
+            return
+        }
+
         val settings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
             .setConnectable(true)
@@ -429,16 +521,33 @@ class AndroidBluetoothController @Inject constructor(
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
             .build()
 
+        // Split data between Advertisement and Scan Response to avoid 31-byte limit
         val dataBuilder = AdvertiseData.Builder()
-            .setIncludeDeviceName(true)
+            .setIncludeTxPowerLevel(true)
         
         _gattServerServices.value.firstOrNull()?.let {
             dataBuilder.addServiceUuid(ParcelUuid(UUID.fromString(it.uuid)))
         }
         
-        val data = dataBuilder.build()
+        val scanResponseBuilder = AdvertiseData.Builder()
+            .setIncludeDeviceName(true)
 
-        advertiser.startAdvertising(settings, data, advertiseCallback)
+        val data = dataBuilder.build()
+        val scanResponse = scanResponseBuilder.build()
+
+        Log.d("GattServer", "Starting advertising...")
+        advertiser.startAdvertising(settings, data, scanResponse, advertiseCallback)
+        
+        scope.launch {
+            _incomingData.emit(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = "GATT Server",
+                    format = DataFormat.STRUCTURED,
+                    text = "Starting advertising..."
+                )
+            )
+        }
     }
 
     override fun stopGattServer() {
@@ -449,6 +558,22 @@ class AndroidBluetoothController @Inject constructor(
         gattServer?.close()
         gattServer = null
         _isGattServerRunning.value = false
+        
+        scope.launch {
+            _incomingData.emit(
+                BluetoothDataPacket(
+                    data = byteArrayOf(),
+                    source = "GATT Server",
+                    format = DataFormat.STRUCTURED,
+                    text = "Server stopped"
+                )
+            )
+        }
+
+        originalName?.let {
+            bluetoothAdapter?.name = it
+            originalName = null
+        }
     }
 
     override fun addGattService(service: BluetoothServiceDomain) {

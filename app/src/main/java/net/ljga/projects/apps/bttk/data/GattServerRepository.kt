@@ -16,7 +16,8 @@ data class GattServerStateData(
     val services: List<BluetoothServiceDomain>,
     val nextServiceIndex: Int,
     val serviceIndices: Map<String, Int> = emptyMap(),
-    val serviceNextCharIndices: Map<String, Int> = emptyMap()
+    val serviceNextCharIndices: Map<String, Int> = emptyMap(),
+    val deviceName: String? = null
 )
 
 @Singleton
@@ -42,9 +43,10 @@ class GattServerRepository @Inject constructor(
         services: List<BluetoothServiceDomain>, 
         nextServiceIndex: Int,
         serviceIndices: Map<String, Int>,
-        serviceNextCharIndices: Map<String, Int>
+        serviceNextCharIndices: Map<String, Int>,
+        deviceName: String?
     ) {
-        val data = GattServerStateData(services, nextServiceIndex, serviceIndices, serviceNextCharIndices)
+        val data = GattServerStateData(services, nextServiceIndex, serviceIndices, serviceNextCharIndices, deviceName)
         val json = Json.encodeToString(data)
         gattServerDao.saveConfig(GattServerConfig(servicesJson = json))
     }
