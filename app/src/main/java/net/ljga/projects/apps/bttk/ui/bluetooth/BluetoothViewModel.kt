@@ -193,6 +193,10 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.writeCharacteristic(serviceUuid, characteristicUuid, data)
     }
 
+    fun readDescriptors(serviceUuid: String, characteristicUuid: String) {
+        bluetoothController.readDescriptors(serviceUuid, characteristicUuid)
+    }
+
     fun saveDataFrame(name: String, data: ByteArray) {
         viewModelScope.launch {
             dataFrameRepository.add(name, data)

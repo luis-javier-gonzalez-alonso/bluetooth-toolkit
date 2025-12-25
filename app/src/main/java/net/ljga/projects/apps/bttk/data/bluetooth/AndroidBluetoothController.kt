@@ -267,6 +267,10 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
 
+    override fun readDescriptors(serviceUuid: String, characteristicUuid: String) {
+        currentStrategy?.readDescriptors(serviceUuid, characteristicUuid)
+    }
+
     override fun emitPacket(packet: BluetoothDataPacket) {
         scope.launch {
             _incomingData.emit(packet)

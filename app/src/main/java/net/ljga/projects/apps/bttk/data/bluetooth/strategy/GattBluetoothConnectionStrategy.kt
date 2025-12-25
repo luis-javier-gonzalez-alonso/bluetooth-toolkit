@@ -47,7 +47,7 @@ class GattBluetoothConnectionStrategy(
 
         val gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-                val current = BluetoothConnectionState.fromInt(status)
+                val current = BluetoothConnectionState.fromInt(newState)
                 if (current == BluetoothConnectionState.STATE_CONNECTED) {
                     gatt.discoverServices()
                 } else if (current == BluetoothConnectionState.STATE_DISCONNECTED) {
@@ -83,6 +83,28 @@ class GattBluetoothConnectionStrategy(
                 processData(characteristic, value)
             }
 
+            @Deprecated("Deprecated in Java")
+            override fun onDescriptorRead(
+                gatt: BluetoothGatt,
+                descriptor: BluetoothGattDescriptor,
+                status: Int
+            ) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    processDescriptorData(descriptor, descriptor.value)
+                }
+            }
+
+            override fun onDescriptorRead(
+                gatt: BluetoothGatt,
+                descriptor: BluetoothGattDescriptor,
+                status: Int,
+                value: ByteArray
+            ) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    processDescriptorData(descriptor, value)
+                }
+            }
+
             private fun processData(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
                 var handled: Boolean = false
                 handlers.forEach { handler ->
@@ -107,6 +129,21 @@ class GattBluetoothConnectionStrategy(
                     )
                 }
             }
+
+            private fun processDescriptorData(
+                descriptor: BluetoothGattDescriptor,
+                value: ByteArray
+            ) {
+                trySend(
+                    BluetoothDataPacket(
+                        data = value,
+                        source = "Descriptor: ${descriptor.uuid}...",
+                        format = DataFormat.HEX_ASCII,
+                        serviceUuid = descriptor.characteristic.service.uuid.toString(),
+                        characteristicUuid = descriptor.characteristic.uuid.toString()
+                    )
+                )
+            }
         }
 
         bluetoothGatt = device.connectGatt(context, false, gattCallback)
@@ -115,6 +152,7 @@ class GattBluetoothConnectionStrategy(
             disconnectInternal()
         }
     }
+
     @SuppressLint("MissingPermission")
     fun onGattServicesDiscovered(gatt: BluetoothGatt, scope: ProducerScope<BluetoothDataPacket>) {
         val services = gatt.services.map { service ->
@@ -153,10 +191,6 @@ class GattBluetoothConnectionStrategy(
                 }
             }
         }
-    }
-
-    fun onDataReceived(characteristic: BluetoothGattCharacteristic, value: ByteArray, scope: ProducerScope<BluetoothDataPacket>) {
-
     }
 
     @SuppressLint("MissingPermission")
@@ -208,6 +242,15 @@ class GattBluetoothConnectionStrategy(
                 @Suppress("DEPRECATION")
                 bluetoothGatt?.writeCharacteristic(characteristic)
             }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    override fun readDescriptors(serviceUuid: String, characteristicUuid: String) {
+        val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
+        val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
+        characteristic?.descriptors?.forEach { descriptor ->
+            bluetoothGatt?.readDescriptor(descriptor)
         }
     }
 

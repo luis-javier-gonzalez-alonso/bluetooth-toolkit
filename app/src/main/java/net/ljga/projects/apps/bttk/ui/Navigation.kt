@@ -70,6 +70,7 @@ fun MainNavigation() {
                     navController.popBackStack()
                 },
                 onReadCharacteristic = { s, c -> viewModel.readCharacteristic(s, c) },
+                onReadDescriptors = { s, c -> viewModel.readDescriptors(s, c) },
                 onWriteCharacteristic = { s, c, d -> viewModel.writeCharacteristic(s, c, d) },
                 onToggleNotification = { s, c, e -> viewModel.toggleNotification(s, c, e) },
                 onSaveAlias = { s, c, a -> viewModel.saveAlias(s, c, a) },
