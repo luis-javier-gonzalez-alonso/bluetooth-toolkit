@@ -9,7 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,11 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
@@ -60,6 +62,17 @@ class UuidVisualTransformation : VisualTransformation {
         }
 
         return TransformedText(AnnotatedString(out), offsetMapping)
+    }
+}
+
+private fun parseHexNoSpaces(hex: String): ByteArray {
+    return try {
+        hex.chunked(2)
+            .filter { it.length == 2 }
+            .map { it.toInt(16).toByte() }
+            .toByteArray()
+    } catch (e: Exception) {
+        byteArrayOf()
     }
 }
 
@@ -179,8 +192,8 @@ fun GattServerScreen(
         AddCharacteristicDialog(
             initialUuid = viewModel.generateCharacteristicUuid(serviceUuid),
             onDismiss = { showAddCharDialog = null },
-            onConfirm = { uuid, properties, permissions ->
-                viewModel.addCharacteristicToService(serviceUuid, uuid, properties, permissions)
+            onConfirm = { uuid, properties, permissions, initialValue ->
+                viewModel.addCharacteristicToService(serviceUuid, uuid, properties, permissions, initialValue)
                 showAddCharDialog = null
             }
         )
@@ -191,9 +204,10 @@ fun GattServerScreen(
 fun AddCharacteristicDialog(
     initialUuid: String,
     onDismiss: () -> Unit,
-    onConfirm: (String, List<String>, List<String>) -> Unit
+    onConfirm: (String, List<String>, List<String>, String?) -> Unit
 ) {
     var uuidInput by remember { mutableStateOf(initialUuid.replace("-", "")) }
+    var initialValueInput by remember { mutableStateOf("") }
     var selectedProperties by remember { mutableStateOf(setOf("READ", "WRITE")) }
     var selectedPermissions by remember { mutableStateOf(setOf("READ", "WRITE")) }
 
@@ -222,6 +236,40 @@ fun AddCharacteristicDialog(
                     singleLine = true,
                     visualTransformation = UuidVisualTransformation()
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = initialValueInput,
+                    onValueChange = { input ->
+                        val hexOnly = input.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' || it.uppercaseChar() in 'A'..'F' }
+                        initialValueInput = hexOnly
+                    },
+                    label = { Text("Initial Value (Hex)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("e.g. DEADBEEF") },
+                    singleLine = true,
+                    visualTransformation = HexVisualTransformation(),
+                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                )
+
+                val data = remember(initialValueInput) { parseHexNoSpaces(initialValueInput) }
+                if (data.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Preview (ASCII):", style = MaterialTheme.typography.labelSmall)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = data.toAsciiString(),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Properties", style = MaterialTheme.typography.titleSmall)
@@ -306,7 +354,12 @@ fun AddCharacteristicDialog(
                     } else {
                         uuidInput
                     }
-                    onConfirm(formattedUuid, selectedProperties.toList(), selectedPermissions.toList())
+                    onConfirm(
+                        formattedUuid, 
+                        selectedProperties.toList(), 
+                        selectedPermissions.toList(),
+                        if (initialValueInput.isBlank()) null else initialValueInput
+                    )
                 },
                 enabled = uuidInput.length == 32 || uuidInput.length == 4 || uuidInput.length == 8
             ) {
@@ -513,6 +566,13 @@ fun GattCharacteristicItem(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondary
             )
+            characteristic.initialValue?.let {
+                Text(
+                    text = "Initial Value: $it",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
         }
         IconButton(onClick = onDelete) {
             Icon(

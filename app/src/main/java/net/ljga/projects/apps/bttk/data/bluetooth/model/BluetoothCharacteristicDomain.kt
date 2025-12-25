@@ -8,7 +8,8 @@ data class BluetoothCharacteristicDomain(
     val uuid: String,
     val properties: List<String>,
     val permissions: List<String> = emptyList(),
-    val descriptors: List<String> = emptyList()
+    val descriptors: List<String> = emptyList(),
+    val initialValue: String? = null
 ) {
     val propertyInts: Int
         get() {

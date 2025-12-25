@@ -405,6 +405,14 @@ class AndroidBluetoothController @Inject constructor(
                     charDomain.propertyInts,
                     charDomain.permissionInts
                 )
+                charDomain.initialValue?.let { hexValue ->
+                    try {
+                        val bytes = hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                        gattChar.value = bytes
+                    } catch (e: Exception) {
+                        Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
+                    }
+                }
                 gattService.addCharacteristic(gattChar)
             }
             gattServer?.addService(gattService)
@@ -464,6 +472,14 @@ class AndroidBluetoothController @Inject constructor(
                     charDomain.propertyInts,
                     charDomain.permissionInts
                 )
+                charDomain.initialValue?.let { hexValue ->
+                    try {
+                        val bytes = hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                        gattChar.value = bytes
+                    } catch (e: Exception) {
+                        Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
+                    }
+                }
                 gattService.addCharacteristic(gattChar)
             }
             gattServer?.addService(gattService)
@@ -504,6 +520,14 @@ class AndroidBluetoothController @Inject constructor(
                     charDomain.propertyInts,
                     charDomain.permissionInts
                 )
+                charDomain.initialValue?.let { hexValue ->
+                    try {
+                        val bytes = hexValue.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                        gattChar.value = bytes
+                    } catch (e: Exception) {
+                        Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
+                    }
+                }
                 gattService.addCharacteristic(gattChar)
             }
             gattServer?.addService(gattService)

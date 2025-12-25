@@ -279,7 +279,8 @@ class BluetoothViewModel @Inject constructor(
         serviceUuid: String, 
         charUuid: String,
         properties: List<String>,
-        permissions: List<String>
+        permissions: List<String>,
+        initialValue: String? = null
     ) {
         val currentServices = state.value.gattServerServices
         val service = currentServices.find { it.uuid == serviceUuid } ?: return
@@ -290,7 +291,8 @@ class BluetoothViewModel @Inject constructor(
         val newChar = BluetoothCharacteristicDomain(
             uuid = charUuid,
             properties = properties,
-            permissions = permissions
+            permissions = permissions,
+            initialValue = initialValue
         )
         
         val updatedService = service.copy(
