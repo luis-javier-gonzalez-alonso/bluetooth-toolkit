@@ -1,14 +1,18 @@
 package net.ljga.projects.apps.bttk.ui.bluetooth
 
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.GattServerRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
+import net.ljga.projects.apps.bttk.data.bluetooth.GattServerService
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
@@ -24,7 +28,8 @@ class BluetoothViewModel @Inject constructor(
     private val bluetoothController: BluetoothController,
     private val savedDeviceRepository: SavedDeviceRepository,
     private val dataFrameRepository: DataFrameRepository,
-    private val gattServerRepository: GattServerRepository
+    private val gattServerRepository: GattServerRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BluetoothUiState())
@@ -99,7 +104,8 @@ class BluetoothViewModel @Inject constructor(
             gattAliases = aliases,
             savedDataFrames = dataFrames,
             isGattServerRunning = isGattServerRunning,
-            gattServerServices = gattServerServices
+            gattServerServices = gattServerServices,
+            localAddress = bluetoothController.localAddress
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -242,12 +248,26 @@ class BluetoothViewModel @Inject constructor(
     // GATT Server Actions
     fun toggleGattServer() {
         if (state.value.isGattServerRunning) {
-            bluetoothController.stopGattServer()
+            val intent = Intent(context, GattServerService::class.java).apply {
+                action = GattServerService.ACTION_STOP
+            }
+            context.startService(intent)
             _state.update { it.copy(dataLogs = emptyList()) }
         } else {
             _state.update { it.copy(dataLogs = emptyList()) }
-            bluetoothController.startGattServer()
+            val intent = Intent(context, GattServerService::class.java).apply {
+                action = GattServerService.ACTION_START
+            }
+            context.startForegroundService(intent)
         }
+    }
+
+    fun clearGattServer() {
+        bluetoothController.clearGattServices()
+        nextServiceIndex = 0
+        serviceIndices.clear()
+        serviceNextCharIndices.clear()
+        saveGattServerConfig()
     }
 
     fun addGattService(uuid: String = UUID.randomUUID().toString()) {
@@ -347,5 +367,6 @@ data class BluetoothUiState(
     val gattAliases: Map<String, String> = emptyMap(),
     val savedDataFrames: List<DataFrame> = emptyList(),
     val isGattServerRunning: Boolean = false,
-    val gattServerServices: List<BluetoothServiceDomain> = emptyList()
+    val gattServerServices: List<BluetoothServiceDomain> = emptyList(),
+    val localAddress: String? = null
 )

@@ -58,6 +58,9 @@ class AndroidBluetoothController @Inject constructor(
         bluetoothManager?.adapter
     }
 
+    override val localAddress: String?
+        get() = if (hasPermission(getConnectPermission())) bluetoothAdapter?.address else null
+
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceDomain>>(emptyList())
     override val scannedDevices: StateFlow<List<BluetoothDeviceDomain>>
         get() = _scannedDevices.asStateFlow()
@@ -115,11 +118,6 @@ class AndroidBluetoothController @Inject constructor(
                     )
                 )
             }
-        }
-
-        override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
-            super.onServiceAdded(status, service)
-            Log.d("GattServer", "Service added: ${service?.uuid} status: $status")
         }
 
         override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {

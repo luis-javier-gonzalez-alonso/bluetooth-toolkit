@@ -19,6 +19,7 @@ interface BluetoothController {
     // GATT Server
     val isGattServerRunning: StateFlow<Boolean>
     val gattServerServices: StateFlow<List<BluetoothServiceDomain>>
+    val localAddress: String?
 
     fun startDiscovery(): Boolean
     fun stopDiscovery()

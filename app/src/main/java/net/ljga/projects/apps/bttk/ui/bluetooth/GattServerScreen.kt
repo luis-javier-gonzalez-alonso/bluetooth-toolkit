@@ -90,6 +90,7 @@ fun GattServerScreen(
     val scope = rememberCoroutineScope()
 
     var showAddCharDialog by remember { mutableStateOf<String?>(null) }
+    var showClearConfirmation by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -101,6 +102,11 @@ fun GattServerScreen(
                     }
                 },
                 actions = {
+                    if (!state.isGattServerRunning) {
+                        IconButton(onClick = { showClearConfirmation = true }) {
+                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear Server")
+                        }
+                    }
                     IconButton(onClick = { viewModel.toggleGattServer() }) {
                         Icon(
                             imageVector = if (state.isGattServerRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
@@ -117,22 +123,34 @@ fun GattServerScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    text = "Server Status: ${if (state.isGattServerRunning) "RUNNING" else "STOPPED"}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (state.isGattServerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = state.isGattServerRunning,
-                    onCheckedChange = { viewModel.toggleGattServer() }
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Server Status: ${if (state.isGattServerRunning) "RUNNING" else "STOPPED"}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (state.isGattServerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = state.isGattServerRunning,
+                        onCheckedChange = { viewModel.toggleGattServer() }
+                    )
+                }
+                
+                state.localAddress?.let { address ->
+                    Text(
+                        text = "Device Address: $address",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (state.isGattServerRunning) {
@@ -186,6 +204,30 @@ fun GattServerScreen(
                 )
             }
         }
+    }
+
+    if (showClearConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmation = false },
+            title = { Text("Clear GATT Server") },
+            text = { Text("Are you sure you want to delete all services and reset all indices? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearGattServer()
+                        showClearConfirmation = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Clear All")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     showAddCharDialog?.let { serviceUuid ->
