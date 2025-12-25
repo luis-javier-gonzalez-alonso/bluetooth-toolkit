@@ -192,15 +192,15 @@ class AndroidBluetoothController @Inject constructor(
         registerScanStateReceiver()
     }
 
-    override fun startDiscovery() {
+    override fun startDiscovery(): Boolean {
         if (!hasPermission(getScanPermission())) {
             _errors.tryEmit("Missing scan permission")
-            return
+            return false
         }
 
         if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
             _errors.tryEmit("Bluetooth not available or disabled")
-            return
+            return false
         }
 
         updatePairedDevices()
@@ -209,7 +209,11 @@ class AndroidBluetoothController @Inject constructor(
         _scannedDevices.value = emptyList()
         
         registerReceiver()
-        bluetoothAdapter?.startDiscovery()
+        val started = bluetoothAdapter?.startDiscovery() == true
+        if (started) {
+            _isScanning.value = true
+        }
+        return started
     }
 
     override fun stopDiscovery() {
@@ -414,7 +418,13 @@ class AndroidBluetoothController @Inject constructor(
     }
 
     override fun addGattService(service: BluetoothServiceDomain) {
-        _gattServerServices.update { it + service }
+        _gattServerServices.update { current ->
+            if (current.any { it.uuid == service.uuid }) {
+                current.map { if (it.uuid == service.uuid) service else it }
+            } else {
+                current + service
+            }
+        }
         if (_isGattServerRunning.value) {
             val gattService = BluetoothGattService(
                 UUID.fromString(service.uuid),
@@ -465,7 +475,11 @@ class AndroidBluetoothController @Inject constructor(
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
             addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
         }
-        context.registerReceiver(scanStateReceiver, filter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(scanStateReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(scanStateReceiver, filter)
+        }
     }
 
     override fun release() {

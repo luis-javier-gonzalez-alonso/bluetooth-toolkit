@@ -34,6 +34,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -118,8 +119,11 @@ fun BluetoothScreen(
             }
         }
     ) { padding ->
+        val pullToRefreshState = rememberPullToRefreshState()
+        
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
+            state = pullToRefreshState,
             onRefresh = {
                 permissionLauncher.launch(permissions)
             },
@@ -127,35 +131,20 @@ fun BluetoothScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "\u2304 Pull down to scan \u2304",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    textAlign = TextAlign.Center
-                )
-
-                if (state.isConnecting) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-
-                BluetoothDeviceList(
-                    pairedDevices = state.pairedDevices,
-                    savedDevices = state.savedDevices,
-                    scannedDevices = state.scannedDevices,
-                    onClick = onDeviceClick,
-                    onDetailsClick = onDetailsClick,
-                    onPair = viewModel::pairDevice,
-                    onForgetPaired = viewModel::forgetDevice,
-                    onSave = viewModel::saveDevice,
-                    onForgetSaved = viewModel::forgetSavedDevice,
-                    onCheckReachability = viewModel::checkReachability,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            BluetoothDeviceList(
+                pairedDevices = state.pairedDevices,
+                savedDevices = state.savedDevices,
+                scannedDevices = state.scannedDevices,
+                isConnecting = state.isConnecting,
+                onClick = onDeviceClick,
+                onDetailsClick = onDetailsClick,
+                onPair = viewModel::pairDevice,
+                onForgetPaired = viewModel::forgetDevice,
+                onSave = viewModel::saveDevice,
+                onForgetSaved = viewModel::forgetSavedDevice,
+                onCheckReachability = viewModel::checkReachability,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
@@ -165,6 +154,7 @@ fun BluetoothDeviceList(
     pairedDevices: List<BluetoothDeviceDomain>,
     savedDevices: List<BluetoothDeviceDomain>,
     scannedDevices: List<BluetoothDeviceDomain>,
+    isConnecting: Boolean,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onPair: (BluetoothDeviceDomain) -> Unit,
@@ -177,6 +167,24 @@ fun BluetoothDeviceList(
     LazyColumn(
         modifier = modifier
     ) {
+        item {
+            Text(
+                text = "\u2304 Pull down to scan \u2304",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                textAlign = TextAlign.Center
+            )
+        }
+
+        if (isConnecting) {
+            item {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+        }
+
         item {
             Text(
                 text = "Paired Devices",

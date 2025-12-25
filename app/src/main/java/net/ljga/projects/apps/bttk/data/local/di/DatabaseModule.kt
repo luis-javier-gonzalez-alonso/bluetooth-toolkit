@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import net.ljga.projects.apps.bttk.data.local.database.AppDatabase
 import net.ljga.projects.apps.bttk.data.local.database.DataFrameDao
 import net.ljga.projects.apps.bttk.data.local.database.GattAliasDao
+import net.ljga.projects.apps.bttk.data.local.database.GattServerDao
 import net.ljga.projects.apps.bttk.data.local.database.SavedDeviceDao
 import javax.inject.Singleton
 
@@ -24,6 +25,11 @@ class DatabaseModule {
     @Provides
     fun provideSavedDeviceDao(appDatabase: AppDatabase): SavedDeviceDao {
         return appDatabase.savedDeviceDao()
+    }
+
+    @Provides
+    fun provideGattServerDao(appDatabase: AppDatabase): GattServerDao {
+        return appDatabase.gattServerDao()
     }
 
     @Provides

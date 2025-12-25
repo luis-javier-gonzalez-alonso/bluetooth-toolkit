@@ -1,5 +1,7 @@
 package net.ljga.projects.apps.bttk.ui.bluetooth
 
+import androidx.compose.animation.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -25,22 +28,63 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
+import java.util.UUID
+
+class UuidVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = if (text.text.length >= 32) text.text.substring(0, 32) else text.text
+        var out = ""
+        for (i in trimmed.indices) {
+            out += trimmed[i]
+            if (i == 7 || i == 11 || i == 15 || i == 19) out += "-"
+        }
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (offset <= 8) return offset
+                if (offset <= 12) return offset + 1
+                if (offset <= 16) return offset + 2
+                if (offset <= 20) return offset + 3
+                return offset + 4
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (offset <= 8) return offset
+                if (offset <= 13) return offset - 1
+                if (offset <= 18) return offset - 2
+                if (offset <= 23) return offset - 3
+                return offset - 4
+            }
+        }
+
+        return TransformedText(AnnotatedString(out), offsetMapping)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +93,11 @@ fun GattServerScreen(
     viewModel: BluetoothViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    var newServiceUuid by remember { mutableStateOf("") }
+    var newServiceRawUuid by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+    val errorColor = remember { Animatable(Color.Transparent) }
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -104,19 +152,58 @@ fun GattServerScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
-                    value = newServiceUuid,
-                    onValueChange = { newServiceUuid = it },
-                    label = { Text("Service UUID") },
+                    value = newServiceRawUuid,
+                    onValueChange = { input ->
+                        val hexOnly = input.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+                        if (hexOnly.length <= 32) {
+                            newServiceRawUuid = hexOnly
+                            isError = false
+                        }
+                    },
+                    label = { Text("Service UUID (Hex)") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    isError = isError,
+                    visualTransformation = UuidVisualTransformation(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        errorBorderColor = errorColor.value,
+                        errorLabelColor = if (errorColor.value != Color.Transparent) errorColor.value else MaterialTheme.colorScheme.error
+                    )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(onClick = {
-                    if (newServiceUuid.isNotBlank()) {
-                        viewModel.addGattService(newServiceUuid)
-                        newServiceUuid = ""
-                    } else {
+                    if (newServiceRawUuid.length == 32) {
+                        val formattedUuid = buildString {
+                            append(newServiceRawUuid.substring(0, 8))
+                            append("-")
+                            append(newServiceRawUuid.substring(8, 12))
+                            append("-")
+                            append(newServiceRawUuid.substring(12, 16))
+                            append("-")
+                            append(newServiceRawUuid.substring(16, 20))
+                            append("-")
+                            append(newServiceRawUuid.substring(20))
+                        }
+                        try {
+                            UUID.fromString(formattedUuid)
+                            viewModel.addGattService(formattedUuid)
+                            newServiceRawUuid = ""
+                            isError = false
+                        } catch (e: Exception) {
+                            isError = true
+                            scope.launch {
+                                errorColor.animateTo(Color.Red, animationSpec = tween(400))
+                                errorColor.animateTo(Color.Transparent, animationSpec = tween(400))
+                            }
+                        }
+                    } else if (newServiceRawUuid.isBlank()) {
                         viewModel.addGattService()
+                    } else {
+                        isError = true
+                        scope.launch {
+                            errorColor.animateTo(Color.Red, animationSpec = tween(400))
+                            errorColor.animateTo(Color.Transparent, animationSpec = tween(400))
+                        }
                     }
                 }) {
                     Icon(Icons.Default.Add, contentDescription = "Add Service")
@@ -124,14 +211,17 @@ fun GattServerScreen(
             }
 
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
             ) {
-                items(state.gattServerServices) { service ->
+                items(state.gattServerServices, key = { it.uuid }) { service ->
                     GattServiceItem(
                         service = service,
                         onDeleteService = { viewModel.removeGattService(service.uuid) },
-                        onAddCharacteristic = { viewModel.addCharacteristicToService(service.uuid) }
+                        onAddCharacteristic = { 
+                            viewModel.addCharacteristicToService(service.uuid)
+                        }
                     )
                 }
             }

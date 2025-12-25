@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.GattServerRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
@@ -22,7 +23,8 @@ import javax.inject.Inject
 class BluetoothViewModel @Inject constructor(
     private val bluetoothController: BluetoothController,
     private val savedDeviceRepository: SavedDeviceRepository,
-    private val dataFrameRepository: DataFrameRepository
+    private val dataFrameRepository: DataFrameRepository,
+    private val gattServerRepository: GattServerRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BluetoothUiState())
@@ -118,6 +120,13 @@ class BluetoothViewModel @Inject constructor(
             }
             _state.update { it.copy(dataLogs = (it.dataLogs + packet).takeLast(100)) }
         }.launchIn(viewModelScope)
+
+        // Load saved GATT Server config
+        viewModelScope.launch {
+            gattServerRepository.config.first().forEach { service ->
+                bluetoothController.addGattService(service)
+            }
+        }
     }
 
     fun startScan() {
@@ -232,24 +241,35 @@ class BluetoothViewModel @Inject constructor(
     }
 
     fun addGattService(uuid: String = UUID.randomUUID().toString()) {
-        bluetoothController.addGattService(
-            BluetoothServiceDomain(
-                uuid = uuid,
-                characteristics = emptyList()
-            )
+        val newService = BluetoothServiceDomain(
+            uuid = uuid,
+            characteristics = emptyList()
         )
+        bluetoothController.addGattService(newService)
+        saveGattServerConfig()
     }
 
     fun removeGattService(serviceUuid: String) {
         bluetoothController.removeGattService(serviceUuid)
+        saveGattServerConfig()
     }
 
-    fun addCharacteristicToService(serviceUuid: String, charUuid: String = UUID.randomUUID().toString()) {
+    fun addCharacteristicToService(serviceUuid: String, charUuid: String? = null) {
         val currentServices = state.value.gattServerServices
-        val service = currentServices.find { it.uuid == serviceUuid } ?: return
+        val serviceIndex = currentServices.indexOfFirst { it.uuid == serviceUuid }
+        if (serviceIndex == -1) return
+        
+        val service = currentServices[serviceIndex]
+        
+        val finalCharUuid = charUuid ?: run {
+            val baseUuid = serviceUuid.substring(8)
+            val charCount = service.characteristics.size
+            val prefix = "a${serviceIndex.toString(16)}${charCount.toString(16).padStart(2, '0')}".padStart(8, '0')
+            "$prefix$baseUuid"
+        }
         
         val newChar = BluetoothCharacteristicDomain(
-            uuid = charUuid,
+            uuid = finalCharUuid,
             properties = listOf("READ", "WRITE")
         )
         
@@ -257,8 +277,15 @@ class BluetoothViewModel @Inject constructor(
             characteristics = service.characteristics + newChar
         )
         
-        bluetoothController.removeGattService(serviceUuid)
+        // Use addGattService which handles updates internally without reordering if we don't call remove first
         bluetoothController.addGattService(updatedService)
+        saveGattServerConfig()
+    }
+
+    private fun saveGattServerConfig() {
+        viewModelScope.launch {
+            gattServerRepository.saveConfig(bluetoothController.gattServerServices.value)
+        }
     }
 
     override fun onCleared() {
