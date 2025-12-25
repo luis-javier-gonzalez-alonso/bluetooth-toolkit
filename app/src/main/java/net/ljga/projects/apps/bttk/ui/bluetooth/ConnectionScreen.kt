@@ -492,12 +492,14 @@ fun LogEntry(packet: BluetoothDataPacket, gattAliases: Map<String, String>) {
                 color = MaterialTheme.colorScheme.secondary
             )
             packet.source?.let { source ->
-                val alias = if (packet.serviceUuid != null && packet.characteristicUuid != null) {
-                    gattAliases["${packet.serviceUuid}-${packet.characteristicUuid}"]
+                val aliasKey = if (packet.serviceUuid != null && packet.characteristicUuid != null) {
+                    "${packet.serviceUuid}-${packet.characteristicUuid}"
                 } else null
+                val alias = aliasKey?.let { gattAliases[it] }
+                val charName = packet.characteristicUuid?.prettyCharacteristicName()?.let { " → $it" } ?: ""
                 
                 Text(
-                    text = if (alias != null) "$source ($alias)" else source,
+                    text = if (alias != null) "$source ($alias)" else "$source$charName",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )

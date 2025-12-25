@@ -2,50 +2,25 @@ package net.ljga.projects.apps.bttk.ui.bluetooth
 
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
@@ -54,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
 import java.util.UUID
 
 class UuidVisualTransformation : VisualTransformation {
@@ -99,7 +75,8 @@ fun GattServerScreen(
     val defaultErrorColor = MaterialTheme.colorScheme.error
     val errorBorderColor = remember { Animatable(defaultErrorColor) }
     val scope = rememberCoroutineScope()
-    val listState = rememberLazyListState()
+
+    var showAddCharDialog by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -126,11 +103,12 @@ fun GattServerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = "Server Status: ${if (state.isGattServerRunning) "RUNNING" else "STOPPED"}",
@@ -144,37 +122,17 @@ fun GattServerScreen(
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-            Text(
-                text = "Services",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = newServiceRawUuid,
-                    onValueChange = { input ->
-                        val hexOnly = input.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
-                        if (hexOnly.length <= 32) {
-                            newServiceRawUuid = hexOnly
-                            isError = false
-                        }
-                    },
-                    label = { Text("Service UUID (Hex)") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
+            if (state.isGattServerRunning) {
+                RunningServerView(state)
+            } else {
+                EditingServerView(
+                    state = state,
+                    newServiceRawUuid = newServiceRawUuid,
+                    onNewServiceRawUuidChange = { newServiceRawUuid = it },
                     isError = isError,
-                    visualTransformation = UuidVisualTransformation(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        errorBorderColor = errorBorderColor.value,
-                        errorLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = {
-                    val validateAndAdd = {
+                    onErrorChange = { isError = it },
+                    errorBorderColor = errorBorderColor.value,
+                    onAddService = {
                         if (newServiceRawUuid.length == 32) {
                             val formattedUuid = buildString {
                                 append(newServiceRawUuid.substring(0, 8))
@@ -208,30 +166,282 @@ fun GattServerScreen(
                                 errorBorderColor.animateTo(defaultErrorColor, animationSpec = tween(1000))
                             }
                         }
+                    },
+                    onDeleteService = { viewModel.removeGattService(it) },
+                    onAddCharacteristic = { showAddCharDialog = it },
+                    onDeleteCharacteristic = { s, c -> viewModel.removeCharacteristicFromService(s, c) }
+                )
+            }
+        }
+    }
+
+    showAddCharDialog?.let { serviceUuid ->
+        AddCharacteristicDialog(
+            initialUuid = viewModel.generateCharacteristicUuid(serviceUuid),
+            onDismiss = { showAddCharDialog = null },
+            onConfirm = { uuid, properties, permissions ->
+                viewModel.addCharacteristicToService(serviceUuid, uuid, properties, permissions)
+                showAddCharDialog = null
+            }
+        )
+    }
+}
+
+@Composable
+fun AddCharacteristicDialog(
+    initialUuid: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, List<String>, List<String>) -> Unit
+) {
+    var uuidInput by remember { mutableStateOf(initialUuid.replace("-", "")) }
+    var selectedProperties by remember { mutableStateOf(setOf("READ", "WRITE")) }
+    var selectedPermissions by remember { mutableStateOf(setOf("READ", "WRITE")) }
+
+    val properties = listOf("READ", "WRITE", "WRITE_NO_RESPONSE", "NOTIFY", "INDICATE")
+    val permissions = listOf("READ", "WRITE", "READ_ENCRYPTED", "WRITE_ENCRYPTED", "READ_ENCRYPTED_MITM", "WRITE_ENCRYPTED_MITM")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Characteristic") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                OutlinedTextField(
+                    value = uuidInput,
+                    onValueChange = { input ->
+                        val hexOnly = input.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+                        if (hexOnly.length <= 32) {
+                            uuidInput = hexOnly
+                        }
+                    },
+                    label = { Text("Characteristic UUID (Hex)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = UuidVisualTransformation()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Properties", style = MaterialTheme.typography.titleSmall)
+                properties.forEach { property ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .selectable(
+                                selected = property in selectedProperties,
+                                onClick = {
+                                    selectedProperties = if (property in selectedProperties) {
+                                        selectedProperties - property
+                                    } else {
+                                        selectedProperties + property
+                                    }
+                                },
+                                role = Role.Checkbox
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = property in selectedProperties,
+                            onCheckedChange = null
+                        )
+                        Text(
+                            text = property,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
                     }
-                    validateAndAdd()
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Service")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Permissions", style = MaterialTheme.typography.titleSmall)
+                permissions.forEach { permission ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .selectable(
+                                selected = permission in selectedPermissions,
+                                onClick = {
+                                    selectedPermissions = if (permission in selectedPermissions) {
+                                        selectedPermissions - permission
+                                    } else {
+                                        selectedPermissions + permission
+                                    }
+                                },
+                                role = Role.Checkbox
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = permission in selectedPermissions,
+                            onCheckedChange = null
+                        )
+                        Text(
+                            text = permission,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
                 }
             }
-
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
-            ) {
-                items(state.gattServerServices, key = { it.uuid }) { service ->
-                    GattServiceItem(
-                        service = service,
-                        onDeleteService = { viewModel.removeGattService(service.uuid) },
-                        onAddCharacteristic = { viewModel.addCharacteristicToService(service.uuid) },
-                        onDeleteCharacteristic = { charUuid -> 
-                            viewModel.removeCharacteristicFromService(service.uuid, charUuid)
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val formattedUuid = if (uuidInput.length == 32) {
+                        buildString {
+                            append(uuidInput.substring(0, 8))
+                            append("-")
+                            append(uuidInput.substring(8, 12))
+                            append("-")
+                            append(uuidInput.substring(12, 16))
+                            append("-")
+                            append(uuidInput.substring(16, 20))
+                            append("-")
+                            append(uuidInput.substring(20))
                         }
-                    )
+                    } else {
+                        uuidInput
+                    }
+                    onConfirm(formattedUuid, selectedProperties.toList(), selectedPermissions.toList())
+                },
+                enabled = uuidInput.length == 32 || uuidInput.length == 4 || uuidInput.length == 8
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditingServerView(
+    state: BluetoothUiState,
+    newServiceRawUuid: String,
+    onNewServiceRawUuidChange: (String) -> Unit,
+    isError: Boolean,
+    onErrorChange: (Boolean) -> Unit,
+    errorBorderColor: Color,
+    onAddService: () -> Unit,
+    onDeleteService: (String) -> Unit,
+    onAddCharacteristic: (String) -> Unit,
+    onDeleteCharacteristic: (String, String) -> Unit
+) {
+    val listState = rememberLazyListState()
+    
+    Column(modifier = Modifier.fillMaxSize()) {
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
+        Text(
+            text = "Services",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            OutlinedTextField(
+                value = newServiceRawUuid,
+                onValueChange = { input ->
+                    val hexOnly = input.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' }
+                    if (hexOnly.length <= 32) {
+                        onNewServiceRawUuidChange(hexOnly)
+                        onErrorChange(false)
+                    }
+                },
+                label = { Text("Service UUID (Hex)") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                isError = isError,
+                visualTransformation = UuidVisualTransformation(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    errorBorderColor = errorBorderColor,
+                    errorLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = onAddService) {
+                Icon(Icons.Default.Add, contentDescription = "Add Service")
+            }
+        }
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            items(state.gattServerServices, key = { it.uuid }) { service ->
+                GattServiceItem(
+                    service = service,
+                    onDeleteService = { onDeleteService(service.uuid) },
+                    onAddCharacteristic = { onAddCharacteristic(service.uuid) },
+                    onDeleteCharacteristic = { charUuid -> 
+                        onDeleteCharacteristic(service.uuid, charUuid)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RunningServerView(state: BluetoothUiState) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Active Services", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                    state.gattServerServices.forEach { service ->
+                        item {
+                            Text(
+                                text = "Service: ${service.uuid.prettyCharacteristicName()}...",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+                        items(service.characteristics) { characteristic ->
+                            Text(
+                                text = "  └─ ${characteristic.uuid.prettyCharacteristicName()}... (${characteristic.properties.joinToString(", ")})",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(all = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
+
+        Text(
+            text = "Data Log",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.titleSmall
+        )
+        
+        LogListView(
+            logs = state.dataLogs,
+            gattAliases = emptyMap(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(MaterialTheme.colorScheme.surface)
+        )
     }
 }
 
@@ -299,7 +509,7 @@ fun GattCharacteristicItem(
         Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
             Text(text = "UUID: ${characteristic.uuid}", style = MaterialTheme.typography.bodySmall)
             Text(
-                text = "Props: ${characteristic.properties.joinToString(", ")}",
+                text = "Props: ${characteristic.properties.joinToString(", ")} | Perms: ${characteristic.permissions.joinToString(", ")}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondary
             )

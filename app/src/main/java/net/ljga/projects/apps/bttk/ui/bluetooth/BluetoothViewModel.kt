@@ -243,7 +243,9 @@ class BluetoothViewModel @Inject constructor(
     fun toggleGattServer() {
         if (state.value.isGattServerRunning) {
             bluetoothController.stopGattServer()
+            _state.update { it.copy(dataLogs = emptyList()) }
         } else {
+            _state.update { it.copy(dataLogs = emptyList()) }
             bluetoothController.startGattServer()
         }
     }
@@ -265,23 +267,30 @@ class BluetoothViewModel @Inject constructor(
         saveGattServerConfig()
     }
 
-    fun addCharacteristicToService(serviceUuid: String, charUuid: String? = null) {
-        val currentServices = state.value.gattServerServices
-        val service = currentServices.find { it.uuid == serviceUuid } ?: return
+    fun generateCharacteristicUuid(serviceUuid: String): String {
         val sIndex = serviceIndices[serviceUuid] ?: 0
         val cIndex = serviceNextCharIndices[serviceUuid] ?: 0
-        
-        val finalCharUuid = charUuid ?: run {
-            val baseUuid = serviceUuid.substring(8)
-            val prefix = "a${sIndex.toString(16)}${cIndex.toString(16).padStart(2, '0')}".padStart(8, '0')
-            "$prefix$baseUuid"
-        }
+        val baseUuid = serviceUuid.substring(8)
+        val prefix = "a${sIndex.toString(16)}${cIndex.toString(16).padStart(2, '0')}".padStart(8, '0')
+        return "$prefix$baseUuid"
+    }
+
+    fun addCharacteristicToService(
+        serviceUuid: String, 
+        charUuid: String,
+        properties: List<String>,
+        permissions: List<String>
+    ) {
+        val currentServices = state.value.gattServerServices
+        val service = currentServices.find { it.uuid == serviceUuid } ?: return
+        val cIndex = serviceNextCharIndices[serviceUuid] ?: 0
         
         serviceNextCharIndices[serviceUuid] = cIndex + 1
         
         val newChar = BluetoothCharacteristicDomain(
-            uuid = finalCharUuid,
-            properties = listOf("READ", "WRITE")
+            uuid = charUuid,
+            properties = properties,
+            permissions = permissions
         )
         
         val updatedService = service.copy(

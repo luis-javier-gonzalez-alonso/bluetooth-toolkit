@@ -100,6 +100,21 @@ class AndroidBluetoothController @Inject constructor(
         override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
             super.onConnectionStateChange(device, status, newState)
             Log.d("GattServer", "Connection state change: ${device?.address} status: $status newState: $newState")
+            val stateStr = when(newState) {
+                0 -> "Disconnected"
+                2 -> "Connected"
+                else -> "State $newState"
+            }
+            scope.launch {
+                _incomingData.emit(
+                    BluetoothDataPacket(
+                        data = byteArrayOf(),
+                        source = device?.address ?: "Unknown",
+                        format = DataFormat.STRUCTURED,
+                        text = "Device $stateStr"
+                    )
+                )
+            }
         }
 
         override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
@@ -109,6 +124,18 @@ class AndroidBluetoothController @Inject constructor(
 
         override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
+            scope.launch {
+                _incomingData.emit(
+                    BluetoothDataPacket(
+                        data = characteristic?.value ?: byteArrayOf(),
+                        source = device?.address ?: "Unknown",
+                        format = DataFormat.HEX_ASCII,
+                        text = "Read Request: ${characteristic?.uuid?.prettyCharacteristicName() ?: "Unknown"}",
+                        serviceUuid = characteristic?.service?.uuid.toString(),
+                        characteristicUuid = characteristic?.uuid.toString()
+                    )
+                )
+            }
             gattServer?.sendResponse(device, requestId, 0, offset, characteristic?.value)
         }
 
@@ -121,8 +148,9 @@ class AndroidBluetoothController @Inject constructor(
                     _incomingData.emit(
                         BluetoothDataPacket(
                             data = value,
-                            source = "GATT Server Write: ${characteristic?.uuid}",
+                            source = device?.address ?: "Unknown",
                             format = DataFormat.HEX_ASCII,
+                            text = "Write Request: ${characteristic?.uuid?.prettyCharacteristicName() ?: "Unknown"}",
                             serviceUuid = characteristic?.service?.uuid.toString(),
                             characteristicUuid = characteristic?.uuid.toString()
                         )
