@@ -36,7 +36,7 @@ class GattServerService : Service() {
 
     private fun startForegroundService(deviceName: String?) {
         createNotificationChannel()
-        val notification = createNotification()
+        val notification = createNotification(deviceName)
         startForeground(NOTIFICATION_ID, notification)
         bluetoothController.startGattServer(deviceName)
     }
@@ -61,7 +61,7 @@ class GattServerService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(deviceName: String?): Notification {
         val stopIntent = Intent(this, GattServerService::class.java).apply {
             action = ACTION_STOP
         }
@@ -80,11 +80,17 @@ class GattServerService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
 
+        val contentText = if (deviceName.isNullOrBlank()) {
+            "GATT server is running"
+        } else {
+            "Advertising as $deviceName"
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
 //            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("GATT server is active")
-            .setContentText("TODO here we should add the name of the advertisement")
+            .setContentText(contentText)
             .setContentIntent(mainActivityPendingIntent)
             .addAction(android.R.drawable.ic_delete, "Stop", stopPendingIntent)
             .setOngoing(true)
