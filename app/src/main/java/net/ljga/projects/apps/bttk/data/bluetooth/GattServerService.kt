@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
+import net.ljga.projects.apps.bttk.R
 import net.ljga.projects.apps.bttk.ui.MainActivity
 import javax.inject.Inject
 
@@ -80,11 +81,12 @@ class GattServerService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
-            .setContentTitle("GATT Server Running")
-            .setContentText("Your Bluetooth GATT server is active.")
+//            .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("GATT server is active")
+            .setContentText("TODO here we should add the name of the advertisement")
             .setContentIntent(mainActivityPendingIntent)
-            .addAction(0, "Stop", stopPendingIntent)
+            .addAction(android.R.drawable.ic_delete, "Stop", stopPendingIntent)
             .setOngoing(true)
             .build()
     }
