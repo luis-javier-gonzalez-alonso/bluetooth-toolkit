@@ -47,12 +47,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluetoothScreen(
     viewModel: BluetoothViewModel,
+    scriptViewModel: BluetoothScriptViewModel = hiltViewModel(),
     onDeviceClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onGattServerClick: () -> Unit
@@ -60,6 +62,7 @@ fun BluetoothScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showFabMenu by remember { mutableStateOf(false) }
+    var scriptDevice by remember { mutableStateOf<BluetoothDeviceDomain?>(null) }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -142,9 +145,21 @@ fun BluetoothScreen(
                 onSave = viewModel::saveDevice,
                 onForgetSaved = viewModel::forgetSavedDevice,
                 onCheckReachability = viewModel::checkReachability,
+                onRunScript = { scriptDevice = it },
                 modifier = Modifier.fillMaxSize()
             )
         }
+    }
+
+    if (scriptDevice != null) {
+        BluetoothScriptDialog(
+            viewModel = scriptViewModel,
+            onScriptSelected = { script ->
+                viewModel.connectAndRunScript(scriptDevice!!, script)
+                scriptDevice = null
+            },
+            onDismiss = { scriptDevice = null }
+        )
     }
 }
 
@@ -161,6 +176,7 @@ fun BluetoothDeviceList(
     onSave: (BluetoothDeviceDomain) -> Unit,
     onForgetSaved: (BluetoothDeviceDomain) -> Unit,
     onCheckReachability: (BluetoothDeviceDomain) -> Unit,
+    onRunScript: (BluetoothDeviceDomain) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -210,6 +226,7 @@ fun BluetoothDeviceList(
                 onForget = { onForgetPaired(device) },
                 onSave = if (!isAlreadySaved) { { onSave(device) } } else null,
                 onCheckReachability = { onCheckReachability(device) },
+                onRunScript = { onRunScript(device) },
                 isPaired = true
             )
         }
@@ -240,6 +257,7 @@ fun BluetoothDeviceList(
                 onPair = if (!isAlreadyPaired) { { onPair(device) } } else null,
                 onForget = { onForgetSaved(device) },
                 onCheckReachability = { onCheckReachability(device) },
+                onRunScript = { onRunScript(device) },
                 isSaved = true
             )
         }
@@ -267,7 +285,8 @@ fun BluetoothDeviceList(
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
                 onPair = { onPair(device) },
-                onSave = { onSave(device) }
+                onSave = { onSave(device) },
+                onRunScript = { onRunScript(device) }
             )
         }
     }
@@ -282,6 +301,7 @@ fun BluetoothDeviceItem(
     onForget: (() -> Unit)? = null,
     onSave: (() -> Unit)? = null,
     onCheckReachability: (() -> Unit)? = null,
+    onRunScript: (() -> Unit)? = null,
     isPaired: Boolean = false,
     isSaved: Boolean = false
 ) {
@@ -378,6 +398,15 @@ fun BluetoothDeviceItem(
                             showMenu = false
                         }
                     )
+                    onRunScript?.let {
+                        DropdownMenuItem(
+                            text = { Text("Run Script") },
+                            onClick = {
+                                it()
+                                showMenu = false
+                            }
+                        )
+                    }
                     onPair?.let {
                         DropdownMenuItem(
                             text = { Text("Pair") },

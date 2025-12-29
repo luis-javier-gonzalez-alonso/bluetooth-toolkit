@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.CharacteristicParserRepository
@@ -22,8 +23,10 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.CharacteristicParser
+import net.ljga.projects.apps.bttk.data.local.database.BluetoothScript
 import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserConfig
 import net.ljga.projects.apps.bttk.data.local.database.DataFrame
+import net.ljga.projects.apps.bttk.data.local.database.ScriptOperationType
 import java.util.UUID
 import javax.inject.Inject
 
@@ -141,7 +144,12 @@ class BluetoothViewModel @Inject constructor(
 
     init {
         bluetoothController.isConnected.onEach { isConnected ->
+            val wasConnecting = _state.value.isConnecting
             _state.update { it.copy(isConnected = isConnected, isConnecting = if (isConnected) false else it.isConnecting) }
+            
+            if (isConnected && wasConnecting && _state.value.scriptToRun != null) {
+                runScript(_state.value.scriptToRun!!)
+            }
         }.launchIn(viewModelScope)
 
         bluetoothController.isScanning.onEach { isScanning ->
@@ -149,7 +157,7 @@ class BluetoothViewModel @Inject constructor(
         }.launchIn(viewModelScope)
 
         bluetoothController.errors.onEach { error ->
-            _state.update { it.copy(errorMessage = error, isConnecting = false) }
+            _state.update { it.copy(errorMessage = error, isConnecting = false, scriptToRun = null) }
             if (error.contains("Bluetooth not available", ignoreCase = true)) {
                 Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
             }
@@ -177,6 +185,50 @@ class BluetoothViewModel @Inject constructor(
                 bluetoothController.addGattService(service)
             }
         }
+    }
+
+    private fun runScript(script: BluetoothScript) {
+        viewModelScope.launch {
+            _state.update { it.copy(scriptToRun = null) }
+            bluetoothController.emitPacket(BluetoothDataPacket(
+                data = byteArrayOf(),
+                source = "Script",
+                format = DataFormat.STRUCTURED,
+                text = "Starting script: ${script.name}"
+            ))
+            
+            script.operations.forEach { op ->
+                when (op.type) {
+                    ScriptOperationType.READ -> {
+                        if (op.serviceUuid != null && op.characteristicUuid != null) {
+                            bluetoothController.readCharacteristic(op.serviceUuid, op.characteristicUuid)
+                        }
+                    }
+                    ScriptOperationType.WRITE -> {
+                        if (op.serviceUuid != null && op.characteristicUuid != null && op.data != null) {
+                            bluetoothController.writeCharacteristic(op.serviceUuid, op.characteristicUuid, op.data)
+                        }
+                    }
+                    ScriptOperationType.DELAY -> {
+                        op.delayMs?.let { delay(it) }
+                    }
+                }
+                // Small delay between operations to avoid GATT congestion
+                delay(100)
+            }
+            
+            bluetoothController.emitPacket(BluetoothDataPacket(
+                data = byteArrayOf(),
+                source = "Script",
+                format = DataFormat.STRUCTURED,
+                text = "Script completed: ${script.name}"
+            ))
+        }
+    }
+
+    fun connectAndRunScript(device: BluetoothDeviceDomain, script: BluetoothScript) {
+        _state.update { it.copy(isConnecting = true, selectedDevice = device, scriptToRun = script) }
+        bluetoothController.connectToDevice(device, BluetoothProfile.GATT)
     }
 
     fun setGattServerDeviceName(name: String) {
@@ -431,5 +483,6 @@ data class BluetoothUiState(
     val gattServerServices: List<BluetoothServiceDomain> = emptyList(),
     val localAddress: String? = null,
     val gattServerDeviceName: String = "",
-    val parserConfigs: Map<String, CharacteristicParserConfig> = emptyMap()
+    val parserConfigs: Map<String, CharacteristicParserConfig> = emptyMap(),
+    val scriptToRun: BluetoothScript? = null
 )

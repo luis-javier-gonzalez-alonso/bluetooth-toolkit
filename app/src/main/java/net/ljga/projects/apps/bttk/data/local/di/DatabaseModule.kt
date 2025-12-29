@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.ljga.projects.apps.bttk.data.local.database.AppDatabase
+import net.ljga.projects.apps.bttk.data.local.database.BluetoothScriptDao
 import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserDao
 import net.ljga.projects.apps.bttk.data.local.database.DataFrameDao
 import net.ljga.projects.apps.bttk.data.local.database.GattAliasDao
@@ -41,6 +42,11 @@ class DatabaseModule {
     @Provides
     fun provideCharacteristicParserDao(appDatabase: AppDatabase): CharacteristicParserDao {
         return appDatabase.characteristicParserDao()
+    }
+
+    @Provides
+    fun provideBluetoothScriptDao(appDatabase: AppDatabase): BluetoothScriptDao {
+        return appDatabase.bluetoothScriptDao()
     }
 
     @Provides

@@ -22,8 +22,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import net.ljga.projects.apps.bttk.data.BluetoothScriptRepository
 import net.ljga.projects.apps.bttk.data.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.DefaultBluetoothScriptRepository
 import net.ljga.projects.apps.bttk.data.DefaultCharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.DefaultDataFrameRepository
 import net.ljga.projects.apps.bttk.data.DefaultSavedDeviceRepository
@@ -53,6 +55,12 @@ interface DataModule {
     fun bindsCharacteristicParserRepository(
         characteristicParserRepository: DefaultCharacteristicParserRepository
     ): CharacteristicParserRepository
+
+    @Singleton
+    @Binds
+    fun bindsBluetoothScriptRepository(
+        bluetoothScriptRepository: DefaultBluetoothScriptRepository
+    ): BluetoothScriptRepository
 }
 
 class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
