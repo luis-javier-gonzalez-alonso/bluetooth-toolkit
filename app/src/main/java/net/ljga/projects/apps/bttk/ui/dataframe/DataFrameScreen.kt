@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.database.entities.DataFrame
 import net.ljga.projects.apps.bttk.ui.theme.MyApplicationTheme
 
 @Composable
@@ -43,7 +43,9 @@ internal fun DataFrameScreen(
     Column(modifier) {
         var nameDataFrame by remember { mutableStateOf("Compose") }
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             TextField(

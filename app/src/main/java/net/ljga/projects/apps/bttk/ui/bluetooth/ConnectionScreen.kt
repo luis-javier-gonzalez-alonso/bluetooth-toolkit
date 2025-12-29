@@ -27,13 +27,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
-import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.data.database.entities.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.bluetooth.utils.prettyCharacteristicName
+import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.database.entities.DataFrame
 import java.text.SimpleDateFormat
 import java.util.Locale
 

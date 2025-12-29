@@ -1,9 +1,9 @@
 package net.ljga.projects.apps.bttk.bluetooth.utils
 
-import net.ljga.projects.apps.bttk.data.database.entities.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.database.entities.Endianness
-import net.ljga.projects.apps.bttk.data.database.entities.FieldType
-import net.ljga.projects.apps.bttk.data.database.entities.ParserField
+import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.database.entities.Endianness
+import net.ljga.projects.apps.bttk.database.entities.FieldType
+import net.ljga.projects.apps.bttk.database.entities.ParserField
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 

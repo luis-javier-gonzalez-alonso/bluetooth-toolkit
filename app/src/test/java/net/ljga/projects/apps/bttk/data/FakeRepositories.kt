@@ -33,7 +33,7 @@ class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
 
     override suspend fun add(name: String, data: ByteArray) {
         val newFrame = DataFrame(name, data).apply { uid = nextId++ }
-        _dataFrames.value = _dataFrames.value + newFrame
+        _dataFrames.value += newFrame
     }
 
     override suspend fun remove(uid: Int) {
@@ -58,7 +58,7 @@ class FakeBluetoothScriptRepository @Inject constructor() : BluetoothScriptRepos
         } else {
             val newId = (_scripts.value.maxOfOrNull { it.id } ?: 0) + 1
             val newScript = script.copy(id = newId)
-            _scripts.value = _scripts.value + newScript
+            _scripts.value += newScript
             return newId.toLong()
         }
     }
@@ -128,7 +128,7 @@ class FakeSavedDeviceRepository @Inject constructor() : SavedDeviceRepository {
         if (existing != null) {
             _savedDevices.value = _savedDevices.value.map { if (it.address == device.address) device else it }
         } else {
-            _savedDevices.value = _savedDevices.value + device
+            _savedDevices.value += device
         }
     }
 
@@ -144,7 +144,7 @@ class FakeSavedDeviceRepository @Inject constructor() : SavedDeviceRepository {
 
     override suspend fun saveAlias(serviceUuid: String, characteristicUuid: String, alias: String) {
         val key = "$serviceUuid-$characteristicUuid"
-        _gattAliases.value = _gattAliases.value + (key to alias)
+        _gattAliases.value += (key to alias)
     }
 }
 

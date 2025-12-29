@@ -33,17 +33,16 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
-import net.ljga.projects.apps.bttk.data.bluetooth.strategy.BluetoothConnectionStrategy
-import net.ljga.projects.apps.bttk.data.bluetooth.strategy.GattBluetoothConnectionStrategy
-import net.ljga.projects.apps.bttk.data.bluetooth.strategy.SppBluetoothConnectionStrategy
-import net.ljga.projects.apps.bttk.data.bluetooth.utils.DeviceFoundReceiver
-import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.bluetooth.strategy.BluetoothConnectionStrategy
+import net.ljga.projects.apps.bttk.bluetooth.strategy.GattBluetoothConnectionStrategy
+import net.ljga.projects.apps.bttk.bluetooth.strategy.SppBluetoothConnectionStrategy
+import net.ljga.projects.apps.bttk.bluetooth.utils.DeviceFoundReceiver
+import net.ljga.projects.apps.bttk.bluetooth.utils.prettyCharacteristicName
 import java.util.UUID
 import javax.inject.Inject
 

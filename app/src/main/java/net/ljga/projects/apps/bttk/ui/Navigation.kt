@@ -86,7 +86,7 @@ fun MainNavigation() {
                 onSaveAlias = { s, c, a -> viewModel.saveAlias(s, c, a) },
                 onSaveDataFrame = { n, d -> viewModel.saveDataFrame(n, d) },
                 onDeleteDataFrame = { id -> viewModel.deleteDataFrame(id) },
-                onSaveParserConfig = { viewModel.saveParserConfig(it) },
+                onSaveParserConfig = { config -> viewModel.saveParserConfig(config) },
                 onDeleteParserConfig = { s, c -> viewModel.deleteParserConfig(s, c) }
             )
         }

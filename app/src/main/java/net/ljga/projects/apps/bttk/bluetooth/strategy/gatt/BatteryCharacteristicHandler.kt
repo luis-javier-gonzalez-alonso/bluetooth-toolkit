@@ -4,8 +4,8 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.bluetooth.model.DataFormat
 import java.util.UUID
 
 class BatteryCharacteristicHandler : GattCharacteristicHandler {

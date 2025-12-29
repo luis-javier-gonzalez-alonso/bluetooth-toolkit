@@ -2,7 +2,7 @@ package net.ljga.projects.apps.bttk.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
 
 @Serializable
 data class GattServerStateData(
@@ -17,7 +17,7 @@ interface GattServerRepository {
     val config: Flow<GattServerStateData>
 
     suspend fun saveConfig(
-        services: List<BluetoothServiceDomain>, 
+        services: List<BluetoothServiceDomain>,
         nextServiceIndex: Int,
         serviceIndices: Map<String, Int>,
         serviceNextCharIndices: Map<String, Int>,
