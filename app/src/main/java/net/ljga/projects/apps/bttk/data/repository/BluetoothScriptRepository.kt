@@ -1,11 +1,11 @@
 package net.ljga.projects.apps.bttk.data.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
 
 interface BluetoothScriptRepository {
-    fun getAllScripts(): Flow<List<BluetoothScript>>
-    suspend fun getScriptById(id: Int): BluetoothScript?
-    suspend fun saveScript(script: BluetoothScript): Long
+    fun getAllScripts(): Flow<List<BluetoothScriptDomain>>
+    suspend fun getScriptById(id: Int): BluetoothScriptDomain?
+    suspend fun saveScript(script: BluetoothScriptDomain): Long
     suspend fun deleteScript(id: Int)
 }

@@ -1,21 +1,25 @@
 package net.ljga.projects.apps.bttk.database.repository
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import net.ljga.projects.apps.bttk.database.dao.CharacteristicParserDao
-import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
 import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.toDomain
+import net.ljga.projects.apps.bttk.data.toEntity
+import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
 import javax.inject.Inject
 
 class DatabaseCharacteristicParserRepository @Inject constructor(
     private val characteristicParserDao: CharacteristicParserDao
 ) : CharacteristicParserRepository {
-    override fun getAllConfigs(): Flow<List<CharacteristicParserConfig>> = characteristicParserDao.getAllConfigs()
+    override fun getAllConfigs(): Flow<List<CharacteristicParserConfigDomain>> = 
+        characteristicParserDao.getAllConfigs().map { entities -> entities.map { it.toDomain() } }
 
-    override fun getConfig(serviceUuid: String, characteristicUuid: String): Flow<CharacteristicParserConfig?> =
-        characteristicParserDao.getConfig(serviceUuid, characteristicUuid)
+    override fun getConfig(serviceUuid: String, characteristicUuid: String): Flow<CharacteristicParserConfigDomain?> =
+        characteristicParserDao.getConfig(serviceUuid, characteristicUuid).map { it?.toDomain() }
 
-    override suspend fun saveConfig(config: CharacteristicParserConfig) {
-        characteristicParserDao.insertConfig(config)
+    override suspend fun saveConfig(config: CharacteristicParserConfigDomain) {
+        characteristicParserDao.insertConfig(config.toEntity())
     }
 
     override suspend fun deleteConfig(serviceUuid: String, characteristicUuid: String) {

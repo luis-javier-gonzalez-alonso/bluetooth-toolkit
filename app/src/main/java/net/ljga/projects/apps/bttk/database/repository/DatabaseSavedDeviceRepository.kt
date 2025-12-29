@@ -2,6 +2,7 @@ package net.ljga.projects.apps.bttk.database.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
@@ -10,7 +11,7 @@ import net.ljga.projects.apps.bttk.database.dao.SavedDeviceDao
 import net.ljga.projects.apps.bttk.database.entities.GattAlias
 import net.ljga.projects.apps.bttk.database.entities.SavedDevice
 import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.data.repository.toDomain
+import net.ljga.projects.apps.bttk.data.toDomain
 import javax.inject.Inject
 
 class DatabaseSavedDeviceRepository @Inject constructor(

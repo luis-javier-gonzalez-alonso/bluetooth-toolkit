@@ -4,35 +4,24 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.*
 import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
 import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.data.repository.GattServerStateData
 import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScriptOperation
-import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.database.entities.DataFrame
-import net.ljga.projects.apps.bttk.database.entities.Endianness
-import net.ljga.projects.apps.bttk.database.entities.FieldType
-import net.ljga.projects.apps.bttk.database.entities.ParserField
-import net.ljga.projects.apps.bttk.database.entities.ScriptOperationType
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
     private val _dataFrames = MutableStateFlow(fakeDataFrames)
-    override val dataFrames: Flow<List<DataFrame>> = _dataFrames.asStateFlow()
+    override val dataFrames: Flow<List<DataFrameDomain>> = _dataFrames.asStateFlow()
 
     private var nextId = fakeDataFrames.maxOfOrNull { it.uid }?.plus(1) ?: 1
 
     override suspend fun add(name: String, data: ByteArray) {
-        val newFrame = DataFrame(name, data).apply { uid = nextId++ }
+        val newFrame = DataFrameDomain(nextId++, name, data)
         _dataFrames.value += newFrame
     }
 
@@ -44,13 +33,13 @@ class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
 @Singleton
 class FakeBluetoothScriptRepository @Inject constructor() : BluetoothScriptRepository {
     private val _scripts = MutableStateFlow(fakeScripts)
-    override fun getAllScripts(): Flow<List<BluetoothScript>> = _scripts.asStateFlow()
+    override fun getAllScripts(): Flow<List<BluetoothScriptDomain>> = _scripts.asStateFlow()
 
-    override suspend fun getScriptById(id: Int): BluetoothScript? {
+    override suspend fun getScriptById(id: Int): BluetoothScriptDomain? {
         return _scripts.value.find { it.id == id }
     }
 
-    override suspend fun saveScript(script: BluetoothScript): Long {
+    override suspend fun saveScript(script: BluetoothScriptDomain): Long {
         val existing = _scripts.value.find { it.id == script.id }
         if (existing != null) {
             _scripts.value = _scripts.value.map { if (it.id == script.id) script else it }
@@ -71,15 +60,15 @@ class FakeBluetoothScriptRepository @Inject constructor() : BluetoothScriptRepos
 @Singleton
 class FakeCharacteristicParserRepository @Inject constructor() : CharacteristicParserRepository {
     private val _configs = MutableStateFlow(fakeParserConfigs)
-    override fun getAllConfigs(): Flow<List<CharacteristicParserConfig>> = _configs.asStateFlow()
+    override fun getAllConfigs(): Flow<List<CharacteristicParserConfigDomain>> = _configs.asStateFlow()
 
-    override fun getConfig(serviceUuid: String, characteristicUuid: String): Flow<CharacteristicParserConfig?> {
+    override fun getConfig(serviceUuid: String, characteristicUuid: String): Flow<CharacteristicParserConfigDomain?> {
         return _configs.map { list ->
             list.find { it.serviceUuid == serviceUuid && it.characteristicUuid == characteristicUuid }
         }
     }
 
-    override suspend fun saveConfig(config: CharacteristicParserConfig) {
+    override suspend fun saveConfig(config: CharacteristicParserConfigDomain) {
         val filtered = _configs.value.filterNot {
             it.serviceUuid == config.serviceUuid && it.characteristicUuid == config.characteristicUuid
         }
@@ -96,22 +85,10 @@ class FakeCharacteristicParserRepository @Inject constructor() : CharacteristicP
 @Singleton
 class FakeGattServerRepository @Inject constructor() : GattServerRepository {
     private val _config = MutableStateFlow(fakeGattServerState)
-    override val config: Flow<GattServerStateData> = _config.asStateFlow()
+    override val config: Flow<GattServerStateDomain> = _config.asStateFlow()
 
-    override suspend fun saveConfig(
-        services: List<BluetoothServiceDomain>,
-        nextServiceIndex: Int,
-        serviceIndices: Map<String, Int>,
-        serviceNextCharIndices: Map<String, Int>,
-        deviceName: String?
-    ) {
-        _config.value = GattServerStateData(
-            services = services,
-            nextServiceIndex = nextServiceIndex,
-            serviceIndices = serviceIndices,
-            serviceNextCharIndices = serviceNextCharIndices,
-            deviceName = deviceName
-        )
+    override suspend fun saveConfig(state: GattServerStateDomain) {
+        _config.value = state
     }
 }
 
@@ -149,44 +126,44 @@ class FakeSavedDeviceRepository @Inject constructor() : SavedDeviceRepository {
 }
 
 private val fakeDataFrames = listOf(
-    DataFrame(name = "Battery Level", data = byteArrayOf(0x64)).apply { uid = 1 },
-    DataFrame(name = "Heart Rate", data = byteArrayOf(0x00, 0x4B)).apply { uid = 2 },
-    DataFrame(name = "Temperature", data = byteArrayOf(0x0A, 0x09)).apply { uid = 3 }
+    DataFrameDomain(uid = 1, name = "Battery Level", data = byteArrayOf(0x64)),
+    DataFrameDomain(uid = 2, name = "Heart Rate", data = byteArrayOf(0x00, 0x4B)),
+    DataFrameDomain(uid = 3, name = "Temperature", data = byteArrayOf(0x0A, 0x09))
 )
 
 private val fakeScripts = listOf(
-    BluetoothScript(
+    BluetoothScriptDomain(
         id = 1,
         name = "Read Device Info",
         operations = listOf(
-            BluetoothScriptOperation(ScriptOperationType.READ, "180A", "2A29"),
-            BluetoothScriptOperation(ScriptOperationType.DELAY, delayMs = 500),
-            BluetoothScriptOperation(ScriptOperationType.READ, "180A", "2A24")
+            BluetoothScriptOperationDomain(ScriptOperationTypeDomain.READ, "180A", "2A29"),
+            BluetoothScriptOperationDomain(ScriptOperationTypeDomain.DELAY, delayMs = 500),
+            BluetoothScriptOperationDomain(ScriptOperationTypeDomain.READ, "180A", "2A24")
         )
     ),
-    BluetoothScript(
+    BluetoothScriptDomain(
         id = 2,
         name = "Toggle LED",
         operations = listOf(
-            BluetoothScriptOperation(ScriptOperationType.WRITE, "FF01", "FF02", data = byteArrayOf(0x01)),
-            BluetoothScriptOperation(ScriptOperationType.DELAY, delayMs = 1000),
-            BluetoothScriptOperation(ScriptOperationType.WRITE, "FF01", "FF02", data = byteArrayOf(0x00))
+            BluetoothScriptOperationDomain(ScriptOperationTypeDomain.WRITE, "FF01", "FF02", data = byteArrayOf(0x01)),
+            BluetoothScriptOperationDomain(ScriptOperationTypeDomain.DELAY, delayMs = 1000),
+            BluetoothScriptOperationDomain(ScriptOperationTypeDomain.WRITE, "FF01", "FF02", data = byteArrayOf(0x00))
         )
     )
 )
 
 private val fakeParserConfigs = listOf(
-    CharacteristicParserConfig(
+    CharacteristicParserConfigDomain(
         serviceUuid = "1809",
         characteristicUuid = "2A1C",
         fields = listOf(
-            ParserField("Temperature", 1, 2, FieldType.I16, Endianness.LITTLE_ENDIAN)
+            ParserFieldDomain("Temperature", 1, 2, FieldTypeDomain.I16, EndiannessDomain.LITTLE_ENDIAN)
         ),
         template = "Temperature: {Temperature} °C"
     )
 )
 
-private val fakeGattServerState = GattServerStateData(
+private val fakeGattServerState = GattServerStateDomain(
     services = listOf(
         BluetoothServiceDomain(
             uuid = "1800",
