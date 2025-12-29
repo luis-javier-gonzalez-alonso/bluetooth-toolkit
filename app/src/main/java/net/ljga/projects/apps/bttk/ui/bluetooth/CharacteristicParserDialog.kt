@@ -110,7 +110,7 @@ fun FieldRow(field: ParserField, onDelete: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(field.name, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                Text("Offset: ${field.offset}, Len: ${field.length}, Type: ${field.type}", style = MaterialTheme.typography.labelSmall)
+                Text("Offset: ${field.offset}, Len: ${field.type.length ?: field.length}, Type: ${field.type}", style = MaterialTheme.typography.labelSmall)
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp))

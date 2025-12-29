@@ -30,43 +30,27 @@ object CharacteristicParser {
     }
 
     private fun parseField(data: ByteArray, field: ParserField): Any {
-        if (field.offset >= data.size) return "OOB"
-        
-        val length = if (field.offset + field.length > data.size) {
-            data.size - field.offset
-        } else {
-            field.length
-        }
-
+        val length = field.type.length ?: field.length
         val buffer = ByteBuffer.wrap(data, field.offset, length)
-        buffer.order(if (field.endianness == Endianness.LITTLE_ENDIAN) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN)
+        buffer.order(
+            when (field.endianness) {
+                Endianness.LITTLE_ENDIAN -> ByteOrder.LITTLE_ENDIAN
+                Endianness.BIG_ENDIAN -> ByteOrder.BIG_ENDIAN
+            }
+        )
 
         return when (field.type) {
-            FieldType.U8 -> buffer.get().toInt() and 0xFF
-            FieldType.U16 -> {
-                if (length < 2) (buffer.get().toInt() and 0xFF)
-                else buffer.short.toInt() and 0xFFFF
-            }
-            FieldType.U32 -> {
-                if (length < 4) 0 // Handle truncated data
-                else buffer.int.toLong() and 0xFFFFFFFFL
-            }
-            FieldType.S8 -> buffer.get().toInt()
-            FieldType.S16 -> {
-                if (length < 2) buffer.get().toInt()
-                else buffer.short.toInt()
-            }
-            FieldType.S32 -> {
-                if (length < 4) 0
-                else buffer.int
-            }
-            FieldType.FLOAT32 -> {
-                if (length < 4) 0.0f
-                else buffer.float
-            }
-            FieldType.STRING -> {
-                String(data, field.offset, length, Charsets.UTF_8).trim { it <= ' ' }
-            }
+            FieldType.U8 -> buffer.get().toUByte()
+            FieldType.U16 -> buffer.getShort().toUShort()
+            FieldType.U32 -> buffer.getInt().toUInt()
+            FieldType.U64 -> buffer.getLong().toULong()
+            FieldType.I8 -> buffer.get()
+            FieldType.I16 -> buffer.getShort()
+            FieldType.I32 -> buffer.getInt()
+            FieldType.I64 -> buffer.getLong()
+            FieldType.FLOAT -> buffer.getFloat()
+            FieldType.DOUBLE -> buffer.getDouble()
+            FieldType.STRING -> String(buffer.array(), Charsets.UTF_8)
         }
     }
 }
