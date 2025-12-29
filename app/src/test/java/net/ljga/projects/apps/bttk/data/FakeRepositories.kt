@@ -5,11 +5,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import net.ljga.projects.apps.bttk.domain.model.*
-import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
+import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
+import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 

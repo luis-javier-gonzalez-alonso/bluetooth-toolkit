@@ -10,23 +10,14 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
+import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.domain.BluetoothController
 import net.ljga.projects.apps.bttk.domain.GattServerService
-import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
-import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.domain.model.DataFormat
+import net.ljga.projects.apps.bttk.domain.model.*
 import net.ljga.projects.apps.bttk.domain.utils.CharacteristicParser
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
-import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.database.entities.DataFrame
-import net.ljga.projects.apps.bttk.database.entities.ScriptOperationType
 import java.util.UUID
 import javax.inject.Inject
 
@@ -176,18 +167,23 @@ class BluetoothViewModel @Inject constructor(
 
         // Load saved GATT Server config
         viewModelScope.launch {
-            val data = gattServerRepository.config.first()
-            nextServiceIndex = data.nextServiceIndex
-            serviceIndices.putAll(data.serviceIndices)
-            serviceNextCharIndices.putAll(data.serviceNextCharIndices)
-            _state.update { it.copy(gattServerDeviceName = data.deviceName ?: "") }
-            data.services.forEach { service ->
-                bluetoothController.addGattService(service)
+            gattServerRepository.config.collectLatest { stateDomain ->
+                nextServiceIndex = stateDomain.nextServiceIndex
+                serviceIndices.clear()
+                serviceIndices.putAll(stateDomain.serviceIndices)
+                serviceNextCharIndices.clear()
+                serviceNextCharIndices.putAll(stateDomain.serviceNextCharIndices)
+                _state.update { it.copy(gattServerDeviceName = stateDomain.deviceName ?: "") }
+                
+                // Re-add services if the server is already running or to initialize it
+                stateDomain.services.forEach { service ->
+                    bluetoothController.addGattService(service)
+                }
             }
         }
     }
 
-    private fun runScript(script: BluetoothScript) {
+    private fun runScript(script: BluetoothScriptDomain) {
         viewModelScope.launch {
             _state.update { it.copy(scriptToRun = null) }
             bluetoothController.emitPacket(BluetoothDataPacket(
@@ -199,17 +195,17 @@ class BluetoothViewModel @Inject constructor(
             
             script.operations.forEach { op ->
                 when (op.type) {
-                    ScriptOperationType.READ -> {
+                    ScriptOperationTypeDomain.READ -> {
                         if (op.serviceUuid != null && op.characteristicUuid != null) {
                             bluetoothController.readCharacteristic(op.serviceUuid, op.characteristicUuid)
                         }
                     }
-                    ScriptOperationType.WRITE -> {
+                    ScriptOperationTypeDomain.WRITE -> {
                         if (op.serviceUuid != null && op.characteristicUuid != null && op.data != null) {
                             bluetoothController.writeCharacteristic(op.serviceUuid, op.characteristicUuid, op.data)
                         }
                     }
-                    ScriptOperationType.DELAY -> {
+                    ScriptOperationTypeDomain.DELAY -> {
                         op.delayMs?.let { delay(it) }
                     }
                 }
@@ -226,7 +222,7 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
-    fun connectAndRunScript(device: BluetoothDeviceDomain, script: BluetoothScript) {
+    fun connectAndRunScript(device: BluetoothDeviceDomain, script: BluetoothScriptDomain) {
         _state.update { it.copy(isConnecting = true, selectedDevice = device, scriptToRun = script) }
         bluetoothController.connectToDevice(device, BluetoothProfile.GATT)
     }
@@ -341,7 +337,7 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
-    fun saveParserConfig(config: CharacteristicParserConfig) {
+    fun saveParserConfig(config: CharacteristicParserConfigDomain) {
         viewModelScope.launch {
             characteristicParserRepository.saveConfig(config)
         }
@@ -453,13 +449,14 @@ class BluetoothViewModel @Inject constructor(
 
     private fun saveGattServerConfig() {
         viewModelScope.launch {
-            gattServerRepository.saveConfig(
-                bluetoothController.gattServerServices.value, 
-                nextServiceIndex,
-                serviceIndices,
-                serviceNextCharIndices,
-                state.value.gattServerDeviceName
+            val stateDomain = GattServerStateDomain(
+                services = bluetoothController.gattServerServices.value,
+                nextServiceIndex = nextServiceIndex,
+                serviceIndices = serviceIndices.toMap(),
+                serviceNextCharIndices = serviceNextCharIndices.toMap(),
+                deviceName = state.value.gattServerDeviceName
             )
+            gattServerRepository.saveConfig(stateDomain)
         }
     }
 }
@@ -478,11 +475,11 @@ data class BluetoothUiState(
     val profilesToSelect: List<BluetoothProfile> = emptyList(),
     val enabledNotifications: Set<String> = emptySet(),
     val gattAliases: Map<String, String> = emptyMap(),
-    val savedDataFrames: List<DataFrame> = emptyList(),
+    val savedDataFrames: List<DataFrameDomain> = emptyList(),
     val isGattServerRunning: Boolean = false,
     val gattServerServices: List<BluetoothServiceDomain> = emptyList(),
     val localAddress: String? = null,
     val gattServerDeviceName: String = "",
-    val parserConfigs: Map<String, CharacteristicParserConfig> = emptyMap(),
-    val scriptToRun: BluetoothScript? = null
+    val parserConfigs: Map<String, CharacteristicParserConfigDomain> = emptyMap(),
+    val scriptToRun: BluetoothScriptDomain? = null
 )

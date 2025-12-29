@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.database
+package net.ljga.projects.apps.bttk.data.database
 
 import android.content.Context
 import androidx.room.Room

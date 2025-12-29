@@ -12,10 +12,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScriptOperation
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
+import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptOperationDomain
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,21 +24,21 @@ class BluetoothScriptViewModel @Inject constructor(
     private val savedDeviceRepository: SavedDeviceRepository
 ) : ViewModel() {
 
-    val allScripts: StateFlow<List<BluetoothScript>> = scriptRepository.getAllScripts()
+    val allScripts: StateFlow<List<BluetoothScriptDomain>> = scriptRepository.getAllScripts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val knownDevices: StateFlow<List<BluetoothDeviceDomain>> = savedDeviceRepository.savedDevices
         .map { devices -> devices.filter { it.services.isNotEmpty() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _currentScript = MutableStateFlow<BluetoothScript?>(null)
-    val currentScript: StateFlow<BluetoothScript?> = _currentScript.asStateFlow()
+    private val _currentScript = MutableStateFlow<BluetoothScriptDomain?>(null)
+    val currentScript: StateFlow<BluetoothScriptDomain?> = _currentScript.asStateFlow()
 
     fun createNewScript() {
-        _currentScript.value = BluetoothScript(name = "New Script", operations = emptyList())
+        _currentScript.value = BluetoothScriptDomain(name = "New Script", operations = emptyList())
     }
 
-    fun editScript(script: BluetoothScript) {
+    fun editScript(script: BluetoothScriptDomain) {
         _currentScript.value = script
     }
 
@@ -46,9 +46,9 @@ class BluetoothScriptViewModel @Inject constructor(
         _currentScript.update { it?.copy(name = name) }
     }
 
-    fun addOperation(operation: BluetoothScriptOperation) {
+    fun addOperation(operation: BluetoothScriptOperationDomain) {
         _currentScript.update { script ->
-            script?.copy(operations = script.operations + operation)
+            script?.copy(operations = (script.operations) + operation)
         }
     }
 
@@ -58,7 +58,7 @@ class BluetoothScriptViewModel @Inject constructor(
         }
     }
     
-    fun updateOperation(index: Int, operation: BluetoothScriptOperation) {
+    fun updateOperation(index: Int, operation: BluetoothScriptOperationDomain) {
         _currentScript.update { script ->
             script?.copy(operations = script.operations.toMutableList().apply { set(index, operation) })
         }

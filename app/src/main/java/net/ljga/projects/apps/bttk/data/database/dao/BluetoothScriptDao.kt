@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.database.dao
+package net.ljga.projects.apps.bttk.data.database.dao
 
 import androidx.room.Dao
 import androidx.room.Insert

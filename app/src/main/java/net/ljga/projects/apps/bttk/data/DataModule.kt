@@ -20,11 +20,11 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
+import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
+import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.database.repository.DatabaseBluetoothScriptRepository
 import net.ljga.projects.apps.bttk.database.repository.DatabaseCharacteristicParserRepository
 import net.ljga.projects.apps.bttk.database.repository.DatabaseDataFrameRepository

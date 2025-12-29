@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Error
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Loading
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Success
@@ -22,7 +22,7 @@ class DataFrameViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<DataFrameUiState> = dataFrameRepository
-        .dataFrames.map<List<DataFrame>, DataFrameUiState>(::Success)
+        .dataFrames.map<List<DataFrameDomain>, DataFrameUiState>(::Success)
         .catch { emit(Error(it)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Loading)
 
@@ -42,5 +42,5 @@ class DataFrameViewModel @Inject constructor(
 sealed interface DataFrameUiState {
     object Loading : DataFrameUiState
     data class Error(val throwable: Throwable) : DataFrameUiState
-    data class Success(val data: List<DataFrame>) : DataFrameUiState
+    data class Success(val data: List<DataFrameDomain>) : DataFrameUiState
 }

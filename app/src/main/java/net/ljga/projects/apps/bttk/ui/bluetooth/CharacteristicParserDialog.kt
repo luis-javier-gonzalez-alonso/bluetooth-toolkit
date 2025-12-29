@@ -11,19 +11,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.database.entities.Endianness
-import net.ljga.projects.apps.bttk.database.entities.FieldType
-import net.ljga.projects.apps.bttk.database.entities.ParserField
+import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
+import net.ljga.projects.apps.bttk.domain.model.EndiannessDomain
+import net.ljga.projects.apps.bttk.domain.model.FieldTypeDomain
+import net.ljga.projects.apps.bttk.domain.model.ParserFieldDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacteristicParserDialog(
     serviceUuid: String,
     characteristicUuid: String,
-    initialConfig: CharacteristicParserConfig?,
+    initialConfig: CharacteristicParserConfigDomain?,
     onDismiss: () -> Unit,
-    onSave: (CharacteristicParserConfig) -> Unit,
+    onSave: (CharacteristicParserConfigDomain) -> Unit,
     onDelete: () -> Unit
 ) {
     var template by remember { mutableStateOf(initialConfig?.template ?: "") }
@@ -64,7 +64,7 @@ fun CharacteristicParserDialog(
         },
         confirmButton = {
             Button(onClick = {
-                onSave(CharacteristicParserConfig(serviceUuid, characteristicUuid, fields, template))
+                onSave(CharacteristicParserConfigDomain(serviceUuid, characteristicUuid, fields, template))
                 onDismiss()
             }) {
                 Text("Save")
@@ -105,7 +105,7 @@ fun CharacteristicParserDialog(
 }
 
 @Composable
-fun FieldRow(field: ParserField, onDelete: () -> Unit) {
+fun FieldRow(field: ParserFieldDomain, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -130,13 +130,13 @@ fun FieldRow(field: ParserField, onDelete: () -> Unit) {
 fun AddFieldDialog(
     defaultOffset: Int,
     onDismiss: () -> Unit, 
-    onAdd: (ParserField) -> Unit
+    onAdd: (ParserFieldDomain) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var offset by remember { mutableStateOf(defaultOffset.toString()) }
     var length by remember { mutableStateOf("1") }
-    var type by remember { mutableStateOf(FieldType.U8) }
-    var endianness by remember { mutableStateOf(Endianness.LITTLE_ENDIAN) }
+    var type by remember { mutableStateOf(FieldTypeDomain.U8) }
+    var endianness by remember { mutableStateOf(EndiannessDomain.LITTLE_ENDIAN) }
 
     var typeExpanded by remember { mutableStateOf(false) }
     var endianExpanded by remember { mutableStateOf(false) }
@@ -183,7 +183,7 @@ fun AddFieldDialog(
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
-                        FieldType.entries.forEach { fieldType ->
+                        FieldTypeDomain.entries.forEach { fieldType ->
                             DropdownMenuItem(
                                 text = { Text(fieldType.name) }, 
                                 onClick = { 
@@ -208,7 +208,7 @@ fun AddFieldDialog(
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = endianExpanded, onDismissRequest = { endianExpanded = false }) {
-                        Endianness.entries.forEach { end ->
+                        EndiannessDomain.entries.forEach { end ->
                             DropdownMenuItem(text = { Text(end.name) }, onClick = { endianness = end; endianExpanded = false })
                         }
                     }
@@ -217,7 +217,7 @@ fun AddFieldDialog(
         },
         confirmButton = {
             Button(onClick = {
-                onAdd(ParserField(name, offset.toIntOrNull() ?: 0, length.toIntOrNull() ?: 1, type, endianness))
+                onAdd(ParserFieldDomain(name, offset.toIntOrNull() ?: 0, length.toIntOrNull() ?: 1, type, endianness))
             }, enabled = name.isNotBlank()) {
                 Text("Add")
             }

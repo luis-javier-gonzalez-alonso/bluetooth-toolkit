@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.data.repository
+package net.ljga.projects.apps.bttk.domain.repository
 
 import kotlinx.coroutines.flow.Flow
 import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain

@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.database.entities
+package net.ljga.projects.apps.bttk.data.database.entities
 
 import androidx.room.Entity
 import androidx.room.TypeConverter

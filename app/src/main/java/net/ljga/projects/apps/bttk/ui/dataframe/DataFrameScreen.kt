@@ -15,12 +15,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import net.ljga.projects.apps.bttk.database.entities.DataFrame
-import net.ljga.projects.apps.bttk.ui.theme.MyApplicationTheme
+import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
 
 @Composable
 fun DataFrameScreen(modifier: Modifier = Modifier, viewModel: DataFrameViewModel = hiltViewModel()) {
@@ -36,7 +34,7 @@ fun DataFrameScreen(modifier: Modifier = Modifier, viewModel: DataFrameViewModel
 
 @Composable
 internal fun DataFrameScreen(
-    items: List<DataFrame>,
+    items: List<DataFrameDomain>,
     onSave: (name: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -60,23 +58,5 @@ internal fun DataFrameScreen(
         items.forEach {
             Text("Saved item: ${it.name}")
         }
-    }
-}
-
-// Previews
-
-@Preview(showBackground = true)
-@Composable
-private fun DefaultPreview() {
-    MyApplicationTheme {
-        DataFrameScreen(listOf(DataFrame("Compose", byteArrayOf())), onSave = {})
-    }
-}
-
-@Preview(showBackground = true, widthDp = 480)
-@Composable
-private fun PortraitPreview() {
-    MyApplicationTheme {
-        DataFrameScreen(listOf(DataFrame("Compose", byteArrayOf())), onSave = {})
     }
 }

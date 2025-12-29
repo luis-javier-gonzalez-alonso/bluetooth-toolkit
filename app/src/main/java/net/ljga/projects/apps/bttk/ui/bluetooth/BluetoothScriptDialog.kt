@@ -15,16 +15,16 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
-import net.ljga.projects.apps.bttk.database.entities.BluetoothScriptOperation
-import net.ljga.projects.apps.bttk.database.entities.ScriptOperationType
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptOperationDomain
+import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun BluetoothScriptDialog(
     viewModel: BluetoothScriptViewModel,
-    onScriptSelected: (BluetoothScript) -> Unit,
+    onScriptSelected: (BluetoothScriptDomain) -> Unit,
     onDismiss: () -> Unit
 ) {
     val scripts by viewModel.allScripts.collectAsState()
@@ -91,9 +91,9 @@ fun BluetoothScriptDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScriptListTab(
-    scripts: List<BluetoothScript>,
-    onSelect: (BluetoothScript) -> Unit,
-    onEdit: (BluetoothScript) -> Unit,
+    scripts: List<BluetoothScriptDomain>,
+    onSelect: (BluetoothScriptDomain) -> Unit,
+    onEdit: (BluetoothScriptDomain) -> Unit,
     onDelete: (Int) -> Unit,
     onNew: () -> Unit,
     onClose: () -> Unit
@@ -140,13 +140,13 @@ fun ScriptListTab(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScriptEditTab(
-    script: BluetoothScript?,
+    script: BluetoothScriptDomain?,
     knownDevices: List<BluetoothDeviceDomain>,
     onSave: () -> Unit,
     onCancel: () -> Unit,
     onUpdateName: (String) -> Unit,
-    onAddOperation: (BluetoothScriptOperation) -> Unit,
-    onUpdateOperation: (Int, BluetoothScriptOperation) -> Unit,
+    onAddOperation: (BluetoothScriptOperationDomain) -> Unit,
+    onUpdateOperation: (Int, BluetoothScriptOperationDomain) -> Unit,
     onRemoveOperation: (Int) -> Unit
 ) {
     if (script == null) {
@@ -225,9 +225,9 @@ fun ScriptEditTab(
 fun AddOperationDialog(
     knownDevices: List<BluetoothDeviceDomain>,
     onDismiss: () -> Unit,
-    onAdd: (BluetoothScriptOperation) -> Unit
+    onAdd: (BluetoothScriptOperationDomain) -> Unit
 ) {
-    var type by remember { mutableStateOf(ScriptOperationType.READ) }
+    var type by remember { mutableStateOf(ScriptOperationTypeDomain.READ) }
     var serviceUuid by remember { mutableStateOf("") }
     var charUuid by remember { mutableStateOf("") }
     var dataHex by remember { mutableStateOf("") }
@@ -244,15 +244,15 @@ fun AddOperationDialog(
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = type == ScriptOperationType.READ, onClick = { type = ScriptOperationType.READ })
+                    RadioButton(selected = type == ScriptOperationTypeDomain.READ, onClick = { type = ScriptOperationTypeDomain.READ })
                     Text("Read")
-                    RadioButton(selected = type == ScriptOperationType.WRITE, onClick = { type = ScriptOperationType.WRITE })
+                    RadioButton(selected = type == ScriptOperationTypeDomain.WRITE, onClick = { type = ScriptOperationTypeDomain.WRITE })
                     Text("Write")
-                    RadioButton(selected = type == ScriptOperationType.DELAY, onClick = { type = ScriptOperationType.DELAY })
+                    RadioButton(selected = type == ScriptOperationTypeDomain.DELAY, onClick = { type = ScriptOperationTypeDomain.DELAY })
                     Text("Delay")
                 }
 
-                if (type != ScriptOperationType.DELAY) {
+                if (type != ScriptOperationTypeDomain.DELAY) {
                     Text("Quick Select from Device", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 8.dp))
                     ExposedDropdownMenuBox(
                         expanded = deviceMenuExpanded,
@@ -356,27 +356,27 @@ fun AddOperationDialog(
                     }
                 }
                 
-                if (type == ScriptOperationType.WRITE) {
+                if (type == ScriptOperationTypeDomain.WRITE) {
                     TextField(value = dataHex, onValueChange = { dataHex = it }, label = { Text("Data (Hex)") }, modifier = Modifier.fillMaxWidth())
                 }
 
-                if (type == ScriptOperationType.DELAY) {
+                if (type == ScriptOperationTypeDomain.DELAY) {
                     TextField(value = delayMs, onValueChange = { delayMs = it }, label = { Text("Delay (ms)") }, modifier = Modifier.fillMaxWidth())
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                val data = if (type == ScriptOperationType.WRITE) {
+                val data = if (type == ScriptOperationTypeDomain.WRITE) {
                     try {
                         dataHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
                     } catch (e: Exception) { null }
                 } else null
                 
-                onAdd(BluetoothScriptOperation(
+                onAdd(BluetoothScriptOperationDomain(
                     type = type,
-                    serviceUuid = if (type != ScriptOperationType.DELAY) serviceUuid else null,
-                    characteristicUuid = if (type != ScriptOperationType.DELAY) charUuid else null,
+                    serviceUuid = if (type != ScriptOperationTypeDomain.DELAY) serviceUuid else null,
+                    characteristicUuid = if (type != ScriptOperationTypeDomain.DELAY) charUuid else null,
                     data = data,
                     delayMs = delayMs.toLongOrNull()
                 ))

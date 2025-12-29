@@ -32,8 +32,8 @@ import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
+import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -45,8 +45,8 @@ fun ConnectionScreen(
     logs: List<BluetoothDataPacket>,
     enabledNotifications: Set<String> = emptySet(),
     gattAliases: Map<String, String> = emptyMap(),
-    parserConfigs: Map<String, CharacteristicParserConfig> = emptyMap(),
-    savedDataFrames: List<DataFrame> = emptyList(),
+    parserConfigs: Map<String, CharacteristicParserConfigDomain> = emptyMap(),
+    savedDataFrames: List<DataFrameDomain> = emptyList(),
     onBackClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onReadCharacteristic: (String, String) -> Unit = { _, _ -> },
@@ -56,7 +56,7 @@ fun ConnectionScreen(
     onSaveAlias: (String, String, String) -> Unit = { _, _, _ -> },
     onSaveDataFrame: (String, ByteArray) -> Unit = { _, _ -> },
     onDeleteDataFrame: (Int) -> Unit = { _ -> },
-    onSaveParserConfig: (CharacteristicParserConfig) -> Unit = {},
+    onSaveParserConfig: (CharacteristicParserConfigDomain) -> Unit = {},
     onDeleteParserConfig: (String, String) -> Unit = { _, _ -> }
 ) {
     var showAliasDialog by remember { mutableStateOf<Triple<String, String, String>?>(null) }
@@ -327,7 +327,7 @@ fun CharacteristicRow(
 fun PacketSelectorDialog(
     serviceUuid: String,
     characteristicUuid: String,
-    savedDataFrames: List<DataFrame>,
+    savedDataFrames: List<DataFrameDomain>,
     onDismiss: () -> Unit,
     onSend: (ByteArray) -> Unit,
     onSave: (String, ByteArray) -> Unit,
