@@ -8,32 +8,16 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicAliasRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.domain.BluetoothController
 import net.ljga.projects.apps.bttk.domain.GattServerService
-import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
-import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
-import net.ljga.projects.apps.bttk.domain.model.DataFormat
-import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
-import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
-import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
-import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
-import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.model.*
 import net.ljga.projects.apps.bttk.domain.utils.CharacteristicParser
 import java.util.UUID
 import javax.inject.Inject
@@ -41,10 +25,11 @@ import javax.inject.Inject
 @HiltViewModel
 class BluetoothViewModel @Inject constructor(
     private val bluetoothController: BluetoothController,
-    private val savedDeviceRepository: SavedDeviceRepository,
+    private val bluetoothDeviceRepository: BluetoothDeviceRepository,
+    private val gattCharacteristicAliasRepository: GattCharacteristicAliasRepository,
     private val dataFrameRepository: DataFrameRepository,
     private val gattServerRepository: GattServerRepository,
-    private val characteristicParserRepository: CharacteristicParserRepository,
+    private val gattCharacteristicParserRepository: GattCharacteristicParserRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -58,7 +43,7 @@ class BluetoothViewModel @Inject constructor(
     private val devicesFlow = combine(
         bluetoothController.scannedDevices,
         bluetoothController.pairedDevices,
-        savedDeviceRepository.savedDevices
+        bluetoothDeviceRepository.savedDevices
     ) { scanned, paired, saved ->
         Triple(scanned, paired, saved)
     }
@@ -73,7 +58,7 @@ class BluetoothViewModel @Inject constructor(
     private val logsFlow = combine(
         bluetoothController.incomingData,
         bluetoothController.gattServerLogs,
-        characteristicParserRepository.getAllConfigs()
+        gattCharacteristicParserRepository.getAllConfigs()
     ) { incoming, gatt, configs -> 
         val configMap = configs.associateBy { "${it.serviceUuid}-${it.characteristicUuid}" }
         val enrichedIncoming = incoming.map { packet ->
@@ -88,7 +73,7 @@ class BluetoothViewModel @Inject constructor(
     }
 
     private val repositoryFlow = combine(
-        savedDeviceRepository.gattAliases,
+        gattCharacteristicAliasRepository.gattAliases,
         dataFrameRepository.dataFrames,
         gattServerRepository.getAllServers()
     ) { aliases, dataFrames, servers -> Triple(aliases, dataFrames, servers) }
@@ -181,7 +166,7 @@ class BluetoothViewModel @Inject constructor(
             .onEach { packet ->
                 if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
                     packet.source?.let { address ->
-                        savedDeviceRepository.updateServices(address, packet.gattServices)
+                        bluetoothDeviceRepository.updateServices(address, packet.gattServices)
                     }
                 }
             }.launchIn(viewModelScope)
@@ -280,13 +265,13 @@ class BluetoothViewModel @Inject constructor(
 
     fun saveDevice(device: BluetoothDeviceDomain) {
         viewModelScope.launch {
-            savedDeviceRepository.saveDevice(device)
+            bluetoothDeviceRepository.saveDevice(device)
         }
     }
 
     fun forgetSavedDevice(device: BluetoothDeviceDomain) {
         viewModelScope.launch {
-            savedDeviceRepository.forgetDevice(device.address)
+            bluetoothDeviceRepository.forgetDevice(device.address)
         }
     }
 
@@ -317,7 +302,7 @@ class BluetoothViewModel @Inject constructor(
 
     fun saveAlias(serviceUuid: String, characteristicUuid: String, alias: String) {
         viewModelScope.launch {
-            savedDeviceRepository.saveAlias(serviceUuid, characteristicUuid, alias)
+            gattCharacteristicAliasRepository.saveAlias(serviceUuid, characteristicUuid, alias)
         }
     }
 
@@ -343,13 +328,13 @@ class BluetoothViewModel @Inject constructor(
 
     fun saveParserConfig(config: CharacteristicParserConfigDomain) {
         viewModelScope.launch {
-            characteristicParserRepository.saveConfig(config)
+            gattCharacteristicParserRepository.saveConfig(config)
         }
     }
 
     fun deleteParserConfig(serviceUuid: String, characteristicUuid: String) {
         viewModelScope.launch {
-            characteristicParserRepository.deleteConfig(serviceUuid, characteristicUuid)
+            gattCharacteristicParserRepository.deleteConfig(serviceUuid, characteristicUuid)
         }
     }
 
@@ -381,19 +366,19 @@ class BluetoothViewModel @Inject constructor(
     fun loadGattServerProfile(id: Int) {
         viewModelScope.launch {
             val server = gattServerRepository.getServerById(id) ?: return@launch
-
+            
             // Stop server if running before switching? Or just update it
             bluetoothController.clearGattServices()
-
+            
             currentServerProfileId = server.id
             nextServiceIndex = server.nextServiceIndex
             serviceIndices.clear()
             serviceIndices.putAll(server.serviceIndices)
             serviceNextCharIndices.clear()
             serviceNextCharIndices.putAll(server.serviceNextCharIndices)
-
+            
             _state.update { it.copy(gattServerDeviceName = server.deviceName ?: "") }
-
+            
             server.services.forEach { service ->
                 bluetoothController.addGattService(service)
             }
@@ -502,9 +487,8 @@ class BluetoothViewModel @Inject constructor(
     private fun saveGattServerConfig() {
         viewModelScope.launch {
             if (currentServerProfileId == 0) return@launch
-
-            val currentServer =
-                gattServerRepository.getServerById(currentServerProfileId) ?: return@launch
+            
+            val currentServer = gattServerRepository.getServerById(currentServerProfileId) ?: return@launch
             
             val stateDomain = GattServerStateDomain(
                 id = currentServerProfileId,

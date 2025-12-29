@@ -4,16 +4,18 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import net.ljga.projects.apps.bttk.data.database.repository.DatabaseBluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DatabaseCharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DatabaseDataFrameRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DatabaseGattServerRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DatabaseSavedDeviceRepository
-import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.repository.DatabaseBluetoothDeviceRepository
+import net.ljga.projects.apps.bttk.data.repository.DatabaseDataFrameRepository
+import net.ljga.projects.apps.bttk.data.repository.DatabaseGattCharacteristicAliasRepository
+import net.ljga.projects.apps.bttk.data.repository.DatabaseGattCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.repository.DatabaseGattScriptRepository
+import net.ljga.projects.apps.bttk.data.repository.DatabaseGattServerRepository
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicAliasRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattScriptRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
 import javax.inject.Singleton
 
 @Module
@@ -22,31 +24,37 @@ interface DataModule {
 
     @Singleton
     @Binds
+    fun bindBluetoothDeviceRepository(
+        databaseBluetoothDeviceRepository: DatabaseBluetoothDeviceRepository
+    ): BluetoothDeviceRepository
+
+    @Singleton
+    @Binds
     fun bindsDataFrameRepository(
-        dataFrameRepository: DatabaseDataFrameRepository
+        databaseDataFrameRepository: DatabaseDataFrameRepository
     ): DataFrameRepository
 
     @Singleton
     @Binds
-    fun bindsSavedDeviceRepository(
-        savedDeviceRepository: DatabaseSavedDeviceRepository
-    ): SavedDeviceRepository
+    fun bindsGattCharacteristicAliasRepository(
+        databaseGattCharacteristicAliasRepository: DatabaseGattCharacteristicAliasRepository
+    ): GattCharacteristicAliasRepository
 
     @Singleton
     @Binds
-    fun bindsCharacteristicParserRepository(
-        characteristicParserRepository: DatabaseCharacteristicParserRepository
-    ): CharacteristicParserRepository
+    fun bindsGattCharacteristicParserRepository(
+        databaseGattCharacteristicParserRepository: DatabaseGattCharacteristicParserRepository
+    ): GattCharacteristicParserRepository
 
     @Singleton
     @Binds
-    fun bindsBluetoothScriptRepository(
-        bluetoothScriptRepository: DatabaseBluetoothScriptRepository
-    ): BluetoothScriptRepository
+    fun bindsGattScriptRepository(
+        databaseGattScriptRepository: DatabaseGattScriptRepository
+    ): GattScriptRepository
 
     @Singleton
     @Binds
     fun bindsGattServerRepository(
-        gattServerRepository: DatabaseGattServerRepository
+        databaseGattServerRepository: DatabaseGattServerRepository
     ): GattServerRepository
 }

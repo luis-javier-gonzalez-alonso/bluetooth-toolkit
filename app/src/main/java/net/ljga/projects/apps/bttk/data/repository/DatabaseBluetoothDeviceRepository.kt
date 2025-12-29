@@ -1,31 +1,23 @@
-package net.ljga.projects.apps.bttk.data.database.repository
+package net.ljga.projects.apps.bttk.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
-import net.ljga.projects.apps.bttk.data.database.dao.GattCharacteristicAliasDao
 import net.ljga.projects.apps.bttk.data.database.dao.BluetoothDeviceDao
 import net.ljga.projects.apps.bttk.data.database.entity.BluetoothDeviceEntity
-import net.ljga.projects.apps.bttk.data.database.entity.GattCharacteristicAliasEntity
 import net.ljga.projects.apps.bttk.data.toDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import javax.inject.Inject
 
-class DatabaseSavedDeviceRepository @Inject constructor(
-    private val bluetoothDeviceDao: BluetoothDeviceDao,
-    private val gattCharacteristicAliasDao: GattCharacteristicAliasDao
-) : SavedDeviceRepository {
+class DatabaseBluetoothDeviceRepository @Inject constructor(
+    private val bluetoothDeviceDao: BluetoothDeviceDao
+) : BluetoothDeviceRepository {
 
     override val savedDevices: Flow<List<BluetoothDeviceDomain>> =
         bluetoothDeviceDao.getSavedDevices().map { devices ->
             devices.map { it.toDomain() }
-        }
-
-    override val gattAliases: Flow<Map<String, String>> =
-        gattCharacteristicAliasDao.getAllAliases().map { aliases ->
-            aliases.associate { "${it.serviceUuid}-${it.characteristicUuid}" to it.alias }
         }
 
     override suspend fun saveDevice(device: BluetoothDeviceDomain) {
@@ -56,19 +48,5 @@ class DatabaseSavedDeviceRepository @Inject constructor(
 
     override suspend fun forgetDevice(address: String) {
         bluetoothDeviceDao.deleteDevice(address)
-    }
-
-    override suspend fun saveAlias(serviceUuid: String, characteristicUuid: String, alias: String) {
-        if (alias.isBlank()) {
-            gattCharacteristicAliasDao.deleteAlias(serviceUuid, characteristicUuid)
-        } else {
-            gattCharacteristicAliasDao.insertAlias(
-                GattCharacteristicAliasEntity(
-                    serviceUuid,
-                    characteristicUuid,
-                    alias
-                )
-            )
-        }
     }
 }

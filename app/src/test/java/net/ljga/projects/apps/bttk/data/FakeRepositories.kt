@@ -5,11 +5,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import net.ljga.projects.apps.bttk.domain.model.*
-import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattScriptRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicParserRepository
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,7 +31,7 @@ class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
 }
 
 @Singleton
-class FakeBluetoothScriptRepository @Inject constructor() : BluetoothScriptRepository {
+class FakeGattScriptRepository @Inject constructor() : GattScriptRepository {
     private val _scripts = MutableStateFlow(fakeScripts)
     override fun getAllScripts(): Flow<List<BluetoothScriptDomain>> = _scripts.asStateFlow()
 
@@ -58,7 +58,7 @@ class FakeBluetoothScriptRepository @Inject constructor() : BluetoothScriptRepos
 }
 
 @Singleton
-class FakeCharacteristicParserRepository @Inject constructor() : CharacteristicParserRepository {
+class FakeGattCharacteristicParserRepository @Inject constructor() : GattCharacteristicParserRepository {
     private val _configs = MutableStateFlow(fakeParserConfigs)
     override fun getAllConfigs(): Flow<List<CharacteristicParserConfigDomain>> = _configs.asStateFlow()
 
@@ -93,7 +93,7 @@ class FakeGattServerRepository @Inject constructor() : GattServerRepository {
 }
 
 @Singleton
-class FakeSavedDeviceRepository @Inject constructor() : SavedDeviceRepository {
+class FakeBluetoothDeviceRepository @Inject constructor() : BluetoothDeviceRepository {
     private val _savedDevices = MutableStateFlow(fakeSavedDevices)
     private val _gattAliases = MutableStateFlow(fakeAliases)
 

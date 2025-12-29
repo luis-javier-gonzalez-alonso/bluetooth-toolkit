@@ -10,10 +10,10 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.ljga.projects.apps.bttk.data.FakeBluetoothController
-import net.ljga.projects.apps.bttk.data.FakeCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.FakeGattCharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.FakeDataFrameRepository
 import net.ljga.projects.apps.bttk.data.FakeGattServerRepository
-import net.ljga.projects.apps.bttk.data.FakeSavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.FakeBluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothViewModel
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -29,10 +29,10 @@ class BluetoothViewModelTest {
     
     private lateinit var viewModel: BluetoothViewModel
     private lateinit var bluetoothController: FakeBluetoothController
-    private lateinit var savedDeviceRepository: FakeSavedDeviceRepository
+    private lateinit var savedDeviceRepository: FakeBluetoothDeviceRepository
     private lateinit var dataFrameRepository: FakeDataFrameRepository
     private lateinit var gattServerRepository: FakeGattServerRepository
-    private lateinit var characteristicParserRepository: FakeCharacteristicParserRepository
+    private lateinit var characteristicParserRepository: FakeGattCharacteristicParserRepository
     private val context = mock(Context::class.java)
 
     @Before
@@ -40,17 +40,17 @@ class BluetoothViewModelTest {
         Dispatchers.setMain(testDispatcher)
         
         bluetoothController = FakeBluetoothController()
-        savedDeviceRepository = FakeSavedDeviceRepository()
+        savedDeviceRepository = FakeBluetoothDeviceRepository()
         dataFrameRepository = FakeDataFrameRepository()
         gattServerRepository = FakeGattServerRepository()
-        characteristicParserRepository = FakeCharacteristicParserRepository()
+        characteristicParserRepository = FakeGattCharacteristicParserRepository()
         
         viewModel = BluetoothViewModel(
             bluetoothController = bluetoothController,
-            savedDeviceRepository = savedDeviceRepository,
+            bluetoothDeviceRepository = savedDeviceRepository,
             dataFrameRepository = dataFrameRepository,
             gattServerRepository = gattServerRepository,
-            characteristicParserRepository = characteristicParserRepository,
+            gattCharacteristicParserRepository = characteristicParserRepository,
             context = context
         )
     }

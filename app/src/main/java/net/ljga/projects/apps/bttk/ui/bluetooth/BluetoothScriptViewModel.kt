@@ -12,22 +12,22 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattScriptRepository
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptOperationDomain
 import javax.inject.Inject
 
 @HiltViewModel
 class BluetoothScriptViewModel @Inject constructor(
-    private val scriptRepository: BluetoothScriptRepository,
-    private val savedDeviceRepository: SavedDeviceRepository
+    private val scriptRepository: GattScriptRepository,
+    private val bluetoothDeviceRepository: BluetoothDeviceRepository
 ) : ViewModel() {
 
     val allScripts: StateFlow<List<BluetoothScriptDomain>> = scriptRepository.getAllScripts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val knownDevices: StateFlow<List<BluetoothDeviceDomain>> = savedDeviceRepository.savedDevices
+    val knownDevices: StateFlow<List<BluetoothDeviceDomain>> = bluetoothDeviceRepository.savedDevices
         .map { devices -> devices.filter { it.services.isNotEmpty() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

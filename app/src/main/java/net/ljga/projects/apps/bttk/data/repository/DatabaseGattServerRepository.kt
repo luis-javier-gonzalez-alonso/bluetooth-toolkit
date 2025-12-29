@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.data.database.repository
+package net.ljga.projects.apps.bttk.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

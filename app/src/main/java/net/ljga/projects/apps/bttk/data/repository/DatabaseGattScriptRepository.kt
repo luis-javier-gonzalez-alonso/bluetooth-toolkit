@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.data.database.repository
+package net.ljga.projects.apps.bttk.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -6,12 +6,12 @@ import net.ljga.projects.apps.bttk.data.database.dao.GattScriptDao
 import net.ljga.projects.apps.bttk.data.toDomain
 import net.ljga.projects.apps.bttk.data.toEntity
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
-import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattScriptRepository
 import javax.inject.Inject
 
-class DatabaseBluetoothScriptRepository @Inject constructor(
+class DatabaseGattScriptRepository @Inject constructor(
     private val gattScriptDao: GattScriptDao
-) : BluetoothScriptRepository {
+) : GattScriptRepository {
     override fun getAllScripts(): Flow<List<BluetoothScriptDomain>> = 
         gattScriptDao.getAllScripts().map { entities -> entities.map { it.toDomain() } }
 
