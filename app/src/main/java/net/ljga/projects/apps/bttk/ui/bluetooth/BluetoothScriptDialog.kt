@@ -15,9 +15,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScript
-import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScriptOperation
-import net.ljga.projects.apps.bttk.data.database.entity.ScriptOperationType
+import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScriptOperation
+import net.ljga.projects.apps.bttk.data.database.entities.ScriptOperationType
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 

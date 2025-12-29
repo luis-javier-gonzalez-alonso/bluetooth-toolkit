@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.data.database.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.database.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
+import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScript
-import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScriptOperation
+import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScriptOperation
 import javax.inject.Inject
 
 @HiltViewModel

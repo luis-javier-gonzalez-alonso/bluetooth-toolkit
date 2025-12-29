@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entity.SavedDevice
+import net.ljga.projects.apps.bttk.data.database.entities.SavedDevice
 
 @Dao
 interface SavedDeviceDao {

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import net.ljga.projects.apps.bttk.data.database.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
 
 /**
  * Example local unit test, which will execute on the development machine (host).

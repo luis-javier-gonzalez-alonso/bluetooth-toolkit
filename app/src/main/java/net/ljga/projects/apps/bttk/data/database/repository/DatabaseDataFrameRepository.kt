@@ -1,18 +1,12 @@
 package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
 import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
+import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
 import javax.inject.Inject
 
-interface DataFrameRepository {
-    val dataFrames: Flow<List<DataFrame>>
-
-    suspend fun add(name: String, data: ByteArray)
-    suspend fun remove(uid: Int)
-}
-
-class DefaultDataFrameRepository @Inject constructor(
+class DatabaseDataFrameRepository @Inject constructor(
     private val dataFrameDao: DataFrameDao
 ) : DataFrameRepository {
 

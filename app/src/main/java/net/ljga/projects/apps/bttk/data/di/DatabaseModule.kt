@@ -19,6 +19,16 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 class DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
+        return Room
+            .databaseBuilder(appContext, AppDatabase::class.java, "BluetoothToolkit")
+            .fallbackToDestructiveMigration(false)
+            .build()
+    }
+
     @Provides
     fun provideDataFrameDao(appDatabase: AppDatabase): DataFrameDao {
         return appDatabase.dataFrameDao()
@@ -47,16 +57,5 @@ class DatabaseModule {
     @Provides
     fun provideBluetoothScriptDao(appDatabase: AppDatabase): BluetoothScriptDao {
         return appDatabase.bluetoothScriptDao()
-    }
-
-    @Provides
-    @Singleton
-    fun provideAppDatabase(@ApplicationContext appContext: Context): AppDatabase {
-        return Room.databaseBuilder(
-            appContext,
-            AppDatabase::class.java,
-            "BluetoothToolkit"
-        ).fallbackToDestructiveMigration()
-            .build()
     }
 }

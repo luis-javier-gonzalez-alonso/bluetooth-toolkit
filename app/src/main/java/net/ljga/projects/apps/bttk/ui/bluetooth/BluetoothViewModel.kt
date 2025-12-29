@@ -10,10 +10,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.data.database.repository.CharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.data.database.repository.GattServerRepository
-import net.ljga.projects.apps.bttk.data.database.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
+import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
 import net.ljga.projects.apps.bttk.data.bluetooth.GattServerService
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
@@ -23,10 +23,10 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.CharacteristicParser
-import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScript
-import net.ljga.projects.apps.bttk.data.database.entity.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
-import net.ljga.projects.apps.bttk.data.database.entity.ScriptOperationType
+import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.data.database.entities.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entities.ScriptOperationType
 import java.util.UUID
 import javax.inject.Inject
 

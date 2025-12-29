@@ -1,24 +1,17 @@
 package net.ljga.projects.apps.bttk.data.database.repository
 
+import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.data.database.entity.GattAlias
 import net.ljga.projects.apps.bttk.data.database.dao.GattAliasDao
-import net.ljga.projects.apps.bttk.data.database.entity.SavedDevice
 import net.ljga.projects.apps.bttk.data.database.dao.SavedDeviceDao
-import javax.inject.Inject
-
-interface SavedDeviceRepository {
-    val savedDevices: Flow<List<BluetoothDeviceDomain>>
-    val gattAliases: Flow<Map<String, String>>
-    suspend fun saveDevice(device: BluetoothDeviceDomain)
-    suspend fun updateServices(address: String, services: List<BluetoothServiceDomain>)
-    suspend fun forgetDevice(address: String)
-    suspend fun saveAlias(serviceUuid: String, characteristicUuid: String, alias: String)
-}
+import net.ljga.projects.apps.bttk.data.database.entities.GattAlias
+import net.ljga.projects.apps.bttk.data.database.entities.SavedDevice
+import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.repository.toDomain
 
 class DefaultSavedDeviceRepository @Inject constructor(
     private val savedDeviceDao: SavedDeviceDao,
@@ -42,7 +35,7 @@ class DefaultSavedDeviceRepository @Inject constructor(
         } else {
             existing?.servicesJson
         }
-        
+
         savedDeviceDao.insertDevice(
             SavedDevice(
                 address = device.address,
@@ -72,21 +65,4 @@ class DefaultSavedDeviceRepository @Inject constructor(
             gattAliasDao.insertAlias(GattAlias(serviceUuid, characteristicUuid, alias))
         }
     }
-}
-
-private fun SavedDevice.toDomain(): BluetoothDeviceDomain {
-    val services = servicesJson?.let {
-        try {
-            Json.decodeFromString<List<BluetoothServiceDomain>>(it)
-        } catch (e: Exception) {
-            emptyList()
-        }
-    } ?: emptyList()
-
-    return BluetoothDeviceDomain(
-        name = name,
-        address = address,
-        isInRange = false,
-        services = services
-    )
 }

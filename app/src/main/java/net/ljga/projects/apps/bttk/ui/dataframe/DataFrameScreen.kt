@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
 import net.ljga.projects.apps.bttk.ui.theme.MyApplicationTheme
 
 @Composable

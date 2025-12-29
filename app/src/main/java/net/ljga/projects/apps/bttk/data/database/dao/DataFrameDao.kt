@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
 
 @Dao
 interface DataFrameDao {

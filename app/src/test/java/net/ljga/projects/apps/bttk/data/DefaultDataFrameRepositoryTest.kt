@@ -23,19 +23,19 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
 import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
-import net.ljga.projects.apps.bttk.data.database.repository.DefaultDataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseDataFrameRepository
 
 /**
- * Unit tests for [net.ljga.projects.apps.bttk.data.database.repository.DefaultDataFrameRepository].
+ * Unit tests for [DatabaseDataFrameRepository].
  */
 @OptIn(ExperimentalCoroutinesApi::class) // TODO: Remove when stable
 class DefaultDataFrameRepositoryTest {
 
     @Test
     fun dataFrames_newItemSaved_itemIsReturned() = runTest {
-        val repository = DefaultDataFrameRepository(FakeDataFrameDao())
+        val repository = DatabaseDataFrameRepository(FakeDataFrameDao())
 
         repository.add("Repository")
 

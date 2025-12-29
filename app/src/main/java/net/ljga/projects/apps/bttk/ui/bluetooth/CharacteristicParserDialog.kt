@@ -11,10 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import net.ljga.projects.apps.bttk.data.database.entity.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.database.entity.Endianness
-import net.ljga.projects.apps.bttk.data.database.entity.FieldType
-import net.ljga.projects.apps.bttk.data.database.entity.ParserField
+import net.ljga.projects.apps.bttk.data.database.entities.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.data.database.entities.Endianness
+import net.ljga.projects.apps.bttk.data.database.entities.FieldType
+import net.ljga.projects.apps.bttk.data.database.entities.ParserField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

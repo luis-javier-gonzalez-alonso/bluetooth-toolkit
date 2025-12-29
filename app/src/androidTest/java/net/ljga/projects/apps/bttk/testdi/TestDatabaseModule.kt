@@ -20,7 +20,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
-import net.ljga.projects.apps.bttk.data.database.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.di.DataModule
 import net.ljga.projects.apps.bttk.data.di.FakeDataFrameRepository
 

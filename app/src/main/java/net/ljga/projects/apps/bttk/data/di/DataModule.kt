@@ -22,15 +22,17 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import net.ljga.projects.apps.bttk.data.database.repository.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.database.repository.CharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DefaultBluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DefaultCharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.database.repository.DefaultDataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseBluetoothScriptRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseDataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseGattServerRepository
 import net.ljga.projects.apps.bttk.data.database.repository.DefaultSavedDeviceRepository
-import net.ljga.projects.apps.bttk.data.database.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
+import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
+import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,7 +43,7 @@ interface DataModule {
     @Singleton
     @Binds
     fun bindsDataFrameRepository(
-        dataFrameRepository: DefaultDataFrameRepository
+        dataFrameRepository: DatabaseDataFrameRepository
     ): DataFrameRepository
 
     @Singleton
@@ -53,14 +55,20 @@ interface DataModule {
     @Singleton
     @Binds
     fun bindsCharacteristicParserRepository(
-        characteristicParserRepository: DefaultCharacteristicParserRepository
+        characteristicParserRepository: DatabaseCharacteristicParserRepository
     ): CharacteristicParserRepository
 
     @Singleton
     @Binds
     fun bindsBluetoothScriptRepository(
-        bluetoothScriptRepository: DefaultBluetoothScriptRepository
+        bluetoothScriptRepository: DatabaseBluetoothScriptRepository
     ): BluetoothScriptRepository
+
+    @Singleton
+    @Binds
+    fun bindsGattServerRepository(
+        gattServerRepository: DatabaseGattServerRepository
+    ): GattServerRepository
 }
 
 class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
