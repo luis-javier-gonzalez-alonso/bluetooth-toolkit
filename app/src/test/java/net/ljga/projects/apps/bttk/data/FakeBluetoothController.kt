@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import net.ljga.projects.apps.bttk.domain.BluetoothController
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 class FakeBluetoothController : BluetoothController {
@@ -54,7 +54,7 @@ class FakeBluetoothController : BluetoothController {
         _isScanning.value = false
     }
 
-    override fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile?) {
+    override fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothConnectionType?) {
         _isConnected.value = true
         _connectedAddress.value = device.address
     }

@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 interface BluetoothController {
@@ -25,7 +25,7 @@ interface BluetoothController {
     fun startDiscovery(): Boolean
     fun stopDiscovery()
     
-    fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile? = null)
+    fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothConnectionType? = null)
     fun disconnect()
     
     fun pairDevice(address: String)

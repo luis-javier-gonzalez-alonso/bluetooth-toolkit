@@ -1,28 +1,25 @@
 package net.ljga.projects.apps.bttk.domain.strategy
 
-import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothSocket
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
 import java.io.IOException
-import java.util.UUID
 
-class SppBluetoothConnectionStrategy(
-    private val bluetoothAdapter: BluetoothAdapter,
-    override val uuid: UUID = BluetoothProfile.SPP.uuid!!
-) : BluetoothConnectionStrategy {
-    override val name: String = "SPP"
+class SppBluetoothConnection(
+    private val bluetoothAdapter: BluetoothAdapter
+) : BluetoothConnection {
+    override val type: BluetoothConnectionType = BluetoothConnectionType.SPP
+
     private var socket: BluetoothSocket? = null
 
-    @SuppressLint("MissingPermission")
     override suspend fun connect(address: String): Flow<BluetoothDataPacket> = flow {
         val device = bluetoothAdapter.getRemoteDevice(address)
-        socket = device.createRfcommSocketToServiceRecord(uuid)
+        socket = device.createRfcommSocketToServiceRecord(type.uuid)
         
         socket?.connect()
         
@@ -54,13 +51,5 @@ class SppBluetoothConnectionStrategy(
             // Ignore
         }
         socket = null
-    }
-
-    override fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
-        try {
-            socket?.outputStream?.write(data)
-        } catch (e: IOException) {
-            // Ignore
-        }
     }
 }

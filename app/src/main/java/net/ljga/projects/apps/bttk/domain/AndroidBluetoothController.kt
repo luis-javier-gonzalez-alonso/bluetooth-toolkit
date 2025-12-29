@@ -35,12 +35,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
-import net.ljga.projects.apps.bttk.domain.strategy.BluetoothConnectionStrategy
-import net.ljga.projects.apps.bttk.domain.strategy.GattBluetoothConnectionStrategy
-import net.ljga.projects.apps.bttk.domain.strategy.SppBluetoothConnectionStrategy
+import net.ljga.projects.apps.bttk.domain.strategy.BluetoothConnection
+import net.ljga.projects.apps.bttk.domain.strategy.GattBluetoothConnection
+import net.ljga.projects.apps.bttk.domain.strategy.SppBluetoothConnection
 import net.ljga.projects.apps.bttk.domain.utils.DeviceFoundReceiver
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import java.util.UUID
@@ -261,7 +261,7 @@ class AndroidBluetoothController @Inject constructor(
         }
     }
 
-    private var currentStrategy: BluetoothConnectionStrategy? = null
+    private var currentStrategy: BluetoothConnection? = null
     private var currentAddress: String? = null
     private var connectionJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -300,7 +300,7 @@ class AndroidBluetoothController @Inject constructor(
         bluetoothAdapter?.cancelDiscovery()
     }
 
-    override fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile?) {
+    override fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothConnectionType?) {
         if (_isConnected.value && _connectedAddress.value == device.address) {
             return
         }
@@ -312,15 +312,15 @@ class AndroidBluetoothController @Inject constructor(
 
         val adapter = bluetoothAdapter ?: return
         
-        val strategy: BluetoothConnectionStrategy = when (profile) {
-            BluetoothProfile.SPP -> SppBluetoothConnectionStrategy(adapter)
-            BluetoothProfile.GATT -> GattBluetoothConnectionStrategy(context, adapter)
+        val strategy: BluetoothConnection = when (profile) {
+            BluetoothConnectionType.SPP -> SppBluetoothConnection(adapter)
+            BluetoothConnectionType.GATT -> GattBluetoothConnection(context, adapter)
             else -> {
-                val supportsSpp = device.uuids.any { it.equals(BluetoothProfile.SPP.uuid.toString(), ignoreCase = true) }
+                val supportsSpp = device.uuids.any { it.equals(BluetoothConnectionType.SPP.uuid.toString(), ignoreCase = true) }
                 
                 when {
-                    supportsSpp -> SppBluetoothConnectionStrategy(adapter)
-                    else -> GattBluetoothConnectionStrategy(context, adapter)
+                    supportsSpp -> SppBluetoothConnection(adapter)
+                    else -> GattBluetoothConnection(context, adapter)
                 }
             }
         }

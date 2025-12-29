@@ -213,7 +213,7 @@ class BluetoothViewModel @Inject constructor(
 
     fun connectAndRunScript(device: BluetoothDeviceDomain, script: BluetoothScriptDomain) {
         _state.update { it.copy(isConnecting = true, selectedDevice = device, scriptToRun = script) }
-        bluetoothController.connectToDevice(device, BluetoothProfile.GATT)
+        bluetoothController.connectToDevice(device, BluetoothConnectionType.GATT)
     }
 
     fun setGattServerDeviceName(name: String) {
@@ -236,8 +236,8 @@ class BluetoothViewModel @Inject constructor(
         bluetoothController.checkReachability(device.address)
     }
 
-    fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothProfile? = null) {
-        val availableProfiles = device.uuids.mapNotNull { BluetoothProfile.fromUuid(it) }.distinct()
+    fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothConnectionType? = null) {
+        val availableProfiles = device.uuids.mapNotNull { BluetoothConnectionType.fromUuid(it) }.distinct()
         
         if (profile == null && availableProfiles.size > 1) {
             _state.update { it.copy(selectedDevice = device, profilesToSelect = availableProfiles) }
@@ -515,7 +515,7 @@ data class BluetoothUiState(
     val selectedDevice: BluetoothDeviceDomain? = null,
     val dataLogs: List<BluetoothDataPacket> = emptyList(),
     val gattServerLogs: List<BluetoothDataPacket> = emptyList(),
-    val profilesToSelect: List<BluetoothProfile> = emptyList(),
+    val profilesToSelect: List<BluetoothConnectionType> = emptyList(),
     val enabledNotifications: Set<String> = emptySet(),
     val gattAliases: Map<String, String> = emptyMap(),
     val savedDataFrames: List<DataFrameDomain> = emptyList(),
