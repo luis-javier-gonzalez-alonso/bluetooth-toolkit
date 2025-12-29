@@ -2,11 +2,11 @@ package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import net.ljga.projects.apps.bttk.database.dao.DataFrameDao
-import net.ljga.projects.apps.bttk.database.entities.DataFrame
-import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
 import net.ljga.projects.apps.bttk.data.toDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
+import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
 import javax.inject.Inject
 
 class DatabaseDataFrameRepository @Inject constructor(

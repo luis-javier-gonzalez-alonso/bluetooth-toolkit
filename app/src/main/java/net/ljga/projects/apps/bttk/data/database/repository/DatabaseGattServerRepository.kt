@@ -2,11 +2,11 @@ package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import net.ljga.projects.apps.bttk.database.dao.GattServerDao
-import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
+import net.ljga.projects.apps.bttk.data.database.dao.GattServerDao
 import net.ljga.projects.apps.bttk.data.toDomain
 import net.ljga.projects.apps.bttk.data.toEntity
 import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
+import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 

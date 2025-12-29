@@ -1,35 +1,19 @@
-/*
- * Copyright (C) 2022 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package net.ljga.projects.apps.bttk.data
 
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseBluetoothScriptRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseDataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseGattServerRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DatabaseSavedDeviceRepository
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
 import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
 import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.database.repository.DatabaseBluetoothScriptRepository
-import net.ljga.projects.apps.bttk.database.repository.DatabaseCharacteristicParserRepository
-import net.ljga.projects.apps.bttk.database.repository.DatabaseDataFrameRepository
-import net.ljga.projects.apps.bttk.database.repository.DatabaseGattServerRepository
-import net.ljga.projects.apps.bttk.database.repository.DatabaseSavedDeviceRepository
 import javax.inject.Singleton
 
 @Module

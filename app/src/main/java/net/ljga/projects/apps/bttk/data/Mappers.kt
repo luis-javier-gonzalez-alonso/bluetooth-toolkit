@@ -1,9 +1,27 @@
 package net.ljga.projects.apps.bttk.data
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import net.ljga.projects.apps.bttk.database.entities.*
-import net.ljga.projects.apps.bttk.domain.model.*
+import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScript
+import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScriptOperation
+import net.ljga.projects.apps.bttk.data.database.entity.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entity.Endianness
+import net.ljga.projects.apps.bttk.data.database.entity.FieldType
+import net.ljga.projects.apps.bttk.data.database.entity.GattServerConfig
+import net.ljga.projects.apps.bttk.data.database.entity.ParserField
+import net.ljga.projects.apps.bttk.data.database.entity.SavedDevice
+import net.ljga.projects.apps.bttk.data.database.entity.ScriptOperationType
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptOperationDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
+import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
+import net.ljga.projects.apps.bttk.domain.model.EndiannessDomain
+import net.ljga.projects.apps.bttk.domain.model.FieldTypeDomain
+import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
+import net.ljga.projects.apps.bttk.domain.model.ParserFieldDomain
+import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
 
 // DataFrame Mappers
 fun DataFrame.toDomain(): DataFrameDomain = DataFrameDomain(
@@ -81,20 +99,13 @@ fun ParserFieldDomain.toEntity(): ParserField = ParserField(
 
 // GattServerConfig Mappers
 fun GattServerConfig.toDomain(): GattServerStateDomain {
-    return try {
-        Json.decodeFromString<GattServerStateDomain>(servicesJson)
-    } catch (e: Exception) {
-        try {
-            val services = Json.decodeFromString<List<BluetoothServiceDomain>>(servicesJson)
-            GattServerStateDomain(services, services.size)
-        } catch (e2: Exception) {
-            GattServerStateDomain(emptyList(), 0)
-        }
-    }
+    val services = Json.decodeFromString<List<BluetoothServiceDomain>>(this.servicesJson)
+    return GattServerStateDomain(services, this.nextServiceIndex)
 }
 
 fun GattServerStateDomain.toEntity(): GattServerConfig = GattServerConfig(
-    servicesJson = Json.encodeToString(this)
+    servicesJson = Json.encodeToString(this.services),
+    nextServiceIndex = this.nextServiceIndex
 )
 
 // SavedDevice Mappers
