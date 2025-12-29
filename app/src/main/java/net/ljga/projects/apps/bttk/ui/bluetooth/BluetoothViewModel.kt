@@ -8,15 +8,32 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.domain.BluetoothController
+import net.ljga.projects.apps.bttk.domain.GattServerService
+import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
+import net.ljga.projects.apps.bttk.domain.model.DataFormat
+import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
+import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
+import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
 import net.ljga.projects.apps.bttk.domain.repository.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
 import net.ljga.projects.apps.bttk.domain.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.domain.BluetoothController
-import net.ljga.projects.apps.bttk.domain.GattServerService
-import net.ljga.projects.apps.bttk.domain.model.*
 import net.ljga.projects.apps.bttk.domain.utils.CharacteristicParser
 import java.util.UUID
 import javax.inject.Inject
@@ -36,6 +53,7 @@ class BluetoothViewModel @Inject constructor(
     private var nextServiceIndex = 0
     private val serviceIndices = mutableMapOf<String, Int>()
     private val serviceNextCharIndices = mutableMapOf<String, Int>()
+    private var currentServerProfileId: Int = 0
 
     private val devicesFlow = combine(
         bluetoothController.scannedDevices,
@@ -71,8 +89,9 @@ class BluetoothViewModel @Inject constructor(
 
     private val repositoryFlow = combine(
         savedDeviceRepository.gattAliases,
-        dataFrameRepository.dataFrames
-    ) { aliases, dataFrames -> aliases to dataFrames }
+        dataFrameRepository.dataFrames,
+        gattServerRepository.getAllServers()
+    ) { aliases, dataFrames, servers -> Triple(aliases, dataFrames, servers) }
 
     val state = combine(
         devicesFlow,
@@ -80,7 +99,7 @@ class BluetoothViewModel @Inject constructor(
         gattServerFlow,
         logsFlow,
         _state
-    ) { (scannedDevices, pairedDevices, savedDevices), (aliases, dataFrames), (isGattServerRunning, gattServerServices), (incomingData, gattServerLogs, configMap), state ->
+    ) { (scannedDevices, pairedDevices, savedDevices), (aliases, dataFrames, servers), (isGattServerRunning, gattServerServices), (incomingData, gattServerLogs, configMap), state ->
 
         val allAddresses = (scannedDevices.map { it.address } +
                 pairedDevices.map { it.address } +
@@ -129,7 +148,9 @@ class BluetoothViewModel @Inject constructor(
             dataLogs = incomingData,
             gattServerLogs = gattServerLogs,
             localAddress = bluetoothController.localAddress,
-            parserConfigs = configMap
+            parserConfigs = configMap,
+            availableGattServers = servers,
+            currentGattServerId = currentServerProfileId
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -164,23 +185,6 @@ class BluetoothViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
-
-        // Load saved GATT Server config
-        viewModelScope.launch {
-            gattServerRepository.config.collectLatest { stateDomain ->
-                nextServiceIndex = stateDomain.nextServiceIndex
-                serviceIndices.clear()
-                serviceIndices.putAll(stateDomain.serviceIndices)
-                serviceNextCharIndices.clear()
-                serviceNextCharIndices.putAll(stateDomain.serviceNextCharIndices)
-                _state.update { it.copy(gattServerDeviceName = stateDomain.deviceName ?: "") }
-                
-                // Re-add services if the server is already running or to initialize it
-                stateDomain.services.forEach { service ->
-                    bluetoothController.addGattService(service)
-                }
-            }
-        }
     }
 
     private fun runScript(script: BluetoothScriptDomain) {
@@ -374,6 +378,54 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
+    fun loadGattServerProfile(id: Int) {
+        viewModelScope.launch {
+            val server = gattServerRepository.getServerById(id) ?: return@launch
+
+            // Stop server if running before switching? Or just update it
+            bluetoothController.clearGattServices()
+
+            currentServerProfileId = server.id
+            nextServiceIndex = server.nextServiceIndex
+            serviceIndices.clear()
+            serviceIndices.putAll(server.serviceIndices)
+            serviceNextCharIndices.clear()
+            serviceNextCharIndices.putAll(server.serviceNextCharIndices)
+
+            _state.update { it.copy(gattServerDeviceName = server.deviceName ?: "") }
+
+            server.services.forEach { service ->
+                bluetoothController.addGattService(service)
+            }
+        }
+    }
+
+    fun createNewGattServerProfile(name: String) {
+        viewModelScope.launch {
+            val newProfile = GattServerStateDomain(
+                name = name,
+                services = emptyList(),
+                nextServiceIndex = 0,
+                deviceName = "BTTK Server"
+            )
+            val id = gattServerRepository.saveServer(newProfile)
+            loadGattServerProfile(id)
+        }
+    }
+
+    fun deleteGattServerProfile(id: Int) {
+        viewModelScope.launch {
+            val server = gattServerRepository.getServerById(id)
+            if (server != null) {
+                gattServerRepository.deleteServer(server)
+                if (currentServerProfileId == id) {
+                    clearGattServer()
+                    currentServerProfileId = 0
+                }
+            }
+        }
+    }
+
     fun clearGattServer() {
         bluetoothController.clearGattServices()
         nextServiceIndex = 0
@@ -449,14 +501,21 @@ class BluetoothViewModel @Inject constructor(
 
     private fun saveGattServerConfig() {
         viewModelScope.launch {
+            if (currentServerProfileId == 0) return@launch
+
+            val currentServer =
+                gattServerRepository.getServerById(currentServerProfileId) ?: return@launch
+            
             val stateDomain = GattServerStateDomain(
+                id = currentServerProfileId,
+                name = currentServer.name,
                 services = bluetoothController.gattServerServices.value,
                 nextServiceIndex = nextServiceIndex,
                 serviceIndices = serviceIndices.toMap(),
                 serviceNextCharIndices = serviceNextCharIndices.toMap(),
                 deviceName = state.value.gattServerDeviceName
             )
-            gattServerRepository.saveConfig(stateDomain)
+            gattServerRepository.saveServer(stateDomain)
         }
     }
 }
@@ -481,5 +540,7 @@ data class BluetoothUiState(
     val localAddress: String? = null,
     val gattServerDeviceName: String = "",
     val parserConfigs: Map<String, CharacteristicParserConfigDomain> = emptyMap(),
-    val scriptToRun: BluetoothScriptDomain? = null
+    val scriptToRun: BluetoothScriptDomain? = null,
+    val availableGattServers: List<GattServerStateDomain> = emptyList(),
+    val currentGattServerId: Int = 0
 )

@@ -1,5 +1,6 @@
 package net.ljga.projects.apps.bttk.data
 
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.ljga.projects.apps.bttk.data.database.entity.BluetoothDeviceEntity
 import net.ljga.projects.apps.bttk.data.database.entity.DataFrameEntity
@@ -100,14 +101,24 @@ fun ParserFieldDomain.toEntity(): ParserField = ParserField(
 )
 
 // GattServerConfig Mappers
-fun GattServerEntity.toDomain(): GattServerStateDomain {
-    val services = Json.decodeFromString<List<BluetoothServiceDomain>>(this.servicesJson)
-    return GattServerStateDomain(services, this.nextServiceIndex)
-}
+fun GattServerEntity.toDomain(): GattServerStateDomain = GattServerStateDomain(
+    id = id,
+    name = name,
+    services = Json.decodeFromString(servicesJson),
+    nextServiceIndex = nextServiceIndex,
+    serviceIndices = Json.decodeFromString(serviceIndicesJson),
+    serviceNextCharIndices = Json.decodeFromString(serviceNextCharIndicesJson),
+    deviceName = deviceName
+)
 
 fun GattServerStateDomain.toEntity(): GattServerEntity = GattServerEntity(
-    servicesJson = Json.encodeToString(this.services),
-    nextServiceIndex = this.nextServiceIndex
+    id = id,
+    name = name,
+    deviceName = deviceName,
+    servicesJson = Json.encodeToString(services),
+    nextServiceIndex = nextServiceIndex,
+    serviceIndicesJson = Json.encodeToString(serviceIndices),
+    serviceNextCharIndicesJson = Json.encodeToString(serviceNextCharIndices)
 )
 
 // SavedDevice Mappers

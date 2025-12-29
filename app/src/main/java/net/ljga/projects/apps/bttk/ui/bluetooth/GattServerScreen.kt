@@ -3,6 +3,7 @@ package net.ljga.projects.apps.bttk.ui.bluetooth
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +32,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import java.util.UUID
 
@@ -91,6 +93,8 @@ fun GattServerScreen(
 
     var showAddCharDialog by remember { mutableStateOf<String?>(null) }
     var showClearConfirmation by remember { mutableStateOf(false) }
+    var showProfileSelection by remember { mutableStateOf(false) }
+    var showCreateProfileDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -102,6 +106,9 @@ fun GattServerScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showProfileSelection = true }) {
+                        Icon(Icons.Default.List, contentDescription = "Profiles")
+                    }
                     if (!state.isGattServerRunning) {
                         IconButton(onClick = { showClearConfirmation = true }) {
                             Icon(Icons.Default.DeleteSweep, contentDescription = "Clear Server")
@@ -128,6 +135,13 @@ fun GattServerScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
+                val currentProfile = state.availableGattServers.find { it.id == state.currentGattServerId }
+                Text(
+                    text = "Profile: ${currentProfile?.name ?: "No profile selected"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline
+                )
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -159,7 +173,7 @@ fun GattServerScreen(
 
             if (state.isGattServerRunning) {
                 RunningServerView(state)
-            } else {
+            } else if (state.currentGattServerId != 0) {
                 EditingServerView(
                     state = state,
                     newServiceRawUuid = newServiceRawUuid,
@@ -206,8 +220,94 @@ fun GattServerScreen(
                     onAddCharacteristic = { showAddCharDialog = it },
                     onDeleteCharacteristic = { s, c -> viewModel.removeCharacteristicFromService(s, c) }
                 )
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("No GATT Server profile selected")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { showProfileSelection = true }) {
+                            Text("Select or Create Profile")
+                        }
+                    }
+                }
             }
         }
+    }
+
+    if (showProfileSelection) {
+        AlertDialog(
+            onDismissRequest = { showProfileSelection = false },
+            title = { Text("GATT Server Profiles") },
+            text = {
+                LazyColumn {
+                    items(state.availableGattServers) { server ->
+                        ListItem(
+                            headlineContent = { Text(server.name) },
+                            supportingContent = { Text("${server.services.size} services") },
+                            trailingContent = {
+                                IconButton(onClick = { viewModel.deleteGattServerProfile(server.id) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            modifier = Modifier.clickable {
+                                viewModel.loadGattServerProfile(server.id)
+                                showProfileSelection = false
+                            }
+                        )
+                    }
+                    item {
+                        TextButton(
+                            onClick = { 
+                                showProfileSelection = false
+                                showCreateProfileDialog = true 
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Create New Profile")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showProfileSelection = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    if (showCreateProfileDialog) {
+        var profileName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showCreateProfileDialog = false },
+            title = { Text("New GATT Profile") },
+            text = {
+                OutlinedTextField(
+                    value = profileName,
+                    onValueChange = { profileName = it },
+                    label = { Text("Profile Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.createNewGattServerProfile(profileName)
+                        showCreateProfileDialog = false
+                    },
+                    enabled = profileName.isNotBlank()
+                ) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateProfileDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showClearConfirmation) {
