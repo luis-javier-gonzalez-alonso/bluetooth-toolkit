@@ -178,11 +178,11 @@ fun BluetoothDeviceList(
             )
         }
 
-        if (isConnecting) {
-            item {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-        }
+//        if (isConnecting) {
+//            item {
+//                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+//            }
+//        }
 
         item {
             Text(
