@@ -17,9 +17,6 @@ import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionState
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
-import net.ljga.projects.apps.bttk.domain.strategy.gatt.BatteryCharacteristicHandler
-import net.ljga.projects.apps.bttk.domain.strategy.gatt.DefaultGattCharacteristicHandler
-import net.ljga.projects.apps.bttk.domain.strategy.gatt.GattCharacteristicHandler
 import net.ljga.projects.apps.bttk.domain.utils.prettyName
 import java.util.UUID
 
@@ -31,15 +28,8 @@ class GattBluetoothConnectionStrategy(
     override val uuid: UUID? = null
 
     protected var bluetoothGatt: BluetoothGatt? = null
-    protected val handlers = mutableListOf<GattCharacteristicHandler>()
 
     protected val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-
-    private val defaultHandler = DefaultGattCharacteristicHandler()
-
-    init {
-        handlers.add(BatteryCharacteristicHandler())
-    }
 
     @SuppressLint("MissingPermission")
     override suspend fun connect(address: String): Flow<BluetoothDataPacket> = callbackFlow {
@@ -106,28 +96,15 @@ class GattBluetoothConnectionStrategy(
             }
 
             private fun processData(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-                var handled: Boolean = false
-                handlers.forEach { handler ->
-                    val packet = handler.handleData(characteristic, value)
-                    if (packet != null) {
-                        trySend(packet)
-                        handled = true
-
-                    }
-                }
-
-                // If no specific handler took interest in this data, the default handler logs it
-                if (!handled) {
-                    trySend(
-                        BluetoothDataPacket(
-                            data = value,
-                            source = "Read: ${characteristic.prettyName()}...",
-                            format = DataFormat.HEX_ASCII,
-                            serviceUuid = characteristic.service.uuid.toString(),
-                            characteristicUuid = characteristic.uuid.toString()
-                        )
+                trySend(
+                    BluetoothDataPacket(
+                        data = value,
+                        source = "Read: ${characteristic.prettyName()}...",
+                        format = DataFormat.HEX_ASCII,
+                        serviceUuid = characteristic.service.uuid.toString(),
+                        characteristicUuid = characteristic.uuid.toString()
                     )
-                }
+                )
             }
 
             private fun processDescriptorData(
@@ -176,21 +153,6 @@ class GattBluetoothConnectionStrategy(
                 source = address
             )
         )
-
-        // Process handlers for specific logic
-        gatt.services.forEach { service ->
-            service.characteristics.forEach { characteristic ->
-                // Check specific handlers
-                handlers.forEach { handler ->
-                    if (handler.serviceUuid == null || handler.serviceUuid == service.uuid) {
-                        val discoveryPacket = handler.onServiceDiscovered(gatt, characteristic)
-                        if (discoveryPacket != null) {
-                            scope.trySend(discoveryPacket)
-                        }
-                    }
-                }
-            }
-        }
     }
 
     @SuppressLint("MissingPermission")
