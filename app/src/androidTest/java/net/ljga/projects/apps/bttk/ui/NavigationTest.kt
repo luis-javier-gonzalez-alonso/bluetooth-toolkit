@@ -22,7 +22,7 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
-import net.ljga.projects.apps.bttk.data.di.fakeDataFrames
+import net.ljga.projects.apps.bttk.data.fakeDataFrames
 
 @HiltAndroidTest
 class NavigationTest {
