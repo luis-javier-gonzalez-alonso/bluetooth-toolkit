@@ -1,15 +1,9 @@
-package net.ljga.projects.apps.bttk.data.local.database
+package net.ljga.projects.apps.bttk.data.database.entity
 
-import androidx.room.Dao
 import androidx.room.Entity
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
-import androidx.room.Query
 import androidx.room.TypeConverter
-import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 enum class ScriptOperationType {
@@ -69,17 +63,3 @@ class ScriptOperationsConverter {
     }
 }
 
-@Dao
-interface BluetoothScriptDao {
-    @Query("SELECT * FROM bluetooth_scripts ORDER BY name ASC")
-    fun getAllScripts(): Flow<List<BluetoothScript>>
-
-    @Query("SELECT * FROM bluetooth_scripts WHERE id = :id")
-    suspend fun getScriptById(id: Int): BluetoothScript?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertScript(script: BluetoothScript): Long
-
-    @Query("DELETE FROM bluetooth_scripts WHERE id = :id")
-    suspend fun deleteScript(id: Int)
-}

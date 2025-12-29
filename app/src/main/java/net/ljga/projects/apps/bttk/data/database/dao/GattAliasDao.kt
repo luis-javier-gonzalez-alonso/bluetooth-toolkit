@@ -1,25 +1,18 @@
-package net.ljga.projects.apps.bttk.data.local.database
+package net.ljga.projects.apps.bttk.data.database.dao
 
 import androidx.room.Dao
-import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-
-@Entity(primaryKeys = ["serviceUuid", "characteristicUuid"])
-data class GattAlias(
-    val serviceUuid: String,
-    val characteristicUuid: String,
-    val alias: String
-)
+import net.ljga.projects.apps.bttk.data.database.entity.GattAlias
 
 @Dao
 interface GattAliasDao {
     @Query("SELECT * FROM GattAlias")
     fun getAllAliases(): Flow<List<GattAlias>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertAlias(alias: GattAlias)
 
     @Query("DELETE FROM GattAlias WHERE serviceUuid = :serviceUuid AND characteristicUuid = :characteristicUuid")

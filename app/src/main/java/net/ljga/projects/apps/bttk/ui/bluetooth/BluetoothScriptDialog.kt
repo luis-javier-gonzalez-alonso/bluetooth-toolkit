@@ -10,15 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.data.local.database.BluetoothScript
-import net.ljga.projects.apps.bttk.data.local.database.BluetoothScriptOperation
-import net.ljga.projects.apps.bttk.data.local.database.ScriptOperationType
+import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScript
+import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScriptOperation
+import net.ljga.projects.apps.bttk.data.database.entity.ScriptOperationType
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 

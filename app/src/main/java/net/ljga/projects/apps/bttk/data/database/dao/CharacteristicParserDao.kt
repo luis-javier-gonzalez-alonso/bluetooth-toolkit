@@ -1,10 +1,11 @@
-package net.ljga.projects.apps.bttk.data.local.database
+package net.ljga.projects.apps.bttk.data.database.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import net.ljga.projects.apps.bttk.data.database.entity.CharacteristicParserConfig
 
 @Dao
 interface CharacteristicParserDao {

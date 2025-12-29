@@ -1,14 +1,14 @@
-package net.ljga.projects.apps.bttk.data
+package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.data.local.database.GattAlias
-import net.ljga.projects.apps.bttk.data.local.database.GattAliasDao
-import net.ljga.projects.apps.bttk.data.local.database.SavedDevice
-import net.ljga.projects.apps.bttk.data.local.database.SavedDeviceDao
+import net.ljga.projects.apps.bttk.data.database.entity.GattAlias
+import net.ljga.projects.apps.bttk.data.database.dao.GattAliasDao
+import net.ljga.projects.apps.bttk.data.database.entity.SavedDevice
+import net.ljga.projects.apps.bttk.data.database.dao.SavedDeviceDao
 import javax.inject.Inject
 
 interface SavedDeviceRepository {

@@ -1,13 +1,12 @@
-package net.ljga.projects.apps.bttk.data
+package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.data.local.database.GattServerConfig
-import net.ljga.projects.apps.bttk.data.local.database.GattServerDao
+import net.ljga.projects.apps.bttk.data.database.entity.GattServerConfig
+import net.ljga.projects.apps.bttk.data.database.dao.GattServerDao
 import javax.inject.Inject
 import javax.inject.Singleton
 

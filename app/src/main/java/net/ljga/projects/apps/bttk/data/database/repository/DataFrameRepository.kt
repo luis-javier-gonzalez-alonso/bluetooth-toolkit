@@ -1,8 +1,8 @@
-package net.ljga.projects.apps.bttk.data
+package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.local.database.DataFrame
-import net.ljga.projects.apps.bttk.data.local.database.DataFrameDao
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
 import javax.inject.Inject
 
 interface DataFrameRepository {

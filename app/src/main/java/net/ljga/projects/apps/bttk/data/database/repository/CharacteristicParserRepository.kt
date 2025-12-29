@@ -1,8 +1,8 @@
-package net.ljga.projects.apps.bttk.data
+package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserDao
+import net.ljga.projects.apps.bttk.data.database.entity.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.data.database.dao.CharacteristicParserDao
 import javax.inject.Inject
 
 interface CharacteristicParserRepository {

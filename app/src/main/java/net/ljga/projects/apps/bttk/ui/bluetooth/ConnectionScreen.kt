@@ -32,8 +32,8 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.local.database.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entity.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
 import java.text.SimpleDateFormat
 import java.util.Locale
 

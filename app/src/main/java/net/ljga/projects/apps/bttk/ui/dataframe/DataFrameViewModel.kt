@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.data.DataFrameRepository
-import net.ljga.projects.apps.bttk.data.local.database.DataFrame
+import net.ljga.projects.apps.bttk.data.database.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Error
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Loading
 import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameUiState.Success

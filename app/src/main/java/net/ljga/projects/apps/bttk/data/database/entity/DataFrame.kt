@@ -1,11 +1,7 @@
-package net.ljga.projects.apps.bttk.data.local.database
+package net.ljga.projects.apps.bttk.data.database.entity
 
-import androidx.room.Dao
 import androidx.room.Entity
-import androidx.room.Insert
 import androidx.room.PrimaryKey
-import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 
 @Entity
 data class DataFrame(
@@ -36,14 +32,3 @@ data class DataFrame(
     }
 }
 
-@Dao
-interface DataFrameDao {
-    @Query("SELECT * FROM dataframe ORDER BY name ASC")
-    fun getDataFrames(): Flow<List<DataFrame>>
-
-    @Insert
-    suspend fun insertDataFrame(item: DataFrame)
-
-    @Query("DELETE FROM dataframe WHERE uid = :uid")
-    suspend fun deleteDataFrame(uid: Int)
-}

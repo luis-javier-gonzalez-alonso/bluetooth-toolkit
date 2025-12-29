@@ -23,11 +23,12 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import net.ljga.projects.apps.bttk.data.local.database.DataFrame
-import net.ljga.projects.apps.bttk.data.local.database.DataFrameDao
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
+import net.ljga.projects.apps.bttk.data.database.repository.DefaultDataFrameRepository
 
 /**
- * Unit tests for [DefaultDataFrameRepository].
+ * Unit tests for [net.ljga.projects.apps.bttk.data.database.repository.DefaultDataFrameRepository].
  */
 @OptIn(ExperimentalCoroutinesApi::class) // TODO: Remove when stable
 class DefaultDataFrameRepositoryTest {

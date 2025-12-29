@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.data.local.database
+package net.ljga.projects.apps.bttk.data.database.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

@@ -22,15 +22,15 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import net.ljga.projects.apps.bttk.data.BluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.CharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.DataFrameRepository
-import net.ljga.projects.apps.bttk.data.DefaultBluetoothScriptRepository
-import net.ljga.projects.apps.bttk.data.DefaultCharacteristicParserRepository
-import net.ljga.projects.apps.bttk.data.DefaultDataFrameRepository
-import net.ljga.projects.apps.bttk.data.DefaultSavedDeviceRepository
-import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.data.local.database.DataFrame
+import net.ljga.projects.apps.bttk.data.database.repository.BluetoothScriptRepository
+import net.ljga.projects.apps.bttk.data.database.repository.CharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DefaultBluetoothScriptRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DefaultCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DefaultDataFrameRepository
+import net.ljga.projects.apps.bttk.data.database.repository.DefaultSavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.database.repository.SavedDeviceRepository
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
 import javax.inject.Inject
 import javax.inject.Singleton
 
