@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.bluetooth.utils.prettyCharacteristicName
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
 import net.ljga.projects.apps.bttk.database.entities.BluetoothScriptOperation
 import net.ljga.projects.apps.bttk.database.entities.ScriptOperationType

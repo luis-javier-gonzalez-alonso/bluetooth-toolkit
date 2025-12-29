@@ -4,9 +4,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
 import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository

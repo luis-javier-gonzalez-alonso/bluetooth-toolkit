@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
 import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
 import net.ljga.projects.apps.bttk.database.entities.BluetoothScript

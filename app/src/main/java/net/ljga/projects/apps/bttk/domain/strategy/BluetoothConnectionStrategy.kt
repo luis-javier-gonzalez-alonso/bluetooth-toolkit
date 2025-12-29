@@ -1,7 +1,7 @@
-package net.ljga.projects.apps.bttk.bluetooth.strategy
+package net.ljga.projects.apps.bttk.domain.strategy
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import java.util.UUID
 
 interface BluetoothConnectionStrategy {

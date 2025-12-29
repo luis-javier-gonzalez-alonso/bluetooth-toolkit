@@ -29,9 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.bluetooth.utils.prettyCharacteristicName
+import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import java.util.UUID
 
 class UuidVisualTransformation : VisualTransformation {

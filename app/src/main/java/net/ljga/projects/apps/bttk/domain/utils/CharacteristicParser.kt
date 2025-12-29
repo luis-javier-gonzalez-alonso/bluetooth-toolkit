@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.bluetooth.utils
+package net.ljga.projects.apps.bttk.domain.utils
 
 import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
 import net.ljga.projects.apps.bttk.database.entities.Endianness

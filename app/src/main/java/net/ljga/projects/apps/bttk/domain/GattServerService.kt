@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.bluetooth
+package net.ljga.projects.apps.bttk.domain
 
 import android.app.Notification
 import android.app.NotificationChannel

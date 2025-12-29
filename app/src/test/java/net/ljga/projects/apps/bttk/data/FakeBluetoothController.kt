@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import net.ljga.projects.apps.bttk.bluetooth.BluetoothController
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothProfile
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.BluetoothController
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 class FakeBluetoothController : BluetoothController {
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceDomain>>(emptyList())

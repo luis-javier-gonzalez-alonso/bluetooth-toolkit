@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.bluetooth.model
+package net.ljga.projects.apps.bttk.domain.model
 
 import java.util.UUID
 

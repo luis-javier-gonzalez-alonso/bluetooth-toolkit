@@ -1,8 +1,8 @@
-package net.ljga.projects.apps.bttk.bluetooth.strategy.gatt
+package net.ljga.projects.apps.bttk.domain.strategy.gatt
 
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import java.util.UUID
 
 interface GattCharacteristicHandler {

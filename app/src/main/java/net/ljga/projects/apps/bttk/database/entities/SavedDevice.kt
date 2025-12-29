@@ -3,8 +3,8 @@ package net.ljga.projects.apps.bttk.database.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.json.Json
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 @Entity(tableName = "saved_devices")
 data class SavedDevice(

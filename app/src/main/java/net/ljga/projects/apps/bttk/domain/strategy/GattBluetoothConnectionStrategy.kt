@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.bluetooth.strategy
+package net.ljga.projects.apps.bttk.domain.strategy
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -12,15 +12,15 @@ import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothConnectionState
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.DataFormat
-import net.ljga.projects.apps.bttk.bluetooth.strategy.gatt.BatteryCharacteristicHandler
-import net.ljga.projects.apps.bttk.bluetooth.strategy.gatt.DefaultGattCharacteristicHandler
-import net.ljga.projects.apps.bttk.bluetooth.strategy.gatt.GattCharacteristicHandler
-import net.ljga.projects.apps.bttk.bluetooth.utils.prettyName
+import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionState
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.DataFormat
+import net.ljga.projects.apps.bttk.domain.strategy.gatt.BatteryCharacteristicHandler
+import net.ljga.projects.apps.bttk.domain.strategy.gatt.DefaultGattCharacteristicHandler
+import net.ljga.projects.apps.bttk.domain.strategy.gatt.GattCharacteristicHandler
+import net.ljga.projects.apps.bttk.domain.utils.prettyName
 import java.util.UUID
 
 class GattBluetoothConnectionStrategy(

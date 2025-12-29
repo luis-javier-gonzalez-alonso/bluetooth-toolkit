@@ -1,11 +1,11 @@
-package net.ljga.projects.apps.bttk.bluetooth
+package net.ljga.projects.apps.bttk.domain
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothProfile
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 interface BluetoothController {
     val scannedDevices: StateFlow<List<BluetoothDeviceDomain>>

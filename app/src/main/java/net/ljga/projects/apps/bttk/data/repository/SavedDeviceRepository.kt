@@ -1,8 +1,8 @@
 package net.ljga.projects.apps.bttk.data.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 interface SavedDeviceRepository {
     val savedDevices: Flow<List<BluetoothDeviceDomain>>

@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.bluetooth.utils
+package net.ljga.projects.apps.bttk.domain.utils
 
 import android.bluetooth.BluetoothGattCharacteristic
 import java.util.UUID
