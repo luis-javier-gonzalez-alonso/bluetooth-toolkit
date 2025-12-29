@@ -20,20 +20,16 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
 import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
 import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.database.entities.DataFrame
 import net.ljga.projects.apps.bttk.database.repository.DatabaseBluetoothScriptRepository
 import net.ljga.projects.apps.bttk.database.repository.DatabaseCharacteristicParserRepository
 import net.ljga.projects.apps.bttk.database.repository.DatabaseDataFrameRepository
 import net.ljga.projects.apps.bttk.database.repository.DatabaseGattServerRepository
 import net.ljga.projects.apps.bttk.database.repository.DatabaseSavedDeviceRepository
-import javax.inject.Inject
 import javax.inject.Singleton
 
 @Module
@@ -70,21 +66,3 @@ interface DataModule {
         gattServerRepository: DatabaseGattServerRepository
     ): GattServerRepository
 }
-
-class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {
-    override val dataFrames: Flow<List<DataFrame>> = flowOf(fakeDataFrames)
-
-    override suspend fun add(name: String, data: ByteArray) {
-        throw NotImplementedError()
-    }
-
-    override suspend fun remove(uid: Int) {
-        throw NotImplementedError()
-    }
-}
-
-val fakeDataFrames = listOf(
-    DataFrame(name = "One", data = byteArrayOf(1, 2, 3)),
-    DataFrame(name = "Two", data = byteArrayOf(4, 5, 6)),
-    DataFrame(name = "Three", data = byteArrayOf(7, 8, 9))
-)
