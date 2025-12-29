@@ -88,7 +88,13 @@ fun CharacteristicParserDialog(
     )
 
     if (showAddField) {
+        val lastField = fields.lastOrNull()
+        val nextOffset = if (lastField != null) {
+            lastField.offset + (lastField.type.length ?: lastField.length)
+        } else 0
+
         AddFieldDialog(
+            defaultOffset = nextOffset,
             onDismiss = { showAddField = false },
             onAdd = { field ->
                 fields = fields + field
@@ -121,9 +127,13 @@ fun FieldRow(field: ParserField, onDelete: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddFieldDialog(onDismiss: () -> Unit, onAdd: (ParserField) -> Unit) {
+fun AddFieldDialog(
+    defaultOffset: Int,
+    onDismiss: () -> Unit, 
+    onAdd: (ParserField) -> Unit
+) {
     var name by remember { mutableStateOf("") }
-    var offset by remember { mutableStateOf("0") }
+    var offset by remember { mutableStateOf(defaultOffset.toString()) }
     var length by remember { mutableStateOf("1") }
     var type by remember { mutableStateOf(FieldType.U8) }
     var endianness by remember { mutableStateOf(Endianness.LITTLE_ENDIAN) }
@@ -136,10 +146,29 @@ fun AddFieldDialog(onDismiss: () -> Unit, onAdd: (ParserField) -> Unit) {
         title = { Text("Add Field") },
         text = {
             Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Field Name") })
+                OutlinedTextField(
+                    value = name, 
+                    onValueChange = { name = it }, 
+                    label = { Text("Field Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = offset, onValueChange = { offset = it }, label = { Text("Offset") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = length, onValueChange = { length = it }, label = { Text("Length") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(
+                        value = offset, 
+                        onValueChange = { offset = it }, 
+                        label = { Text("Offset") }, 
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = length, 
+                        onValueChange = { length = it }, 
+                        label = { Text("Length") }, 
+                        modifier = Modifier.weight(1f),
+                        enabled = type.length == null
+                    )
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -151,11 +180,17 @@ fun AddFieldDialog(onDismiss: () -> Unit, onAdd: (ParserField) -> Unit) {
                         readOnly = true,
                         label = { Text("Type") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                        modifier = Modifier.menuAnchor()
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
                         FieldType.entries.forEach { fieldType ->
-                            DropdownMenuItem(text = { Text(fieldType.name) }, onClick = { type = fieldType; typeExpanded = false })
+                            DropdownMenuItem(
+                                text = { Text(fieldType.name) }, 
+                                onClick = { 
+                                    type = fieldType
+                                    typeExpanded = false 
+                                }
+                            )
                         }
                     }
                 }
@@ -169,7 +204,7 @@ fun AddFieldDialog(onDismiss: () -> Unit, onAdd: (ParserField) -> Unit) {
                         readOnly = true,
                         label = { Text("Endianness") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endianExpanded) },
-                        modifier = Modifier.menuAnchor()
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = endianExpanded, onDismissRequest = { endianExpanded = false }) {
                         Endianness.entries.forEach { end ->
