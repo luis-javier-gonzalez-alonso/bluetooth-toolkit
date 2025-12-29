@@ -9,4 +9,3 @@ interface CharacteristicParserRepository {
     suspend fun saveConfig(config: CharacteristicParserConfig)
     suspend fun deleteConfig(serviceUuid: String, characteristicUuid: String)
 }
-

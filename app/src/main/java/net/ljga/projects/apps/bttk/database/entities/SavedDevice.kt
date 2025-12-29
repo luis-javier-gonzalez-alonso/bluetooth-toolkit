@@ -2,6 +2,9 @@ package net.ljga.projects.apps.bttk.database.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.json.Json
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
 
 @Entity(tableName = "saved_devices")
 data class SavedDevice(
@@ -10,3 +13,19 @@ data class SavedDevice(
     val servicesJson: String? = null
 )
 
+fun SavedDevice.toDomain(): BluetoothDeviceDomain {
+    val services = servicesJson?.let {
+        try {
+            Json.decodeFromString<List<BluetoothServiceDomain>>(it)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    } ?: emptyList()
+
+    return BluetoothDeviceDomain(
+        name = name,
+        address = address,
+        isInRange = false,
+        services = services
+    )
+}
