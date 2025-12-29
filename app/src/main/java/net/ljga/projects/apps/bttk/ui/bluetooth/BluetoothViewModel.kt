@@ -2,6 +2,7 @@ package net.ljga.projects.apps.bttk.ui.bluetooth
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -132,6 +133,9 @@ class BluetoothViewModel @Inject constructor(
 
         bluetoothController.errors.onEach { error ->
             _state.update { it.copy(errorMessage = error, isConnecting = false) }
+            if (error.contains("Bluetooth not available", ignoreCase = true)) {
+                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            }
         }.launchIn(viewModelScope)
 
         // Handle service discovery persistence
@@ -164,7 +168,10 @@ class BluetoothViewModel @Inject constructor(
     }
 
     fun startScan() {
-        bluetoothController.startDiscovery()
+        val success = bluetoothController.startDiscovery()
+        if (!success) {
+            Toast.makeText(context, "Bluetooth not available", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun stopScan() {
@@ -273,6 +280,13 @@ class BluetoothViewModel @Inject constructor(
             }
             context.startService(intent)
         } else {
+            // Check if bluetooth is enabled before starting service
+            val isEnabled = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager)?.adapter?.isEnabled == true
+            if (!isEnabled) {
+                Toast.makeText(context, "Bluetooth not available", Toast.LENGTH_SHORT).show()
+                return
+            }
+
             val intent = Intent(context, GattServerService::class.java).apply {
                 action = GattServerService.ACTION_START
                 if (state.value.gattServerDeviceName.isNotBlank()) {

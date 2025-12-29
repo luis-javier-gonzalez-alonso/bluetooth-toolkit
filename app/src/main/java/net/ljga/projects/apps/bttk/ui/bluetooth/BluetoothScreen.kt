@@ -36,7 +36,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,11 +83,11 @@ fun BluetoothScreen(
         }
     }
 
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
-        }
-    }
+//    LaunchedEffect(state.errorMessage) {
+//        state.errorMessage?.let {
+//            snackbarHostState.showSnackbar(it)
+//        }
+//    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },

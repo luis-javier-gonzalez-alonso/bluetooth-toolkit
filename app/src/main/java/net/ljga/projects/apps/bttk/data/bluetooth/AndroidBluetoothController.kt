@@ -279,7 +279,7 @@ class AndroidBluetoothController @Inject constructor(
         }
 
         if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
-            _errors.tryEmit("Bluetooth not available or disabled")
+            _errors.tryEmit("Bluetooth not available")
             return false
         }
 
