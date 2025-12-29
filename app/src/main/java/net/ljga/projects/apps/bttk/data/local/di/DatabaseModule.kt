@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.ljga.projects.apps.bttk.data.local.database.AppDatabase
+import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserDao
 import net.ljga.projects.apps.bttk.data.local.database.DataFrameDao
 import net.ljga.projects.apps.bttk.data.local.database.GattAliasDao
 import net.ljga.projects.apps.bttk.data.local.database.GattServerDao
@@ -35,6 +36,11 @@ class DatabaseModule {
     @Provides
     fun provideGattAliasDao(appDatabase: AppDatabase): GattAliasDao {
         return appDatabase.gattAliasDao()
+    }
+
+    @Provides
+    fun provideCharacteristicParserDao(appDatabase: AppDatabase): CharacteristicParserDao {
+        return appDatabase.characteristicParserDao()
     }
 
     @Provides

@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.data.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.GattServerRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
@@ -20,6 +21,8 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.data.bluetooth.utils.CharacteristicParser
+import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserConfig
 import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import java.util.UUID
 import javax.inject.Inject
@@ -30,6 +33,7 @@ class BluetoothViewModel @Inject constructor(
     private val savedDeviceRepository: SavedDeviceRepository,
     private val dataFrameRepository: DataFrameRepository,
     private val gattServerRepository: GattServerRepository,
+    private val characteristicParserRepository: CharacteristicParserRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -56,8 +60,20 @@ class BluetoothViewModel @Inject constructor(
 
     private val logsFlow = combine(
         bluetoothController.incomingData,
-        bluetoothController.gattServerLogs
-    ) { incoming, gatt -> incoming to gatt }
+        bluetoothController.gattServerLogs,
+        characteristicParserRepository.getAllConfigs()
+    ) { incoming, gatt, configs -> 
+        val configMap = configs.associateBy { "${it.serviceUuid}-${it.characteristicUuid}" }
+        val enrichedIncoming = incoming.map { packet ->
+            val config = configMap["${packet.serviceUuid}-${packet.characteristicUuid}"]
+            if (config != null && packet.data.isNotEmpty()) {
+                packet.copy(text = CharacteristicParser.parse(packet.data, config), format = DataFormat.STRUCTURED)
+            } else {
+                packet
+            }
+        }
+        Triple(enrichedIncoming, gatt, configMap) 
+    }
 
     private val repositoryFlow = combine(
         savedDeviceRepository.gattAliases,
@@ -70,7 +86,7 @@ class BluetoothViewModel @Inject constructor(
         gattServerFlow,
         logsFlow,
         _state
-    ) { (scannedDevices, pairedDevices, savedDevices), (aliases, dataFrames), (isGattServerRunning, gattServerServices), (incomingData, gattServerLogs), state ->
+    ) { (scannedDevices, pairedDevices, savedDevices), (aliases, dataFrames), (isGattServerRunning, gattServerServices), (incomingData, gattServerLogs, configMap), state ->
 
         val allAddresses = (scannedDevices.map { it.address } +
                 pairedDevices.map { it.address } +
@@ -118,7 +134,8 @@ class BluetoothViewModel @Inject constructor(
             gattServerServices = gattServerServices,
             dataLogs = incomingData,
             gattServerLogs = gattServerLogs,
-            localAddress = bluetoothController.localAddress
+            localAddress = bluetoothController.localAddress,
+            parserConfigs = configMap
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BluetoothUiState())
 
@@ -272,6 +289,18 @@ class BluetoothViewModel @Inject constructor(
         }
     }
 
+    fun saveParserConfig(config: CharacteristicParserConfig) {
+        viewModelScope.launch {
+            characteristicParserRepository.saveConfig(config)
+        }
+    }
+
+    fun deleteParserConfig(serviceUuid: String, characteristicUuid: String) {
+        viewModelScope.launch {
+            characteristicParserRepository.deleteConfig(serviceUuid, characteristicUuid)
+        }
+    }
+
     // GATT Server Actions
     fun toggleGattServer() {
         if (state.value.isGattServerRunning) {
@@ -401,5 +430,6 @@ data class BluetoothUiState(
     val isGattServerRunning: Boolean = false,
     val gattServerServices: List<BluetoothServiceDomain> = emptyList(),
     val localAddress: String? = null,
-    val gattServerDeviceName: String = ""
+    val gattServerDeviceName: String = "",
+    val parserConfigs: Map<String, CharacteristicParserConfig> = emptyMap()
 )

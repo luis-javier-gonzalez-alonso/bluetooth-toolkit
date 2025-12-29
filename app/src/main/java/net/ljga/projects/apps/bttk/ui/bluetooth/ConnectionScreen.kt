@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +32,7 @@ import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
 import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
+import net.ljga.projects.apps.bttk.data.local.database.CharacteristicParserConfig
 import net.ljga.projects.apps.bttk.data.local.database.DataFrame
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -43,6 +45,7 @@ fun ConnectionScreen(
     logs: List<BluetoothDataPacket>,
     enabledNotifications: Set<String> = emptySet(),
     gattAliases: Map<String, String> = emptyMap(),
+    parserConfigs: Map<String, CharacteristicParserConfig> = emptyMap(),
     savedDataFrames: List<DataFrame> = emptyList(),
     onBackClick: () -> Unit,
     onDisconnectClick: () -> Unit,
@@ -52,10 +55,13 @@ fun ConnectionScreen(
     onToggleNotification: (String, String, Boolean) -> Unit = { _, _, _ -> },
     onSaveAlias: (String, String, String) -> Unit = { _, _, _ -> },
     onSaveDataFrame: (String, ByteArray) -> Unit = { _, _ -> },
-    onDeleteDataFrame: (Int) -> Unit = { _ -> }
+    onDeleteDataFrame: (Int) -> Unit = { _ -> },
+    onSaveParserConfig: (CharacteristicParserConfig) -> Unit = {},
+    onDeleteParserConfig: (String, String) -> Unit = { _, _ -> }
 ) {
     var showAliasDialog by remember { mutableStateOf<Triple<String, String, String>?>(null) }
     var showWriteDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var showParserDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     Scaffold(
         topBar = {
@@ -101,19 +107,21 @@ fun ConnectionScreen(
                             LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
                                 device.services.forEach { service ->
                                     items(service.characteristics) { characteristic ->
-                                        val aliasKey = "${service.uuid}-${characteristic.uuid}"
-                                        val alias = gattAliases[aliasKey] ?: ""
+                                        val key = "${service.uuid}-${characteristic.uuid}"
+                                        val alias = gattAliases[key] ?: ""
                                         CharacteristicRow(
                                             serviceUuid = service.uuid,
                                             characteristicUuid = characteristic.uuid,
                                             alias = alias,
                                             properties = characteristic.properties,
-                                            isNotifying = enabledNotifications.contains(aliasKey),
+                                            isNotifying = enabledNotifications.contains(key),
+                                            hasParser = parserConfigs.containsKey(key),
                                             onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
                                             onReadDescriptors = { onReadDescriptors(service.uuid, characteristic.uuid) },
                                             onWrite = { showWriteDialog = service.uuid to characteristic.uuid },
                                             onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) },
-                                            onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) }
+                                            onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) },
+                                            onConfigureParser = { showParserDialog = service.uuid to characteristic.uuid }
                                         )
                                     }
                                 }
@@ -201,6 +209,19 @@ fun ConnectionScreen(
             onDelete = onDeleteDataFrame
         )
     }
+
+    if (showParserDialog != null) {
+        val (sUuid, cUuid) = showParserDialog!!
+        val key = "$sUuid-$cUuid"
+        CharacteristicParserDialog(
+            serviceUuid = sUuid,
+            characteristicUuid = cUuid,
+            initialConfig = parserConfigs[key],
+            onDismiss = { showParserDialog = null },
+            onSave = onSaveParserConfig,
+            onDelete = { onDeleteParserConfig(sUuid, cUuid) }
+        )
+    }
 }
 
 @Composable
@@ -210,11 +231,13 @@ fun CharacteristicRow(
     alias: String,
     properties: List<String>,
     isNotifying: Boolean,
+    hasParser: Boolean,
     onRead: () -> Unit,
     onReadDescriptors: () -> Unit,
     onWrite: () -> Unit,
     onToggleNotify: (Boolean) -> Unit,
-    onEditAlias: () -> Unit
+    onEditAlias: () -> Unit,
+    onConfigureParser: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -228,6 +251,14 @@ fun CharacteristicRow(
         ) {
             IconButton(onClick = onEditAlias, modifier = Modifier.size(24.dp)) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit Alias", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+            IconButton(onClick = onConfigureParser, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    Icons.Default.Settings, 
+                    contentDescription = "Configure Parser", 
+                    modifier = Modifier.size(16.dp), 
+                    tint = if (hasParser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                )
             }
             Spacer(modifier = Modifier.width(4.dp))
             Text(

@@ -22,7 +22,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import net.ljga.projects.apps.bttk.data.CharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.DataFrameRepository
+import net.ljga.projects.apps.bttk.data.DefaultCharacteristicParserRepository
 import net.ljga.projects.apps.bttk.data.DefaultDataFrameRepository
 import net.ljga.projects.apps.bttk.data.DefaultSavedDeviceRepository
 import net.ljga.projects.apps.bttk.data.SavedDeviceRepository
@@ -45,6 +47,12 @@ interface DataModule {
     fun bindsSavedDeviceRepository(
         savedDeviceRepository: DefaultSavedDeviceRepository
     ): SavedDeviceRepository
+
+    @Singleton
+    @Binds
+    fun bindsCharacteristicParserRepository(
+        characteristicParserRepository: DefaultCharacteristicParserRepository
+    ): CharacteristicParserRepository
 }
 
 class FakeDataFrameRepository @Inject constructor() : DataFrameRepository {

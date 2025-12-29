@@ -72,6 +72,7 @@ fun MainNavigation() {
                 logs = state.dataLogs,
                 enabledNotifications = state.enabledNotifications,
                 gattAliases = state.gattAliases,
+                parserConfigs = state.parserConfigs,
                 savedDataFrames = state.savedDataFrames,
                 onBackClick = { navController.popBackStack() },
                 onDisconnectClick = {
@@ -84,7 +85,9 @@ fun MainNavigation() {
                 onToggleNotification = { s, c, e -> viewModel.toggleNotification(s, c, e) },
                 onSaveAlias = { s, c, a -> viewModel.saveAlias(s, c, a) },
                 onSaveDataFrame = { n, d -> viewModel.saveDataFrame(n, d) },
-                onDeleteDataFrame = { id -> viewModel.deleteDataFrame(id) }
+                onDeleteDataFrame = { id -> viewModel.deleteDataFrame(id) },
+                onSaveParserConfig = { viewModel.saveParserConfig(it) },
+                onDeleteParserConfig = { s, c -> viewModel.deleteParserConfig(s, c) }
             )
         }
     }
