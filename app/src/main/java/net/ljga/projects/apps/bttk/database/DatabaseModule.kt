@@ -7,12 +7,12 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import net.ljga.projects.apps.bttk.data.database.dao.BluetoothScriptDao
-import net.ljga.projects.apps.bttk.data.database.dao.CharacteristicParserDao
-import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
-import net.ljga.projects.apps.bttk.data.database.dao.GattAliasDao
-import net.ljga.projects.apps.bttk.data.database.dao.GattServerDao
-import net.ljga.projects.apps.bttk.data.database.dao.SavedDeviceDao
+import net.ljga.projects.apps.bttk.database.dao.BluetoothScriptDao
+import net.ljga.projects.apps.bttk.database.dao.CharacteristicParserDao
+import net.ljga.projects.apps.bttk.database.dao.DataFrameDao
+import net.ljga.projects.apps.bttk.database.dao.GattAliasDao
+import net.ljga.projects.apps.bttk.database.dao.GattServerDao
+import net.ljga.projects.apps.bttk.database.dao.SavedDeviceDao
 import javax.inject.Singleton
 
 @Module

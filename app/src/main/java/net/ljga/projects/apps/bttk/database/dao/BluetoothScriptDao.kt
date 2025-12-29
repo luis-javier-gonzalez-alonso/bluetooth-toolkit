@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
 
 @Dao
 interface BluetoothScriptDao {
@@ -15,7 +15,7 @@ interface BluetoothScriptDao {
     @Query("SELECT * FROM bluetooth_scripts WHERE id = :id")
     suspend fun getScriptById(id: Int): BluetoothScript?
 
-    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertScript(script: BluetoothScript): Long
 
     @Query("DELETE FROM bluetooth_scripts WHERE id = :id")

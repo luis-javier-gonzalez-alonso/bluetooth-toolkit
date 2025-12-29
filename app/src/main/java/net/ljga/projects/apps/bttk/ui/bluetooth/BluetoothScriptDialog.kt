@@ -13,11 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScript
-import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScriptOperation
-import net.ljga.projects.apps.bttk.data.database.entities.ScriptOperationType
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.bluetooth.utils.prettyCharacteristicName
+import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.database.entities.BluetoothScriptOperation
+import net.ljga.projects.apps.bttk.database.entities.ScriptOperationType
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 

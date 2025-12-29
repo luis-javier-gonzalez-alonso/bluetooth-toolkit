@@ -5,7 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entities.GattServerConfig
+import net.ljga.projects.apps.bttk.database.entities.GattServerConfig
 
 @Dao
 interface GattServerDao {

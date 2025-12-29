@@ -5,14 +5,14 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entities.GattAlias
+import net.ljga.projects.apps.bttk.database.entities.GattAlias
 
 @Dao
 interface GattAliasDao {
     @Query("SELECT * FROM GattAlias")
     fun getAllAliases(): Flow<List<GattAlias>>
 
-    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAlias(alias: GattAlias)
 
     @Query("DELETE FROM GattAlias WHERE serviceUuid = :serviceUuid AND characteristicUuid = :characteristicUuid")

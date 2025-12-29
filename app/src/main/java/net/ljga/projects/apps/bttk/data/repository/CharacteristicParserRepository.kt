@@ -1,7 +1,7 @@
 package net.ljga.projects.apps.bttk.data.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entities.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
 
 interface CharacteristicParserRepository {
     fun getAllConfigs(): Flow<List<CharacteristicParserConfig>>

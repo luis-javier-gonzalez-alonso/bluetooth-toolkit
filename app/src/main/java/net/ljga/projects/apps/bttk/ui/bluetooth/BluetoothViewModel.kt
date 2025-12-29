@@ -14,19 +14,19 @@ import net.ljga.projects.apps.bttk.data.repository.CharacteristicParserRepositor
 import net.ljga.projects.apps.bttk.data.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.data.repository.GattServerRepository
 import net.ljga.projects.apps.bttk.data.repository.SavedDeviceRepository
-import net.ljga.projects.apps.bttk.data.bluetooth.BluetoothController
-import net.ljga.projects.apps.bttk.data.bluetooth.GattServerService
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothCharacteristicDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothProfile
-import net.ljga.projects.apps.bttk.data.bluetooth.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.data.bluetooth.model.DataFormat
-import net.ljga.projects.apps.bttk.data.bluetooth.utils.CharacteristicParser
-import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScript
-import net.ljga.projects.apps.bttk.data.database.entities.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.database.entities.DataFrame
-import net.ljga.projects.apps.bttk.data.database.entities.ScriptOperationType
+import net.ljga.projects.apps.bttk.bluetooth.BluetoothController
+import net.ljga.projects.apps.bttk.bluetooth.GattServerService
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothCharacteristicDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothProfile
+import net.ljga.projects.apps.bttk.bluetooth.model.BluetoothServiceDomain
+import net.ljga.projects.apps.bttk.bluetooth.model.DataFormat
+import net.ljga.projects.apps.bttk.bluetooth.utils.CharacteristicParser
+import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.database.entities.CharacteristicParserConfig
+import net.ljga.projects.apps.bttk.database.entities.DataFrame
+import net.ljga.projects.apps.bttk.database.entities.ScriptOperationType
 import java.util.UUID
 import javax.inject.Inject
 
@@ -357,7 +357,7 @@ class BluetoothViewModel @Inject constructor(
     fun toggleGattServer() {
         if (state.value.isGattServerRunning) {
             val intent = Intent(context, GattServerService::class.java).apply {
-                action = GattServerService.ACTION_STOP
+                action = "net.ljga.projects.apps.bttk.GattServerService.ACTION_STOP"
             }
             context.startService(intent)
         } else {
@@ -369,9 +369,9 @@ class BluetoothViewModel @Inject constructor(
             }
 
             val intent = Intent(context, GattServerService::class.java).apply {
-                action = GattServerService.ACTION_START
+                action = "net.ljga.projects.apps.bttk.GattServerService.ACTION_START"
                 if (state.value.gattServerDeviceName.isNotBlank()) {
-                    putExtra(GattServerService.EXTRA_DEVICE_NAME, state.value.gattServerDeviceName)
+                    putExtra("EXTRA_DEVICE_NAME", state.value.gattServerDeviceName)
                 }
             }
             context.startForegroundService(intent)

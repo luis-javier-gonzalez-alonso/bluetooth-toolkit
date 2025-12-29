@@ -1,8 +1,8 @@
 package net.ljga.projects.apps.bttk.database.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.dao.BluetoothScriptDao
-import net.ljga.projects.apps.bttk.data.database.entities.BluetoothScript
+import net.ljga.projects.apps.bttk.database.dao.BluetoothScriptDao
+import net.ljga.projects.apps.bttk.database.entities.BluetoothScript
 import net.ljga.projects.apps.bttk.data.repository.BluetoothScriptRepository
 import javax.inject.Inject
 
