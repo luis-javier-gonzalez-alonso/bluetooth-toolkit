@@ -1,16 +1,16 @@
 package net.ljga.projects.apps.bttk.data
 
 import kotlinx.serialization.json.Json
-import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScript
-import net.ljga.projects.apps.bttk.data.database.entity.BluetoothScriptOperation
-import net.ljga.projects.apps.bttk.data.database.entity.CharacteristicParserConfig
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entity.BluetoothDeviceEntity
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrameEntity
 import net.ljga.projects.apps.bttk.data.database.entity.Endianness
 import net.ljga.projects.apps.bttk.data.database.entity.FieldType
-import net.ljga.projects.apps.bttk.data.database.entity.GattServerConfig
+import net.ljga.projects.apps.bttk.data.database.entity.GattCharacteristicParserEntity
+import net.ljga.projects.apps.bttk.data.database.entity.GattScriptEntity
+import net.ljga.projects.apps.bttk.data.database.entity.GattScriptOperation
+import net.ljga.projects.apps.bttk.data.database.entity.GattScriptOperationType
+import net.ljga.projects.apps.bttk.data.database.entity.GattServerEntity
 import net.ljga.projects.apps.bttk.data.database.entity.ParserField
-import net.ljga.projects.apps.bttk.data.database.entity.SavedDevice
-import net.ljga.projects.apps.bttk.data.database.entity.ScriptOperationType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptOperationDomain
@@ -24,13 +24,13 @@ import net.ljga.projects.apps.bttk.domain.model.ParserFieldDomain
 import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
 
 // DataFrame Mappers
-fun DataFrame.toDomain(): DataFrameDomain = DataFrameDomain(
+fun DataFrameEntity.toDomain(): DataFrameDomain = DataFrameDomain(
     uid = uid,
     name = name,
     data = data
 )
 
-fun DataFrameDomain.toEntity(): DataFrame = DataFrame(
+fun DataFrameDomain.toEntity(): DataFrameEntity = DataFrameEntity(
     name = name,
     data = data
 ).apply {
@@ -38,13 +38,13 @@ fun DataFrameDomain.toEntity(): DataFrame = DataFrame(
 }
 
 // BluetoothScript Mappers
-fun BluetoothScript.toDomain(): BluetoothScriptDomain = BluetoothScriptDomain(
+fun GattScriptEntity.toDomain(): BluetoothScriptDomain = BluetoothScriptDomain(
     id = id,
     name = name,
     operations = operations.map { it.toDomain() }
 )
 
-fun BluetoothScriptOperation.toDomain(): BluetoothScriptOperationDomain = BluetoothScriptOperationDomain(
+fun GattScriptOperation.toDomain(): BluetoothScriptOperationDomain = BluetoothScriptOperationDomain(
     type = ScriptOperationTypeDomain.valueOf(type.name),
     serviceUuid = serviceUuid,
     characteristicUuid = characteristicUuid,
@@ -52,14 +52,14 @@ fun BluetoothScriptOperation.toDomain(): BluetoothScriptOperationDomain = Blueto
     delayMs = delayMs
 )
 
-fun BluetoothScriptDomain.toEntity(): BluetoothScript = BluetoothScript(
+fun BluetoothScriptDomain.toEntity(): GattScriptEntity = GattScriptEntity(
     id = id,
     name = name,
     operations = operations.map { it.toEntity() }
 )
 
-fun BluetoothScriptOperationDomain.toEntity(): BluetoothScriptOperation = BluetoothScriptOperation(
-    type = ScriptOperationType.valueOf(type.name),
+fun BluetoothScriptOperationDomain.toEntity(): GattScriptOperation = GattScriptOperation(
+    type = GattScriptOperationType.valueOf(type.name),
     serviceUuid = serviceUuid,
     characteristicUuid = characteristicUuid,
     data = data,
@@ -67,7 +67,8 @@ fun BluetoothScriptOperationDomain.toEntity(): BluetoothScriptOperation = Blueto
 )
 
 // CharacteristicParserConfig Mappers
-fun CharacteristicParserConfig.toDomain(): CharacteristicParserConfigDomain = CharacteristicParserConfigDomain(
+fun GattCharacteristicParserEntity.toDomain(): CharacteristicParserConfigDomain =
+    CharacteristicParserConfigDomain(
     serviceUuid = serviceUuid,
     characteristicUuid = characteristicUuid,
     fields = fields.map { it.toDomain() },
@@ -82,7 +83,8 @@ fun ParserField.toDomain(): ParserFieldDomain = ParserFieldDomain(
     endianness = EndiannessDomain.valueOf(endianness.name)
 )
 
-fun CharacteristicParserConfigDomain.toEntity(): CharacteristicParserConfig = CharacteristicParserConfig(
+fun CharacteristicParserConfigDomain.toEntity(): GattCharacteristicParserEntity =
+    GattCharacteristicParserEntity(
     serviceUuid = serviceUuid,
     characteristicUuid = characteristicUuid,
     fields = fields.map { it.toEntity() },
@@ -98,18 +100,18 @@ fun ParserFieldDomain.toEntity(): ParserField = ParserField(
 )
 
 // GattServerConfig Mappers
-fun GattServerConfig.toDomain(): GattServerStateDomain {
+fun GattServerEntity.toDomain(): GattServerStateDomain {
     val services = Json.decodeFromString<List<BluetoothServiceDomain>>(this.servicesJson)
     return GattServerStateDomain(services, this.nextServiceIndex)
 }
 
-fun GattServerStateDomain.toEntity(): GattServerConfig = GattServerConfig(
+fun GattServerStateDomain.toEntity(): GattServerEntity = GattServerEntity(
     servicesJson = Json.encodeToString(this.services),
     nextServiceIndex = this.nextServiceIndex
 )
 
 // SavedDevice Mappers
-fun SavedDevice.toDomain(): BluetoothDeviceDomain {
+fun BluetoothDeviceEntity.toDomain(): BluetoothDeviceDomain {
     val services = servicesJson?.let {
         try {
             Json.decodeFromString<List<BluetoothServiceDomain>>(it)
@@ -126,7 +128,7 @@ fun SavedDevice.toDomain(): BluetoothDeviceDomain {
     )
 }
 
-fun BluetoothDeviceDomain.toEntity(): SavedDevice = SavedDevice(
+fun BluetoothDeviceDomain.toEntity(): BluetoothDeviceEntity = BluetoothDeviceEntity(
     address = address,
     name = name,
     servicesJson = if (services.isNotEmpty()) Json.encodeToString(services) else null

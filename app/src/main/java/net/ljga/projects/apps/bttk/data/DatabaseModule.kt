@@ -8,12 +8,12 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.ljga.projects.apps.bttk.data.database.AppDatabase
-import net.ljga.projects.apps.bttk.data.database.dao.BluetoothScriptDao
-import net.ljga.projects.apps.bttk.data.database.dao.CharacteristicParserDao
+import net.ljga.projects.apps.bttk.data.database.dao.GattScriptDao
+import net.ljga.projects.apps.bttk.data.database.dao.GattCharacteristicParserDao
 import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
-import net.ljga.projects.apps.bttk.data.database.dao.GattAliasDao
+import net.ljga.projects.apps.bttk.data.database.dao.GattCharacteristicAliasDao
 import net.ljga.projects.apps.bttk.data.database.dao.GattServerDao
-import net.ljga.projects.apps.bttk.data.database.dao.SavedDeviceDao
+import net.ljga.projects.apps.bttk.data.database.dao.BluetoothDeviceDao
 import javax.inject.Singleton
 
 @Module
@@ -35,7 +35,7 @@ class DatabaseModule {
     }
 
     @Provides
-    fun provideSavedDeviceDao(appDatabase: AppDatabase): SavedDeviceDao {
+    fun provideSavedDeviceDao(appDatabase: AppDatabase): BluetoothDeviceDao {
         return appDatabase.savedDeviceDao()
     }
 
@@ -45,17 +45,17 @@ class DatabaseModule {
     }
 
     @Provides
-    fun provideGattAliasDao(appDatabase: AppDatabase): GattAliasDao {
+    fun provideGattAliasDao(appDatabase: AppDatabase): GattCharacteristicAliasDao {
         return appDatabase.gattAliasDao()
     }
 
     @Provides
-    fun provideCharacteristicParserDao(appDatabase: AppDatabase): CharacteristicParserDao {
+    fun provideCharacteristicParserDao(appDatabase: AppDatabase): GattCharacteristicParserDao {
         return appDatabase.characteristicParserDao()
     }
 
     @Provides
-    fun provideBluetoothScriptDao(appDatabase: AppDatabase): BluetoothScriptDao {
+    fun provideBluetoothScriptDao(appDatabase: AppDatabase): GattScriptDao {
         return appDatabase.bluetoothScriptDao()
     }
 }

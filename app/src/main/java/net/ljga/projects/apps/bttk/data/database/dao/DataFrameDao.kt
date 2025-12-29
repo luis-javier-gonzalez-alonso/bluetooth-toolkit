@@ -4,16 +4,16 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrameEntity
 
 @Dao
 interface DataFrameDao {
-    @Query("SELECT * FROM dataframe ORDER BY name ASC")
-    fun getDataFrames(): Flow<List<DataFrame>>
+    @Query("SELECT * FROM data_frames ORDER BY name ASC")
+    fun getDataFrames(): Flow<List<DataFrameEntity>>
 
     @Insert
-    suspend fun insertDataFrame(item: DataFrame)
+    suspend fun insertDataFrame(item: DataFrameEntity)
 
-    @Query("DELETE FROM dataframe WHERE uid = :uid")
+    @Query("DELETE FROM data_frames WHERE uid = :uid")
     suspend fun deleteDataFrame(uid: Int)
 }

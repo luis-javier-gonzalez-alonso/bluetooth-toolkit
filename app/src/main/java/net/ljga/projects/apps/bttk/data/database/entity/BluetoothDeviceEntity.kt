@@ -3,8 +3,8 @@ package net.ljga.projects.apps.bttk.data.database.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "saved_devices")
-data class SavedDevice(
+@Entity(tableName = "bluetooth_devices")
+data class BluetoothDeviceEntity(
     @PrimaryKey val address: String,
     val name: String?,
     val servicesJson: String? = null

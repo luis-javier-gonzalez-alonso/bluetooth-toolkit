@@ -2,7 +2,7 @@ package net.ljga.projects.apps.bttk.data.database.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import net.ljga.projects.apps.bttk.data.database.dao.BluetoothScriptDao
+import net.ljga.projects.apps.bttk.data.database.dao.GattScriptDao
 import net.ljga.projects.apps.bttk.data.toDomain
 import net.ljga.projects.apps.bttk.data.toEntity
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
@@ -10,16 +10,16 @@ import net.ljga.projects.apps.bttk.domain.repository.BluetoothScriptRepository
 import javax.inject.Inject
 
 class DatabaseBluetoothScriptRepository @Inject constructor(
-    private val bluetoothScriptDao: BluetoothScriptDao
+    private val gattScriptDao: GattScriptDao
 ) : BluetoothScriptRepository {
     override fun getAllScripts(): Flow<List<BluetoothScriptDomain>> = 
-        bluetoothScriptDao.getAllScripts().map { entities -> entities.map { it.toDomain() } }
+        gattScriptDao.getAllScripts().map { entities -> entities.map { it.toDomain() } }
 
     override suspend fun getScriptById(id: Int): BluetoothScriptDomain? = 
-        bluetoothScriptDao.getScriptById(id)?.toDomain()
+        gattScriptDao.getScriptById(id)?.toDomain()
 
     override suspend fun saveScript(script: BluetoothScriptDomain): Long = 
-        bluetoothScriptDao.insertScript(script.toEntity())
+        gattScriptDao.insertScript(script.toEntity())
 
-    override suspend fun deleteScript(id: Int) = bluetoothScriptDao.deleteScript(id)
+    override suspend fun deleteScript(id: Int) = gattScriptDao.deleteScript(id)
 }

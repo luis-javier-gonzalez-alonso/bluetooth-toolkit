@@ -3,7 +3,7 @@ package net.ljga.projects.apps.bttk.data.database.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
-import net.ljga.projects.apps.bttk.data.database.entity.DataFrame
+import net.ljga.projects.apps.bttk.data.database.entity.DataFrameEntity
 import net.ljga.projects.apps.bttk.data.toDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
@@ -18,7 +18,7 @@ class DatabaseDataFrameRepository @Inject constructor(
     }
 
     override suspend fun add(name: String, data: ByteArray) {
-        dataFrameDao.insertDataFrame(DataFrame(name = name, data = data))
+        dataFrameDao.insertDataFrame(DataFrameEntity(name = name, data = data))
     }
 
     override suspend fun remove(uid: Int) {

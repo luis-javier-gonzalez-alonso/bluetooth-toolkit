@@ -6,13 +6,17 @@ import androidx.room.TypeConverter
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-enum class ScriptOperationType {
-    READ, WRITE, DELAY
-}
+@Entity(tableName = "gatt_scripts")
+data class GattScriptEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    val name: String,
+    val operations: List<GattScriptOperation>
+)
 
 @Serializable
-data class BluetoothScriptOperation(
-    val type: ScriptOperationType,
+data class GattScriptOperation(
+    val type: GattScriptOperationType,
     val serviceUuid: String? = null,
     val characteristicUuid: String? = null,
     val data: ByteArray? = null,
@@ -21,7 +25,7 @@ data class BluetoothScriptOperation(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        other as BluetoothScriptOperation
+        other as GattScriptOperation
         if (type != other.type) return false
         if (serviceUuid != other.serviceUuid) return false
         if (characteristicUuid != other.characteristicUuid) return false
@@ -43,22 +47,19 @@ data class BluetoothScriptOperation(
     }
 }
 
-@Entity(tableName = "bluetooth_scripts")
-data class BluetoothScript(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
-    val name: String,
-    val operations: List<BluetoothScriptOperation>
-)
 
-class ScriptOperationsConverter {
+enum class GattScriptOperationType {
+    READ, WRITE, DELAY
+}
+
+class GattScriptOperationsConverter {
     @TypeConverter
-    fun fromOperationsList(operations: List<BluetoothScriptOperation>): String {
+    fun fromOperationsList(operations: List<GattScriptOperation>): String {
         return Json.encodeToString(operations)
     }
 
     @TypeConverter
-    fun toOperationsList(operationsJson: String): List<BluetoothScriptOperation> {
+    fun toOperationsList(operationsJson: String): List<GattScriptOperation> {
         return Json.decodeFromString(operationsJson)
     }
 }

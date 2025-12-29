@@ -3,8 +3,11 @@ package net.ljga.projects.apps.bttk.data.database.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity
-data class DataFrame(
+/**
+ * Saved data frames, reusable for write action to characteristic
+ */
+@Entity(tableName = "data_frames")
+data class DataFrameEntity(
     val name: String,
     val data: ByteArray
 ) {
@@ -15,7 +18,7 @@ data class DataFrame(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as DataFrame
+        other as DataFrameEntity
 
         if (name != other.name) return false
         if (!data.contentEquals(other.data)) return false
