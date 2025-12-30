@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -17,14 +18,14 @@ import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.DeviceScanController
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
-import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicAliasRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicSettingsRepository
 import javax.inject.Inject
 
 @HiltViewModel
 class DeviceScanViewModel @Inject constructor(
     private val deviceScanController: DeviceScanController,
     private val bluetoothDeviceRepository: BluetoothDeviceRepository,
-    private val gattCharacteristicAliasRepository: GattCharacteristicAliasRepository,
+    private val gattCharacteristicSettingsRepository: GattCharacteristicSettingsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -39,9 +40,11 @@ class DeviceScanViewModel @Inject constructor(
 
     val state = combine(
         devicesFlow,
-        gattCharacteristicAliasRepository.gattAliases,
+        gattCharacteristicSettingsRepository.allSettings,
         _state
-    ) { (scannedDevices, savedDevices), aliases, state ->
+    ) { (scannedDevices, savedDevices), gattCharacteristicSettings, state ->
+
+        val aliases = gattCharacteristicSettings.associate { "${it.serviceUuid}-${it.characteristicUuid}" to it.alias }
 
         val allAddresses = (scannedDevices.map { it.address } +
                 savedDevices.map { it.address }).distinct()

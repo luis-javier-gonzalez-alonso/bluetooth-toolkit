@@ -7,12 +7,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 @Entity(
-    tableName = "gatt_characteristic_parsers",
+    tableName = "gatt_characteristic_settings",
     primaryKeys = ["serviceUuid", "characteristicUuid"]
 )
-data class GattCharacteristicParserEntity(
+data class GattCharacteristicSettingsEntity(
     val serviceUuid: String,
     val characteristicUuid: String,
+    val alias: String,
     @TypeConverters(ParserFieldsConverter::class)
     val fields: List<ParserField>,
     val template: String

@@ -23,13 +23,13 @@ import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
 import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
 import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
+import net.ljga.projects.apps.bttk.domain.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
 import net.ljga.projects.apps.bttk.domain.model.process.ReadGattCharacteristicRequest
 import net.ljga.projects.apps.bttk.domain.model.process.WriteGattCharacteristicRequest
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
-import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicAliasRepository
-import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicParserRepository
+import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicSettingsRepository
 import net.ljga.projects.apps.bttk.domain.utils.CharacteristicParser
 import javax.inject.Inject
 
@@ -38,37 +38,43 @@ class ConnectionViewModel @Inject constructor(
     private val connectionController: ConnectionController,
     private val bluetoothDeviceRepository: BluetoothDeviceRepository,
     private val dataFrameRepository: DataFrameRepository,
-    private val gattCharacteristicAliasRepository: GattCharacteristicAliasRepository,
-    private val gattCharacteristicParserRepository: GattCharacteristicParserRepository,
+    private val gattCharacteristicSettingsRepository: GattCharacteristicSettingsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    val repositoryFlows = combine(
-        gattCharacteristicAliasRepository.gattAliases,
-        dataFrameRepository.dataFrames,
-        gattCharacteristicParserRepository.getAllConfigs(),
-    ) { aliases, dataFrames, configs ->
-        Triple(aliases, dataFrames, configs)
+    val connectionFlow = combine(
+        connectionController.connectionLogs,
+        connectionController.connections
+    ) { logs, connections ->
+        Pair(logs, connections)
     }
 
     private val _state = MutableStateFlow(ConnectionUiState())
     val state = combine(
-        repositoryFlows,
-        connectionController.connectionLogs,
-        connectionController.connections,
+        gattCharacteristicSettingsRepository.allSettings,
+        dataFrameRepository.dataFrames,
+        connectionFlow,
         bluetoothDeviceRepository.savedDevices,
         _state
-    ) { (aliases, dataFrames, configs), incoming, connections, savedDevices, state ->
+    ) { allSettings, dataFrames, (connectionLogs, connections), savedDevices, state ->
 
         val address = state.selectedDevice?.address ?: return@combine state
 
         val currentDevice = savedDevices.find { it.address == address } ?: state.selectedDevice
         val isConnected = connections.containsKey(address)
-        
-        val configMap = configs.associateBy { "${it.serviceUuid}-${it.characteristicUuid}" }
-        val incomingData = incoming[address]?.map { packet ->
-            val config = configMap["${packet.serviceUuid}-${packet.characteristicUuid}"]
-            if (config != null && packet.data.isNotEmpty()) {
+
+        val settingsMap = allSettings.associateBy { "${it.serviceUuid}-${it.characteristicUuid}" }
+        val aliases = settingsMap.mapValues { it.value.alias }.filterValues { it.isNotBlank() }
+
+        val incomingData = connectionLogs[address]?.map { packet ->
+            val settings = settingsMap["${packet.serviceUuid}-${packet.characteristicUuid}"]
+            if (settings != null && settings.fields.isNotEmpty() && packet.data.isNotEmpty()) {
+                val config = CharacteristicParserConfigDomain(
+                    serviceUuid = settings.serviceUuid,
+                    characteristicUuid = settings.characteristicUuid,
+                    fields = settings.fields,
+                    template = settings.template
+                )
                 packet.copy(
                     text = CharacteristicParser.parse(packet.data, config),
                     format = DataFormat.STRUCTURED
@@ -85,7 +91,7 @@ class ConnectionViewModel @Inject constructor(
             gattAliases = aliases,
             savedDataFrames = dataFrames,
             dataLogs = incomingData,
-            parserConfigs = configMap,
+            settings = settingsMap,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ConnectionUiState())
 
@@ -172,11 +178,6 @@ class ConnectionViewModel @Inject constructor(
         connectionController.connect(device, BluetoothConnectionType.GATT)
     }
 
-    fun checkReachability(device: BluetoothDeviceDomain) {
-        // TODO Implement reachability check
-//        connectionController.checkReachability(device.address)
-    }
-
     fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothConnectionType? = null) {
         val availableProfiles =
             device.uuids.mapNotNull { BluetoothConnectionType.fromUuid(it) }.distinct()
@@ -228,7 +229,10 @@ class ConnectionViewModel @Inject constructor(
 
     fun saveAlias(serviceUuid: String, characteristicUuid: String, alias: String) {
         viewModelScope.launch {
-            gattCharacteristicAliasRepository.saveAlias(serviceUuid, characteristicUuid, alias)
+            val currentSettings =
+                gattCharacteristicSettingsRepository.getSettings(serviceUuid, characteristicUuid)
+                    ?: GattCharacteristicSettingsDomain(serviceUuid, characteristicUuid)
+            gattCharacteristicSettingsRepository.saveSettings(currentSettings.copy(alias = alias))
         }
     }
 
@@ -252,15 +256,25 @@ class ConnectionViewModel @Inject constructor(
         }
     }
 
-    fun saveParserConfig(config: CharacteristicParserConfigDomain) {
+    fun saveSettings(settings: GattCharacteristicSettingsDomain) {
         viewModelScope.launch {
-            gattCharacteristicParserRepository.saveConfig(config)
+            gattCharacteristicSettingsRepository.saveSettings(settings)
         }
     }
 
     fun deleteParserConfig(serviceUuid: String, characteristicUuid: String) {
         viewModelScope.launch {
-            gattCharacteristicParserRepository.deleteConfig(serviceUuid, characteristicUuid)
+            val currentSettings =
+                gattCharacteristicSettingsRepository.getSettings(serviceUuid, characteristicUuid)
+            if (currentSettings != null) {
+                // Keep alias, but clear parser fields
+                gattCharacteristicSettingsRepository.saveSettings(
+                    currentSettings.copy(
+                        fields = emptyList(),
+                        template = ""
+                    )
+                )
+            }
         }
     }
 }
@@ -276,6 +290,6 @@ data class ConnectionUiState(
     val enabledNotifications: Set<String> = emptySet(),
     val gattAliases: Map<String, String> = emptyMap(),
     val savedDataFrames: List<DataFrameDomain> = emptyList(),
-    val parserConfigs: Map<String, CharacteristicParserConfigDomain> = emptyMap(),
+    val settings: Map<String, GattCharacteristicSettingsDomain> = emptyMap(),
     val scriptToRun: BluetoothScriptDomain? = null,
 )

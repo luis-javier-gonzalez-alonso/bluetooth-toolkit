@@ -9,8 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.ljga.projects.apps.bttk.data.database.dao.BluetoothDeviceDao
 import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
-import net.ljga.projects.apps.bttk.data.database.dao.GattCharacteristicAliasDao
-import net.ljga.projects.apps.bttk.data.database.dao.GattCharacteristicParserDao
+import net.ljga.projects.apps.bttk.data.database.dao.GattCharacteristicSettingsDao
 import net.ljga.projects.apps.bttk.data.database.dao.GattScriptDao
 import net.ljga.projects.apps.bttk.data.database.dao.GattServerDao
 import javax.inject.Singleton
@@ -39,13 +38,8 @@ class DatabaseModule {
     }
 
     @Provides
-    fun provideGattCharacteristicAliasDao(appDatabase: AppDatabase): GattCharacteristicAliasDao {
-        return appDatabase.gattCharacteristicAliasDao()
-    }
-
-    @Provides
-    fun provideGattCharacteristicParserDao(appDatabase: AppDatabase): GattCharacteristicParserDao {
-        return appDatabase.gattCharacteristicParserDao()
+    fun provideGattCharacteristicSettingsDao(appDatabase: AppDatabase): GattCharacteristicSettingsDao {
+        return appDatabase.gattCharacteristicSettingsDao()
     }
 
     @Provides

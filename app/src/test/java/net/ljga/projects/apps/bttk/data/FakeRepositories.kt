@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import net.ljga.projects.apps.bttk.domain.model.*
 import net.ljga.projects.apps.bttk.domain.repository.GattScriptRepository
-import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicParserRepository
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
@@ -176,7 +175,8 @@ private val fakeGattServerState = GattServerStateDomain(
     nextServiceIndex = 1,
     serviceIndices = mapOf("1800" to 0),
     serviceNextCharIndices = mapOf("1800" to 2),
-    deviceName = "BT Toolkit Fake"
+    deviceName = "BT Toolkit Fake",
+    name = "Fake Device"
 )
 
 private val fakeSavedDevices = listOf(

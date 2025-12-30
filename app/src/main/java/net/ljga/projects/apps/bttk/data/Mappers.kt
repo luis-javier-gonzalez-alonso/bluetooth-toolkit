@@ -1,12 +1,11 @@
 package net.ljga.projects.apps.bttk.data
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.ljga.projects.apps.bttk.data.database.entity.BluetoothDeviceEntity
 import net.ljga.projects.apps.bttk.data.database.entity.DataFrameEntity
 import net.ljga.projects.apps.bttk.data.database.entity.Endianness
 import net.ljga.projects.apps.bttk.data.database.entity.FieldType
-import net.ljga.projects.apps.bttk.data.database.entity.GattCharacteristicParserEntity
+import net.ljga.projects.apps.bttk.data.database.entity.GattCharacteristicSettingsEntity
 import net.ljga.projects.apps.bttk.data.database.entity.GattScriptEntity
 import net.ljga.projects.apps.bttk.data.database.entity.GattScriptOperation
 import net.ljga.projects.apps.bttk.data.database.entity.GattScriptOperationType
@@ -16,10 +15,10 @@ import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptOperationDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
 import net.ljga.projects.apps.bttk.domain.model.EndiannessDomain
 import net.ljga.projects.apps.bttk.domain.model.FieldTypeDomain
+import net.ljga.projects.apps.bttk.domain.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
 import net.ljga.projects.apps.bttk.domain.model.ParserFieldDomain
 import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
@@ -67,11 +66,12 @@ fun BluetoothScriptOperationDomain.toEntity(): GattScriptOperation = GattScriptO
     delayMs = delayMs
 )
 
-// CharacteristicParserConfig Mappers
-fun GattCharacteristicParserEntity.toDomain(): CharacteristicParserConfigDomain =
-    CharacteristicParserConfigDomain(
+// GattCharacteristicSettings Mappers
+fun GattCharacteristicSettingsEntity.toDomain(): GattCharacteristicSettingsDomain =
+    GattCharacteristicSettingsDomain(
     serviceUuid = serviceUuid,
     characteristicUuid = characteristicUuid,
+        alias = alias,
     fields = fields.map { it.toDomain() },
     template = template
 )
@@ -84,10 +84,11 @@ fun ParserField.toDomain(): ParserFieldDomain = ParserFieldDomain(
     endianness = EndiannessDomain.valueOf(endianness.name)
 )
 
-fun CharacteristicParserConfigDomain.toEntity(): GattCharacteristicParserEntity =
-    GattCharacteristicParserEntity(
+fun GattCharacteristicSettingsDomain.toEntity(): GattCharacteristicSettingsEntity =
+    GattCharacteristicSettingsEntity(
     serviceUuid = serviceUuid,
     characteristicUuid = characteristicUuid,
+        alias = alias,
     fields = fields.map { it.toEntity() },
     template = template
 )
