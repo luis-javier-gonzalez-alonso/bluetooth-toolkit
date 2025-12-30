@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import net.ljga.projects.apps.bttk.domain.device_connection.DeviceConnectionController
+import net.ljga.projects.apps.bttk.domain.device_scan.DeviceScanController
 import net.ljga.projects.apps.bttk.domain.gatt_server.GattServerController
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import javax.inject.Singleton

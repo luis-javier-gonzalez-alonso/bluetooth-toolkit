@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.domain
+package net.ljga.projects.apps.bttk.domain.device_scan
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.utils.DeviceFoundReceiver
 import javax.inject.Inject
+import kotlin.collections.plus
 
 class DeviceScanController @Inject constructor(
     private val context: Context
