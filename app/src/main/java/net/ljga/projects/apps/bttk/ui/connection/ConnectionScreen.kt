@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,7 +49,6 @@ fun ConnectionScreen(
     onBackClick: () -> Unit,
     onDisconnectClick: () -> Unit,
     onReadCharacteristic: (String, String) -> Unit = { _, _ -> },
-    onReadDescriptors: (String, String) -> Unit = { _, _ -> },
     onWriteCharacteristic: (String, String, ByteArray) -> Unit = { _, _, _ -> },
     onToggleNotification: (String, String, Boolean) -> Unit = { _, _, _ -> },
     onSaveAlias: (String, String, String) -> Unit = { _, _, _ -> },
@@ -117,7 +115,6 @@ fun ConnectionScreen(
                                             isNotifying = enabledNotifications.contains(key),
                                             hasParser = parserConfigs.containsKey(key),
                                             onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
-                                            onReadDescriptors = { onReadDescriptors(service.uuid, characteristic.uuid) },
                                             onWrite = { showWriteDialog = service.uuid to characteristic.uuid },
                                             onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) },
                                             onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) },
@@ -233,7 +230,6 @@ fun CharacteristicRow(
     isNotifying: Boolean,
     hasParser: Boolean,
     onRead: () -> Unit,
-    onReadDescriptors: () -> Unit,
     onWrite: () -> Unit,
     onToggleNotify: (Boolean) -> Unit,
     onEditAlias: () -> Unit,
@@ -271,14 +267,10 @@ fun CharacteristicRow(
         }
         
         Row(
-            modifier = Modifier.width(220.dp),
+            modifier = Modifier.width(180.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.End
         ) {
-            IconButton(onClick = onReadDescriptors, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Visibility, contentDescription = "Read Descriptors", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-            }
-            
             Box(modifier = Modifier.width(50.dp), contentAlignment = Alignment.CenterEnd) {
                 if (properties.contains("READ")) {
                     Text(
