@@ -38,7 +38,7 @@
         </activity>
 
         <service
-            android:name=".data.bluetooth.GattServerService"
+            android:name=".domain.GattServerService"
             android:foregroundServiceType="connectedDevice"
             android:exported="false" />
     </application>

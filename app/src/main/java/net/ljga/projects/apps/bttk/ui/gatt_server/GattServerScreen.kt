@@ -142,7 +142,7 @@ fun GattServerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("GATT Server Configuration") },
+                title = { Text("GATT Server") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")

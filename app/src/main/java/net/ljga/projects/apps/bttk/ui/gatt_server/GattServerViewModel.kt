@@ -73,7 +73,7 @@ class GattServerViewModel @Inject constructor(
     fun toggleGattServer() {
         if (state.value.isGattServerRunning) {
             val intent = Intent(context, GattServerService::class.java).apply {
-                action = "net.ljga.projects.apps.bttk.GattServerService.ACTION_STOP"
+                action = GattServerService.ACTION_STOP
             }
             context.startService(intent)
         } else {
@@ -86,9 +86,9 @@ class GattServerViewModel @Inject constructor(
             }
 
             val intent = Intent(context, GattServerService::class.java).apply {
-                action = "net.ljga.projects.apps.bttk.GattServerService.ACTION_START"
+                action = GattServerService.ACTION_START
                 if (state.value.gattServerDeviceName.isNotBlank()) {
-                    putExtra("EXTRA_DEVICE_NAME", state.value.gattServerDeviceName)
+                    putExtra(GattServerService.EXTRA_DEVICE_NAME, state.value.gattServerDeviceName)
                 }
             }
             context.startForegroundService(intent)
@@ -123,7 +123,7 @@ class GattServerViewModel @Inject constructor(
                 name = name,
                 services = emptyList(),
                 nextServiceIndex = 0,
-                deviceName = "Device Name"
+                deviceName = ""
             )
             val id = gattServerRepository.saveServer(newProfile)
             loadGattServerProfile(id)
