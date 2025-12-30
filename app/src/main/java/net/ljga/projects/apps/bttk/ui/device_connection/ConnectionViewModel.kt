@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.ui.connection
+package net.ljga.projects.apps.bttk.ui.device_connection
 
 import android.content.Context
 import android.widget.Toast

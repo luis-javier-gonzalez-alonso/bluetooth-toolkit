@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.ui.bluetooth
+package net.ljga.projects.apps.bttk.ui.device_scan
 
 import android.Manifest
 import android.os.Build
@@ -50,7 +50,7 @@ import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BluetoothScreen(
+fun DeviceScanScreen(
     viewModel: DeviceScanViewModel,
 //    scriptViewModel: BluetoothScriptViewModel = hiltViewModel(),
     onDeviceClick: (BluetoothDeviceDomain) -> Unit,

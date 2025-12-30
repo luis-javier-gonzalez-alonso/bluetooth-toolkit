@@ -8,29 +8,26 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import net.ljga.projects.apps.bttk.ui.bluetooth.BluetoothScreen
-import net.ljga.projects.apps.bttk.ui.bluetooth.DeviceScanViewModel
-import net.ljga.projects.apps.bttk.ui.connection.ConnectionScreen
-import net.ljga.projects.apps.bttk.ui.connection.ConnectionViewModel
+import net.ljga.projects.apps.bttk.ui.device_connection.ConnectionScreen
+import net.ljga.projects.apps.bttk.ui.device_connection.ConnectionViewModel
 import net.ljga.projects.apps.bttk.ui.device_details.DeviceDetailScreen
+import net.ljga.projects.apps.bttk.ui.device_scan.DeviceScanScreen
+import net.ljga.projects.apps.bttk.ui.device_scan.DeviceScanViewModel
 import net.ljga.projects.apps.bttk.ui.gatt_server.GattServerScreen
-
-//import net.ljga.projects.apps.bttk.ui.dataframe.DataFrameScreen
 
 @Composable
 fun MainNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "bluetooth") {
-//        composable("main") { DataFrameScreen(modifier = Modifier.padding(16.dp)) }
-        composable("bluetooth") {
+    NavHost(navController = navController, startDestination = "device_scan") {
+        composable("device_scan") {
             val viewModel = hiltViewModel<DeviceScanViewModel>()
             val connectionViewModel = hiltViewModel<ConnectionViewModel>()
-            BluetoothScreen(
+            DeviceScanScreen(
                 viewModel = viewModel,
                 onDeviceClick = { device ->
                     connectionViewModel.connectToDevice(device)
-                    navController.navigate("connection")
+                    navController.navigate("device_connection")
                 },
                 onDetailsClick = { device ->
                     viewModel.showDeviceDetails(device)
@@ -41,31 +38,26 @@ fun MainNavigation() {
                 }
             )
         }
-        composable("gatt_server") {
-            GattServerScreen(
-                onBackClick = { navController.popBackStack() }
-            )
-        }
         composable("device_details") {
             val backStackEntry = remember(it) {
-                navController.getBackStackEntry("bluetooth")
+                navController.getBackStackEntry("device_scan")
             }
             val viewModel = hiltViewModel<DeviceScanViewModel>(backStackEntry)
             val state by viewModel.state.collectAsState()
-            
+
             DeviceDetailScreen(
                 device = state.selectedDevice,
                 gattAliases = state.gattAliases,
                 onBackClick = { navController.popBackStack() }
             )
         }
-        composable("connection") {
+        composable("device_connection") {
             val backStackEntry = remember(it) {
-                navController.getBackStackEntry("bluetooth")
+                navController.getBackStackEntry("device_scan")
             }
             val viewModel = hiltViewModel<ConnectionViewModel>(backStackEntry)
             val state by viewModel.state.collectAsState()
-            
+
             ConnectionScreen(
                 device = state.selectedDevice,
                 isConnected = state.isConnected,
@@ -83,8 +75,13 @@ fun MainNavigation() {
                 onToggleNotification = { s, c, e -> viewModel.toggleNotification(s, c, e) },
                 onSaveDataFrame = { n, d -> viewModel.saveDataFrame(n, d) },
                 onDeleteDataFrame = { id -> viewModel.deleteDataFrame(id) },
-                onSaveSettings = {settings -> viewModel.saveSettings(settings) },
+                onSaveSettings = { settings -> viewModel.saveSettings(settings) },
                 onDeleteParserConfig = { s, c -> viewModel.deleteParserConfig(s, c) }
+            )
+        }
+        composable("gatt_server") {
+            GattServerScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

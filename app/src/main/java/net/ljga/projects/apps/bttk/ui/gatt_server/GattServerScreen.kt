@@ -74,9 +74,9 @@ import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.ui.connection.HexVisualTransformation
-import net.ljga.projects.apps.bttk.ui.connection.LogListView
-import net.ljga.projects.apps.bttk.ui.connection.toAsciiString
+import net.ljga.projects.apps.bttk.ui.device_connection.HexVisualTransformation
+import net.ljga.projects.apps.bttk.ui.device_connection.LogListView
+import net.ljga.projects.apps.bttk.ui.device_connection.toAsciiString
 import java.util.UUID
 
 class UuidVisualTransformation : VisualTransformation {

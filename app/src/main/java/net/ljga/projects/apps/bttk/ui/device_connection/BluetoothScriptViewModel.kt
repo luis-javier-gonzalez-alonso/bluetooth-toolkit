@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.ui.connection
+package net.ljga.projects.apps.bttk.ui.device_connection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

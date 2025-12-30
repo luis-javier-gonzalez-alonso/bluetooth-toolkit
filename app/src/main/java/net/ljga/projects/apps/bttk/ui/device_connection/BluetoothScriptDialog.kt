@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.ui.connection
+package net.ljga.projects.apps.bttk.ui.device_connection
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
