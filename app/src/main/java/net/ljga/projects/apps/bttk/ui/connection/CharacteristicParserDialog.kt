@@ -22,20 +22,38 @@ import net.ljga.projects.apps.bttk.domain.model.ParserFieldDomain
 fun CharacteristicParserDialog(
     serviceUuid: String,
     characteristicUuid: String,
+    initialAlias: String,
     initialConfig: CharacteristicParserConfigDomain?,
     onDismiss: () -> Unit,
-    onSave: (CharacteristicParserConfigDomain) -> Unit,
-    onDelete: () -> Unit
+    onSaveAlias: (String) -> Unit,
+    onSaveConfig: (CharacteristicParserConfigDomain) -> Unit,
+    onDeleteConfig: () -> Unit
 ) {
+    var alias by remember { mutableStateOf(initialAlias) }
     var template by remember { mutableStateOf(initialConfig?.template ?: "") }
     var fields by remember { mutableStateOf(initialConfig?.fields ?: emptyList()) }
     var showAddField by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Configure Characteristic Parser") },
+        title = { Text("Configure Characteristic") },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = alias,
+                    onValueChange = { alias = it },
+                    label = { Text("Alias (Friendly Name)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("Parser Settings", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = template,
                     onValueChange = { template = it },
@@ -56,7 +74,7 @@ fun CharacteristicParserDialog(
                     }
                 }
 
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
                     items(fields) { field ->
                         FieldRow(field, onDelete = { fields = fields - field })
                     }
@@ -65,7 +83,8 @@ fun CharacteristicParserDialog(
         },
         confirmButton = {
             Button(onClick = {
-                onSave(CharacteristicParserConfigDomain(serviceUuid, characteristicUuid, fields, template))
+                onSaveAlias(alias)
+                onSaveConfig(CharacteristicParserConfigDomain(serviceUuid, characteristicUuid, fields, template))
                 onDismiss()
             }) {
                 Text("Save")
@@ -75,10 +94,12 @@ fun CharacteristicParserDialog(
             Row {
                 if (initialConfig != null) {
                     TextButton(onClick = {
-                        onDelete()
+                        onDeleteConfig()
+                        // We don't necessarily delete alias here unless specified, but usually users want to clear config.
+                        // If they want to clear alias they just empty the field and save.
                         onDismiss()
                     }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                        Text("Delete")
+                        Text("Delete Parser")
                     }
                 }
                 TextButton(onClick = onDismiss) {

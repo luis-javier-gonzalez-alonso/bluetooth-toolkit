@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,9 +56,8 @@ fun ConnectionScreen(
     onSaveParserConfig: (CharacteristicParserConfigDomain) -> Unit = {},
     onDeleteParserConfig: (String, String) -> Unit = { _, _ -> }
 ) {
-    var showAliasDialog by remember { mutableStateOf<Triple<String, String, String>?>(null) }
     var showWriteDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var showParserDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var showConfigureDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     Scaffold(
         topBar = {
@@ -117,8 +115,7 @@ fun ConnectionScreen(
                                             onRead = { onReadCharacteristic(service.uuid, characteristic.uuid) },
                                             onWrite = { showWriteDialog = service.uuid to characteristic.uuid },
                                             onToggleNotify = { onToggleNotification(service.uuid, characteristic.uuid, it) },
-                                            onEditAlias = { showAliasDialog = Triple(service.uuid, characteristic.uuid, alias) },
-                                            onConfigureParser = { showParserDialog = service.uuid to characteristic.uuid }
+                                            onConfigure = { showConfigureDialog = service.uuid to characteristic.uuid }
                                         )
                                     }
                                 }
@@ -158,40 +155,6 @@ fun ConnectionScreen(
         }
     }
 
-    if (showAliasDialog != null) {
-        val (serviceUuid, charUuid, currentAlias) = showAliasDialog!!
-        var text by remember { mutableStateOf(currentAlias) }
-        AlertDialog(
-            onDismissRequest = { showAliasDialog = null },
-            title = { Text("Set Alias") },
-            text = {
-                Column {
-                    Text("UUID: ${charUuid.prettyCharacteristicName()}...", style = MaterialTheme.typography.bodySmall)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        label = { Text("Alias") },
-                        singleLine = true
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    onSaveAlias(serviceUuid, charUuid, text)
-                    showAliasDialog = null
-                }) {
-                    Text("Save")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAliasDialog = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
     if (showWriteDialog != null) {
         PacketSelectorDialog(
             serviceUuid = showWriteDialog!!.first,
@@ -207,16 +170,18 @@ fun ConnectionScreen(
         )
     }
 
-    if (showParserDialog != null) {
-        val (sUuid, cUuid) = showParserDialog!!
+    if (showConfigureDialog != null) {
+        val (sUuid, cUuid) = showConfigureDialog!!
         val key = "$sUuid-$cUuid"
         CharacteristicParserDialog(
             serviceUuid = sUuid,
             characteristicUuid = cUuid,
+            initialAlias = gattAliases[key] ?: "",
             initialConfig = parserConfigs[key],
-            onDismiss = { showParserDialog = null },
-            onSave = onSaveParserConfig,
-            onDelete = { onDeleteParserConfig(sUuid, cUuid) }
+            onDismiss = { showConfigureDialog = null },
+            onSaveAlias = { onSaveAlias(sUuid, cUuid, it) },
+            onSaveConfig = onSaveParserConfig,
+            onDeleteConfig = { onDeleteParserConfig(sUuid, cUuid) }
         )
     }
 }
@@ -232,8 +197,7 @@ fun CharacteristicRow(
     onRead: () -> Unit,
     onWrite: () -> Unit,
     onToggleNotify: (Boolean) -> Unit,
-    onEditAlias: () -> Unit,
-    onConfigureParser: () -> Unit
+    onConfigure: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -245,15 +209,12 @@ fun CharacteristicRow(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onEditAlias, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit Alias", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-            }
-            IconButton(onClick = onConfigureParser, modifier = Modifier.size(24.dp)) {
+            IconButton(onClick = onConfigure, modifier = Modifier.size(24.dp)) {
                 Icon(
                     Icons.Default.Settings, 
-                    contentDescription = "Configure Parser", 
+                    contentDescription = "Configure", 
                     modifier = Modifier.size(16.dp), 
-                    tint = if (hasParser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                    tint = if (hasParser || alias.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
