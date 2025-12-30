@@ -42,11 +42,11 @@ class ConnectionController @Inject constructor(
         bluetoothManager?.adapter
     }
 
-    private val _connections = MutableStateFlow(HashMap<String, BluetoothConnection>())
+    private val _connections = MutableStateFlow<Map<String, BluetoothConnection>>(emptyMap())
     val connections: StateFlow<Map<String, BluetoothConnection>>
         get() = _connections.asStateFlow()
 
-    private val _connectionLogs = MutableStateFlow(HashMap<String, List<BluetoothDataPacket>>())
+    private val _connectionLogs = MutableStateFlow<Map<String, List<BluetoothDataPacket>>>(emptyMap())
     val connectionLogs: StateFlow<Map<String, List<BluetoothDataPacket>>>
         get() = _connectionLogs.asStateFlow()
 
@@ -78,10 +78,10 @@ class ConnectionController @Inject constructor(
             else -> GattBluetoothConnection(adapter, context)
         }
 
-        _connections.update { it[address] = strategy; it }
-        _connectionLogs.update { it[address] = emptyList(); it }
+        _connections.update { it + (address to strategy) }
+        _connectionLogs.update { it + (address to emptyList()) }
 
-        val value = scope.launch {
+        val job = scope.launch {
             try {
                 strategy.connect(address).collect { packet ->
                     logBluetoothData(address, packet)
@@ -92,15 +92,15 @@ class ConnectionController @Inject constructor(
                 disconnect(address)
             }
         }
-        connectionJobs[address] = value
+        connectionJobs[address] = job
     }
 
     fun disconnect(address: String) {
         connectionJobs[address]?.cancel()
         connectionJobs.remove(address)
         _connections.value[address]?.disconnect()
-        _connections.update { it.remove(address); it }
-        _connectionLogs.update { it.remove(address); it }
+        _connections.update { it - address }
+        _connectionLogs.update { it - address }
     }
 
     fun process(address: String, request: ProcessRequest) {
@@ -115,7 +115,10 @@ class ConnectionController @Inject constructor(
                 bluetoothDeviceRepository.updateServices(address, packet.gattServices)
             }
         }
-        _connectionLogs.update { it[address] = (it[address]!! + packet).takeLast(100); it }
+        _connectionLogs.update { current ->
+            val logs = current[address] ?: emptyList()
+            current + (address to (logs + packet).takeLast(100))
+        }
     }
 
     private fun hasPermission(permission: String) =

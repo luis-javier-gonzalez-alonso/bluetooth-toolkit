@@ -7,12 +7,26 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.ConnectionController
-import net.ljga.projects.apps.bttk.domain.model.*
+import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
+import net.ljga.projects.apps.bttk.domain.model.DataFormat
+import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
+import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
 import net.ljga.projects.apps.bttk.domain.model.process.ReadGattCharacteristicRequest
 import net.ljga.projects.apps.bttk.domain.model.process.WriteGattCharacteristicRequest
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.domain.repository.DataFrameRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicAliasRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicParserRepository
@@ -22,23 +36,35 @@ import javax.inject.Inject
 @HiltViewModel
 class ConnectionViewModel @Inject constructor(
     private val connectionController: ConnectionController,
+    private val bluetoothDeviceRepository: BluetoothDeviceRepository,
     private val dataFrameRepository: DataFrameRepository,
     private val gattCharacteristicAliasRepository: GattCharacteristicAliasRepository,
     private val gattCharacteristicParserRepository: GattCharacteristicParserRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ConnectionUiState())
-    val state = combine(
+    val repositoryFlows = combine(
         gattCharacteristicAliasRepository.gattAliases,
         dataFrameRepository.dataFrames,
         gattCharacteristicParserRepository.getAllConfigs(),
+    ) { aliases, dataFrames, configs ->
+        Triple(aliases, dataFrames, configs)
+    }
+
+    private val _state = MutableStateFlow(ConnectionUiState())
+    val state = combine(
+        repositoryFlows,
         connectionController.connectionLogs,
+        connectionController.connections,
+        bluetoothDeviceRepository.savedDevices,
         _state
-    ) { aliases, dataFrames, configs, incoming, state ->
+    ) { (aliases, dataFrames, configs), incoming, connections, savedDevices, state ->
 
-        val address = state.selectedDevice?.address!!
+        val address = state.selectedDevice?.address ?: return@combine state
 
+        val currentDevice = savedDevices.find { it.address == address } ?: state.selectedDevice
+        val isConnected = connections.containsKey(address)
+        
         val configMap = configs.associateBy { "${it.serviceUuid}-${it.characteristicUuid}" }
         val incomingData = incoming[address]?.map { packet ->
             val config = configMap["${packet.serviceUuid}-${packet.characteristicUuid}"]
@@ -50,12 +76,15 @@ class ConnectionViewModel @Inject constructor(
             } else {
                 packet
             }
-        }
+        } ?: emptyList()
 
         state.copy(
+            selectedDevice = currentDevice,
+            isConnected = isConnected,
+            isConnecting = !isConnected && state.isConnecting,
             gattAliases = aliases,
             savedDataFrames = dataFrames,
-            dataLogs = incomingData!!,
+            dataLogs = incomingData,
             parserConfigs = configMap,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ConnectionUiState())
@@ -171,12 +200,14 @@ class ConnectionViewModel @Inject constructor(
     }
 
     fun disconnectFromDevice() {
-        connectionController.disconnect(state.value.selectedDevice!!.address)
+        val address = state.value.selectedDevice?.address ?: return
+        connectionController.disconnect(address)
     }
 
     fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {
+        val address = state.value.selectedDevice?.address ?: return
         connectionController.process(
-            state.value.selectedDevice!!.address,
+            address,
             ReadGattCharacteristicRequest(serviceUuid, characteristicUuid)
         )
     }
@@ -202,8 +233,11 @@ class ConnectionViewModel @Inject constructor(
     }
 
     fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
-        // TODO Implement write characteristic
-//        connectionController.writeCharacteristic(serviceUuid, characteristicUuid, data)
+        val address = state.value.selectedDevice?.address ?: return
+        connectionController.process(
+            address,
+            WriteGattCharacteristicRequest(serviceUuid, characteristicUuid, data)
+        )
     }
 
     fun saveDataFrame(name: String, data: ByteArray) {
