@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.ui.bluetooth
+package net.ljga.projects.apps.bttk.ui.connection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

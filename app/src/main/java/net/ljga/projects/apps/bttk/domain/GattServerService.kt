@@ -19,7 +19,7 @@ import javax.inject.Inject
 class GattServerService : Service() {
 
     @Inject
-    lateinit var bluetoothController: BluetoothController
+    lateinit var gattServerController: GattServerController
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -38,11 +38,11 @@ class GattServerService : Service() {
         createNotificationChannel()
         val notification = createNotification(deviceName)
         startForeground(NOTIFICATION_ID, notification)
-        bluetoothController.startGattServer(deviceName)
+        gattServerController.startGattServer(deviceName)
     }
 
     private fun stopService() {
-        bluetoothController.stopGattServer()
+        gattServerController.stopGattServer()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

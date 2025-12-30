@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.ui.bluetooth
+package net.ljga.projects.apps.bttk.ui.connection
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
 import net.ljga.projects.apps.bttk.domain.model.EndiannessDomain
@@ -115,7 +116,7 @@ fun FieldRow(field: ParserFieldDomain, onDelete: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(field.name, style = MaterialTheme.typography.bodyMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(field.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                 Text("Offset: ${field.offset}, Len: ${field.length}, Type: ${field.type}", style = MaterialTheme.typography.labelSmall)
             }
             IconButton(onClick = onDelete) {

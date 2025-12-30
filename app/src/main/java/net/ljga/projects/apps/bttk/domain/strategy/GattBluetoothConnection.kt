@@ -16,6 +16,10 @@ import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
+import net.ljga.projects.apps.bttk.domain.model.process.ProcessRequest
+import net.ljga.projects.apps.bttk.domain.model.process.ReadGattCharacteristicRequest
+import net.ljga.projects.apps.bttk.domain.model.process.WriteGattCharacteristicRequest
+import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import net.ljga.projects.apps.bttk.domain.utils.prettyName
 import java.util.UUID
 
@@ -92,15 +96,36 @@ class GattBluetoothConnection(
         bluetoothGatt = device.connectGatt(context, false, gattCallback)
 
         awaitClose {
-            disconnectInternal()
+            disconnect()
         }
     }
 
-    override suspend fun disconnect() {
-        disconnectInternal()
+    override fun disconnect() {
+        bluetoothGatt?.disconnect()
+        bluetoothGatt?.close()
+        bluetoothGatt = null
     }
 
-    fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {
+    override fun process(request: ProcessRequest): BluetoothDataPacket? {
+        // TODO to be implemented by calling private methods depending on ProcessRequest
+
+        if (request is ReadGattCharacteristicRequest) {
+            readCharacteristic(request.serviceUuid, request.characteristicUuid)
+            return null
+        } else if (request is WriteGattCharacteristicRequest) {
+            writeCharacteristic(request.serviceUuid, request.characteristicUuid, request.data)
+            return BluetoothDataPacket(
+                data = request.data,
+                source = "Write: ${request.characteristicUuid.prettyCharacteristicName()}...",
+                format = DataFormat.HEX_ASCII,
+                serviceUuid = request.serviceUuid,
+                characteristicUuid = request.characteristicUuid
+            )
+        }
+        return null
+    }
+
+    private fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {
         val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
@@ -108,7 +133,11 @@ class GattBluetoothConnection(
         }
     }
 
-    fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean) {
+    private fun toggleNotification(
+        serviceUuid: String,
+        characteristicUuid: String,
+        enable: Boolean
+    ) {
         val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
@@ -120,7 +149,11 @@ class GattBluetoothConnection(
         }
     }
 
-    fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
+    private fun writeCharacteristic(
+        serviceUuid: String,
+        characteristicUuid: String,
+        data: ByteArray
+    ) {
         val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
@@ -146,14 +179,6 @@ class GattBluetoothConnection(
                 @Suppress("DEPRECATION")
                 bluetoothGatt?.writeCharacteristic(characteristic)
             }
-        }
-    }
-
-    fun readDescriptors(serviceUuid: String, characteristicUuid: String) {
-        val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
-        val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
-        characteristic?.descriptors?.forEach { descriptor ->
-            bluetoothGatt?.readDescriptor(descriptor)
         }
     }
 
@@ -199,12 +224,6 @@ class GattBluetoothConnection(
                 gatt.writeDescriptor(descriptor)
             }
         }
-    }
-
-    private fun disconnectInternal() {
-        bluetoothGatt?.disconnect()
-        bluetoothGatt?.close()
-        bluetoothGatt = null
     }
 
     private fun getPropertiesList(properties: Int): List<String> {

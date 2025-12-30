@@ -46,14 +46,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluetoothScreen(
-    viewModel: BluetoothViewModel,
-    scriptViewModel: BluetoothScriptViewModel = hiltViewModel(),
+    viewModel: DeviceScanViewModel,
+//    scriptViewModel: BluetoothScriptViewModel = hiltViewModel(),
     onDeviceClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onGattServerClick: () -> Unit
@@ -61,7 +60,7 @@ fun BluetoothScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showFabMenu by remember { mutableStateOf(false) }
-    var scriptDevice by remember { mutableStateOf<BluetoothDeviceDomain?>(null) }
+//    var scriptDevice by remember { mutableStateOf<BluetoothDeviceDomain?>(null) }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -133,49 +132,43 @@ fun BluetoothScreen(
                 .padding(padding)
         ) {
             BluetoothDeviceList(
-                pairedDevices = state.pairedDevices,
                 savedDevices = state.savedDevices,
                 scannedDevices = state.scannedDevices,
-                isConnecting = state.isConnecting,
+//                isConnecting = state.isConnecting,
                 onClick = onDeviceClick,
                 onDetailsClick = onDetailsClick,
-                onPair = viewModel::pairDevice,
-                onForgetPaired = viewModel::forgetDevice,
                 onSave = viewModel::saveDevice,
                 onForgetSaved = viewModel::forgetSavedDevice,
                 onCheckReachability = viewModel::checkReachability,
-                onRunScript = { scriptDevice = it },
+//                onRunScript = { scriptDevice = it },
                 modifier = Modifier.fillMaxSize()
             )
         }
     }
 
-    if (scriptDevice != null) {
-        BluetoothScriptDialog(
-            viewModel = scriptViewModel,
-            onScriptSelected = { script ->
-                viewModel.connectAndRunScript(scriptDevice!!, script)
-                scriptDevice = null
-            },
-            onDismiss = { scriptDevice = null }
-        )
-    }
+//    if (scriptDevice != null) {
+//        BluetoothScriptDialog(
+//            viewModel = scriptViewModel,
+//            onScriptSelected = { script ->
+//                viewModel.connectAndRunScript(scriptDevice!!, script)
+//                scriptDevice = null
+//            },
+//            onDismiss = { scriptDevice = null }
+//        )
+//    }
 }
 
 @Composable
 fun BluetoothDeviceList(
-    pairedDevices: List<BluetoothDeviceDomain>,
     savedDevices: List<BluetoothDeviceDomain>,
     scannedDevices: List<BluetoothDeviceDomain>,
-    isConnecting: Boolean,
+//    isConnecting: Boolean,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
-    onPair: (BluetoothDeviceDomain) -> Unit,
-    onForgetPaired: (BluetoothDeviceDomain) -> Unit,
     onSave: (BluetoothDeviceDomain) -> Unit,
     onForgetSaved: (BluetoothDeviceDomain) -> Unit,
     onCheckReachability: (BluetoothDeviceDomain) -> Unit,
-    onRunScript: (BluetoothDeviceDomain) -> Unit,
+//    onRunScript: (BluetoothDeviceDomain) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -199,36 +192,36 @@ fun BluetoothDeviceList(
 //            }
 //        }
 
-        item {
-            Text(
-                text = "Paired Devices",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
-        if (pairedDevices.isEmpty()) {
-            item {
-                Text(
-                    text = "No paired devices found",
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-        }
-        items(pairedDevices) { device ->
-            val isAlreadySaved = savedDevices.any { it.address == device.address }
-            BluetoothDeviceItem(
-                device = device,
-                onClick = onClick,
-                onDetailsClick = onDetailsClick,
-                onForget = { onForgetPaired(device) },
-                onSave = if (!isAlreadySaved) { { onSave(device) } } else null,
-                onCheckReachability = { onCheckReachability(device) },
-                onRunScript = { onRunScript(device) },
-                isPaired = true
-            )
-        }
+//        item {
+//            Text(
+//                text = "Paired Devices",
+//                fontWeight = FontWeight.Bold,
+//                fontSize = 20.sp,
+//                modifier = Modifier.padding(16.dp)
+//            )
+//        }
+//        if (pairedDevices.isEmpty()) {
+//            item {
+//                Text(
+//                    text = "No paired devices found",
+//                    modifier = Modifier.padding(horizontal = 16.dp),
+//                    color = MaterialTheme.colorScheme.secondary
+//                )
+//            }
+//        }
+//        items(pairedDevices) { device ->
+//            val isAlreadySaved = savedDevices.any { it.address == device.address }
+//            BluetoothDeviceItem(
+//                device = device,
+//                onClick = onClick,
+//                onDetailsClick = onDetailsClick,
+//                onForget = { onForgetPaired(device) },
+//                onSave = if (!isAlreadySaved) { { onSave(device) } } else null,
+//                onCheckReachability = { onCheckReachability(device) },
+//                onRunScript = { onRunScript(device) },
+//                isPaired = true
+//            )
+//        }
 
         item {
             Text(
@@ -248,15 +241,15 @@ fun BluetoothDeviceList(
             }
         }
         items(savedDevices) { device ->
-            val isAlreadyPaired = pairedDevices.any { it.address == device.address }
+//            val isAlreadyPaired = pairedDevices.any { it.address == device.address }
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-                onPair = if (!isAlreadyPaired) { { onPair(device) } } else null,
+//                onPair = if (!isAlreadyPaired) { { onPair(device) } } else null,
                 onForget = { onForgetSaved(device) },
                 onCheckReachability = { onCheckReachability(device) },
-                onRunScript = { onRunScript(device) },
+//                onRunScript = { onRunScript(device) },
                 isSaved = true
             )
         }
@@ -283,9 +276,9 @@ fun BluetoothDeviceList(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-                onPair = { onPair(device) },
+//                onPair = { onPair(device) },
                 onSave = { onSave(device) },
-                onRunScript = { onRunScript(device) }
+//                onRunScript = { onRunScript(device) }
             )
         }
     }
@@ -296,19 +289,19 @@ fun BluetoothDeviceItem(
     device: BluetoothDeviceDomain,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
-    onPair: (() -> Unit)? = null,
+//    onPair: (() -> Unit)? = null,
     onForget: (() -> Unit)? = null,
     onSave: (() -> Unit)? = null,
     onCheckReachability: (() -> Unit)? = null,
-    onRunScript: (() -> Unit)? = null,
-    isPaired: Boolean = false,
+//    onRunScript: (() -> Unit)? = null,
+//    isPaired: Boolean = false,
     isSaved: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
-    
-    // Disable interaction if paired or saved but not in range
-    val isEnabled = (!isPaired && !isSaved) || device.isInRange
+
+    // Disable interaction if saved but not in range
+    val isEnabled = (!isSaved) || device.isInRange
     val contentColor = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
 
     if (showConfirmDialog) {
@@ -360,7 +353,7 @@ fun BluetoothDeviceItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor
                 )
-                if ((isPaired || isSaved) && !device.isInRange) {
+                if (isSaved && !device.isInRange) {
                     Text(
                         text = "Out of range",
                         style = MaterialTheme.typography.labelSmall,
@@ -397,24 +390,24 @@ fun BluetoothDeviceItem(
                             showMenu = false
                         }
                     )
-                    onRunScript?.let {
-                        DropdownMenuItem(
-                            text = { Text("Run Script") },
-                            onClick = {
-                                it()
-                                showMenu = false
-                            }
-                        )
-                    }
-                    onPair?.let {
-                        DropdownMenuItem(
-                            text = { Text("Pair") },
-                            onClick = {
-                                it()
-                                showMenu = false
-                            }
-                        )
-                    }
+//                    onRunScript?.let {
+//                        DropdownMenuItem(
+//                            text = { Text("Run Script") },
+//                            onClick = {
+//                                it()
+//                                showMenu = false
+//                            }
+//                        )
+//                    }
+//                    onPair?.let {
+//                        DropdownMenuItem(
+//                            text = { Text("Pair") },
+//                            onClick = {
+//                                it()
+//                                showMenu = false
+//                            }
+//                        )
+//                    }
                     onCheckReachability?.let {
                         DropdownMenuItem(
                             text = { Text("Check Status") },

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.process.ProcessRequest
 import java.io.IOException
 
 class SppBluetoothConnection(
@@ -29,7 +30,7 @@ class SppBluetoothConnection(
         while (true) {
             val bytesRead = try {
                 inputStream.read(buffer)
-            } catch (e: IOException) {
+            } catch (_: IOException) {
                 -1
             }
             
@@ -44,12 +45,16 @@ class SppBluetoothConnection(
         }
     }.flowOn(Dispatchers.IO)
 
-    override suspend fun disconnect() {
+    override fun disconnect() {
         try {
             socket?.close()
-        } catch (e: IOException) {
+        } catch (_: IOException) {
             // Ignore
         }
         socket = null
+    }
+
+    override fun process(request: ProcessRequest): BluetoothDataPacket? {
+        return null
     }
 }

@@ -1,7 +1,6 @@
 package net.ljga.projects.apps.bttk.domain.model
 
 data class BluetoothDataPacket(
-    val deviceAddress: String? = null,
     val source: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
     val data: ByteArray = byteArrayOf(),
