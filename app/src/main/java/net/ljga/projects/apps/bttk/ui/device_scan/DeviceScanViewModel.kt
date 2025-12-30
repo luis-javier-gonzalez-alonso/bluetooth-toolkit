@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.device_scan.DeviceScanController
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.domain.repository.GattCharacteristicSettingsRepository
 import javax.inject.Inject

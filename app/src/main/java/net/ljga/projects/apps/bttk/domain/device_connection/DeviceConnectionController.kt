@@ -18,15 +18,15 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothConnectionType
+import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ProcessRequest
 import net.ljga.projects.apps.bttk.domain.device_connection.strategy.BluetoothConnection
 import net.ljga.projects.apps.bttk.domain.device_connection.strategy.GattBluetoothConnection
-import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
-import net.ljga.projects.apps.bttk.domain.model.DataFormat
-import net.ljga.projects.apps.bttk.domain.model.process.ProcessRequest
-import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import net.ljga.projects.apps.bttk.domain.device_connection.strategy.SppBluetoothConnection
+import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.DataFormat
+import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import javax.inject.Inject
 
 @SuppressLint("MissingPermission")

@@ -18,10 +18,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.domain.gatt_server.GattServerController
 import net.ljga.projects.apps.bttk.domain.gatt_server.GattServerService
+import net.ljga.projects.apps.bttk.domain.gatt_server.model.GattServerStateDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
-import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
 import net.ljga.projects.apps.bttk.domain.repository.GattServerRepository
 import java.util.UUID
 import javax.inject.Inject
@@ -126,7 +126,7 @@ class GattServerViewModel @Inject constructor(
                 deviceName = ""
             )
             val id = gattServerRepository.saveServer(newProfile)
-            loadGattServerProfile(id)
+            loadGattServerProfile(id.toInt())
         }
     }
 

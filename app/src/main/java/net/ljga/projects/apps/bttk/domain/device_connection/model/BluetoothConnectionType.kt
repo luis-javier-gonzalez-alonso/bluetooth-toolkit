@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.domain.model
+package net.ljga.projects.apps.bttk.domain.device_connection.model
 
 import java.util.UUID
 

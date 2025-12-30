@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.map
 import net.ljga.projects.apps.bttk.data.database.dao.GattScriptDao
 import net.ljga.projects.apps.bttk.data.toDomain
 import net.ljga.projects.apps.bttk.data.toEntity
-import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothScriptDomain
 import net.ljga.projects.apps.bttk.domain.repository.GattScriptRepository
 import javax.inject.Inject
 

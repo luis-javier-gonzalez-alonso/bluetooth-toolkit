@@ -1,7 +1,7 @@
 package net.ljga.projects.apps.bttk.domain.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 interface BluetoothDeviceRepository {

@@ -1,4 +1,6 @@
-package net.ljga.projects.apps.bttk.domain.model
+package net.ljga.projects.apps.bttk.domain.gatt_server.model
+
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 data class GattServerStateDomain(
     val id: Int = 0,

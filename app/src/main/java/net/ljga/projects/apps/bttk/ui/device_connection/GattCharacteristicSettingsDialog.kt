@@ -39,9 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import net.ljga.projects.apps.bttk.domain.device_connection.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.model.EndiannessDomain
 import net.ljga.projects.apps.bttk.domain.model.FieldTypeDomain
-import net.ljga.projects.apps.bttk.domain.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.model.ParserFieldDomain
 
 @OptIn(ExperimentalMaterial3Api::class)

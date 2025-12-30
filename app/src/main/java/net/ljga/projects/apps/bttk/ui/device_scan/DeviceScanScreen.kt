@@ -46,7 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

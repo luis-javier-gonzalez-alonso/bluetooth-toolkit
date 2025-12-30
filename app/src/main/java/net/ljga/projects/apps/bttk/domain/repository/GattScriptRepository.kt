@@ -1,7 +1,7 @@
 package net.ljga.projects.apps.bttk.domain.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothScriptDomain
 
 interface GattScriptRepository {
     fun getAllScripts(): Flow<List<BluetoothScriptDomain>>

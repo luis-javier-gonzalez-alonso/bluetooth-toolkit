@@ -6,9 +6,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
+import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothConnectionType
+import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ProcessRequest
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.domain.model.process.ProcessRequest
 import java.io.IOException
 
 class SppBluetoothConnection(

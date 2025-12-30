@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,13 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothScriptDomain
+import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothScriptOperationDomain
+import net.ljga.projects.apps.bttk.domain.device_connection.model.ScriptOperationTypeDomain
+import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
-import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptDomain
-import net.ljga.projects.apps.bttk.domain.model.BluetoothScriptOperationDomain
-import net.ljga.projects.apps.bttk.domain.model.ScriptOperationTypeDomain
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun BluetoothScriptDialog(

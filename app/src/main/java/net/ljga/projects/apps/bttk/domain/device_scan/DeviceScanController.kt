@@ -20,10 +20,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.utils.DeviceFoundReceiver
 import javax.inject.Inject
-import kotlin.collections.plus
 
 class DeviceScanController @Inject constructor(
     private val context: Context
@@ -39,11 +38,6 @@ class DeviceScanController @Inject constructor(
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceDomain>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDeviceDomain>>
         get() = _scannedDevices.asStateFlow()
-
-    // TODO remove paired section? it seems we can still connect without pairing. Maybe needed for SPP?
-//    private val _pairedDevices = MutableStateFlow<List<BluetoothDeviceDomain>>(emptyList())
-//    val pairedDevices: StateFlow<List<BluetoothDeviceDomain>>
-//        get() = _pairedDevices.asStateFlow()
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean>
@@ -64,16 +58,6 @@ class DeviceScanController @Inject constructor(
                 devices + newDevice
             }
         }
-
-//        _pairedDevices.update { devices ->
-//            devices.map {
-//                if (it.address == newDevice.address) it.copy(
-//                    isInRange = true,
-//                    rssi = rssi,
-//                    uuids = newDevice.uuids
-//                ) else it
-//            }
-//        }
     }
 
     private val scanStateReceiver = object : BroadcastReceiver() {
@@ -81,7 +65,6 @@ class DeviceScanController @Inject constructor(
             when (intent?.action) {
                 BluetoothAdapter.ACTION_DISCOVERY_STARTED -> _isScanning.value = true
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> _isScanning.value = false
-//                BluetoothDevice.ACTION_BOND_STATE_CHANGED -> updatePairedDevices()
             }
         }
     }
@@ -89,7 +72,6 @@ class DeviceScanController @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
-//        updatePairedDevices()
         registerScanStateReceiver()
     }
 
@@ -104,9 +86,6 @@ class DeviceScanController @Inject constructor(
             return false
         }
 
-//        updatePairedDevices()
-
-//        _pairedDevices.update { devices -> devices.map { it.copy(isInRange = false, rssi = null) } }
         _scannedDevices.value = emptyList()
 
         registerReceiver()
@@ -122,33 +101,11 @@ class DeviceScanController @Inject constructor(
         bluetoothAdapter?.cancelDiscovery()
     }
 
-//    fun pairDevice(address: String) {
-//        if (!hasPermission(getConnectPermission())) return
-//        bluetoothAdapter?.getRemoteDevice(address)?.createBond()
-//    }
-
-//    fun forgetDevice(address: String) {
-//        if (!hasPermission(getConnectPermission())) return
-//        val device = bluetoothAdapter?.getRemoteDevice(address)
-//        try {
-//            device?.let {
-//                it.javaClass.getMethod("removeBond").invoke(it)
-//                updatePairedDevices()
-//            }
-//        } catch (e: Exception) {
-//            _errors.tryEmit("Failed to forget device")
-//        }
-//    }
-
     fun checkReachability(address: String) {
         if (!hasPermission(getConnectPermission())) return
         registerReceiver()
         bluetoothAdapter?.getRemoteDevice(address)?.fetchUuidsWithSdp()
     }
-
-//    fun refreshPairedDevices() {
-//        updatePairedDevices()
-//    }
 
     private fun registerReceiver() {
         if (!isReceiverRegistered) {
@@ -188,13 +145,6 @@ class DeviceScanController @Inject constructor(
         }
         stopDiscovery()
     }
-
-//    private fun updatePairedDevices() {
-//        if (!hasPermission(getConnectPermission())) return
-//        _pairedDevices.update {
-//            bluetoothAdapter?.bondedDevices?.map { it.toBluetoothDeviceDomain() } ?: emptyList()
-//        }
-//    }
 
     private fun hasPermission(permission: String) =
         context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED

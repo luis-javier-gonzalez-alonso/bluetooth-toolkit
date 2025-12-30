@@ -58,12 +58,12 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import net.ljga.projects.apps.bttk.domain.device_connection.model.GattCharacteristicSettingsDomain
+import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
-import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
 import net.ljga.projects.apps.bttk.domain.model.DataFrameDomain
-import net.ljga.projects.apps.bttk.domain.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import java.text.SimpleDateFormat
 import java.util.Locale

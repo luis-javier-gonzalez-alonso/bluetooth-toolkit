@@ -1,4 +1,6 @@
-package net.ljga.projects.apps.bttk.domain.model
+package net.ljga.projects.apps.bttk.domain.device_scan.model
+
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 
 data class BluetoothDeviceDomain(
     val name: String?,

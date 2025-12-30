@@ -1,7 +1,7 @@
 package net.ljga.projects.apps.bttk.domain.repository
 
 import kotlinx.coroutines.flow.Flow
-import net.ljga.projects.apps.bttk.domain.model.GattServerStateDomain
+import net.ljga.projects.apps.bttk.domain.gatt_server.model.GattServerStateDomain
 
 interface GattServerRepository {
     fun getAllServers(): Flow<List<GattServerStateDomain>>
