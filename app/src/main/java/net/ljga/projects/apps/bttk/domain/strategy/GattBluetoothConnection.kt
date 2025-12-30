@@ -1,6 +1,7 @@
 package net.ljga.projects.apps.bttk.domain.strategy
 
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
@@ -8,6 +9,7 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -34,12 +36,36 @@ class GattBluetoothConnection(
 
     override suspend fun connect(address: String): Flow<BluetoothDataPacket> = callbackFlow {
         val device = bluetoothAdapter.getRemoteDevice(address)
+        var retryCount = 0
+        val maxRetries = 1
 
         val gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                Log.d("GattConnection", "onConnectionStateChange: status=$status, newState=$newState")
+                
+                if (status == 133 && retryCount < maxRetries) {
+                    retryCount++
+                    Log.w("GattConnection", "Encountered status 133, retrying... ($retryCount/$maxRetries)")
+                    gatt.close()
+                    
+                    // Re-attempt connection with a slight delay
+                    val retryGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        device.connectGatt(context, false, this, BluetoothDevice.TRANSPORT_LE)
+                    } else {
+                        device.connectGatt(context, false, this)
+                    }
+                    bluetoothGatt = retryGatt
+                    return
+                }
+
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    retryCount = 0
                     gatt.discoverServices()
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    gatt.close()
+                    if (gatt == bluetoothGatt) {
+                        bluetoothGatt = null
+                    }
                     close()
                 }
             }
@@ -59,7 +85,6 @@ class GattBluetoothConnection(
                         )
                     }
 
-                    // Emit structured data for persistence and UI
                     trySend(
                         BluetoothDataPacket(
                             format = DataFormat.GATT_STRUCTURE,
@@ -93,7 +118,11 @@ class GattBluetoothConnection(
             }
         }
 
-        bluetoothGatt = device.connectGatt(context, false, gattCallback)
+        bluetoothGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        } else {
+            device.connectGatt(context, false, gattCallback)
+        }
 
         awaitClose {
             disconnect()
@@ -107,8 +136,6 @@ class GattBluetoothConnection(
     }
 
     override fun process(request: ProcessRequest): BluetoothDataPacket? {
-        // TODO to be implemented by calling private methods depending on ProcessRequest
-
         if (request is ReadGattCharacteristicRequest) {
             readCharacteristic(request.serviceUuid, request.characteristicUuid)
             return null
@@ -130,22 +157,6 @@ class GattBluetoothConnection(
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
             bluetoothGatt?.readCharacteristic(characteristic)
-        }
-    }
-
-    private fun toggleNotification(
-        serviceUuid: String,
-        characteristicUuid: String,
-        enable: Boolean
-    ) {
-        val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
-        val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
-        if (characteristic != null) {
-            if (enable) {
-                enableNotification(bluetoothGatt!!, characteristic)
-            } else {
-                disableNotification(bluetoothGatt!!, characteristic)
-            }
         }
     }
 
@@ -178,50 +189,6 @@ class GattBluetoothConnection(
                 }
                 @Suppress("DEPRECATION")
                 bluetoothGatt?.writeCharacteristic(characteristic)
-            }
-        }
-    }
-
-    private fun enableNotification(
-        gatt: BluetoothGatt,
-        characteristic: BluetoothGattCharacteristic
-    ) {
-        gatt.setCharacteristicNotification(characteristic, true)
-        val descriptor = characteristic.getDescriptor(cccd)
-        if (descriptor != null) {
-            val value = if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
-                BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-            } else {
-                BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-            }
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                gatt.writeDescriptor(descriptor, value)
-            } else {
-                @Suppress("DEPRECATION")
-                descriptor.value = value
-                @Suppress("DEPRECATION")
-                gatt.writeDescriptor(descriptor)
-            }
-        }
-    }
-
-    private fun disableNotification(
-        gatt: BluetoothGatt,
-        characteristic: BluetoothGattCharacteristic
-    ) {
-        gatt.setCharacteristicNotification(characteristic, false)
-        val descriptor = characteristic.getDescriptor(cccd)
-        if (descriptor != null) {
-            val value = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                gatt.writeDescriptor(descriptor, value)
-            } else {
-                @Suppress("DEPRECATION")
-                descriptor.value = value
-                @Suppress("DEPRECATION")
-                gatt.writeDescriptor(descriptor)
             }
         }
     }
