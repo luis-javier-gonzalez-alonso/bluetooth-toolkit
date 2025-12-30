@@ -1,11 +1,10 @@
-package net.ljga.projects.apps.bttk.domain.strategy
+package net.ljga.projects.apps.bttk.domain.device_connection.strategy
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.os.Build

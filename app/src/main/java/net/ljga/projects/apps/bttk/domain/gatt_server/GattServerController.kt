@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.domain
+package net.ljga.projects.apps.bttk.domain.gatt_server
 
 import android.Manifest
 import android.annotation.SuppressLint

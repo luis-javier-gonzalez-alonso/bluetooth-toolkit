@@ -38,7 +38,7 @@
         </activity>
 
         <service
-            android:name=".domain.GattServerService"
+            android:name=".domain.gatt_server.GattServerService"
             android:foregroundServiceType="connectedDevice"
             android:exported="false" />
     </application>

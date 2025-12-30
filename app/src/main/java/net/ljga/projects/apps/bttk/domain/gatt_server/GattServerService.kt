@@ -1,11 +1,10 @@
-package net.ljga.projects.apps.bttk.domain
+package net.ljga.projects.apps.bttk.domain.gatt_server
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
@@ -56,7 +55,7 @@ class GattServerService : Service() {
             ).apply {
                 description = "Running GATT Server"
             }
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
     }

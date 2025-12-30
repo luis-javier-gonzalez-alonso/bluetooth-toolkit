@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.domain.strategy
+package net.ljga.projects.apps.bttk.domain.device_connection.strategy
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothSocket

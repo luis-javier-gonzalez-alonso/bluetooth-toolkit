@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.domain.ConnectionController
+import net.ljga.projects.apps.bttk.domain.device_connection.DeviceConnectionController
 import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDeviceDomain
@@ -35,7 +35,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ConnectionViewModel @Inject constructor(
-    private val connectionController: ConnectionController,
+    private val deviceConnectionController: DeviceConnectionController,
     private val bluetoothDeviceRepository: BluetoothDeviceRepository,
     private val dataFrameRepository: DataFrameRepository,
     private val gattCharacteristicSettingsRepository: GattCharacteristicSettingsRepository,
@@ -43,8 +43,8 @@ class ConnectionViewModel @Inject constructor(
 ) : ViewModel() {
 
     val connectionFlow = combine(
-        connectionController.connectionLogs,
-        connectionController.connections
+        deviceConnectionController.connectionLogs,
+        deviceConnectionController.connections
     ) { logs, connections ->
         Pair(logs, connections)
     }
@@ -96,7 +96,7 @@ class ConnectionViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ConnectionUiState())
 
     init {
-        connectionController.errors.onEach { error ->
+        deviceConnectionController.errors.onEach { error ->
             _state.update {
                 it.copy(
                     errorMessage = error,
@@ -113,7 +113,7 @@ class ConnectionViewModel @Inject constructor(
     private fun runScript(script: BluetoothScriptDomain) {
         viewModelScope.launch {
             _state.update { it.copy(scriptToRun = null) }
-            connectionController.logBluetoothData(
+            deviceConnectionController.logBluetoothData(
                 state.value.selectedDevice!!.address,
                 BluetoothDataPacket(
                     data = byteArrayOf(),
@@ -127,7 +127,7 @@ class ConnectionViewModel @Inject constructor(
                 when (op.type) {
                     ScriptOperationTypeDomain.READ -> {
                         if (op.serviceUuid != null && op.characteristicUuid != null) {
-                            connectionController.process(
+                            deviceConnectionController.process(
                                 state.value.selectedDevice!!.address,
                                 ReadGattCharacteristicRequest(op.serviceUuid, op.characteristicUuid)
                             )
@@ -136,7 +136,7 @@ class ConnectionViewModel @Inject constructor(
 
                     ScriptOperationTypeDomain.WRITE -> {
                         if (op.serviceUuid != null && op.characteristicUuid != null && op.data != null) {
-                            connectionController.process(
+                            deviceConnectionController.process(
                                 state.value.selectedDevice!!.address,
                                 WriteGattCharacteristicRequest(
                                     op.serviceUuid,
@@ -155,7 +155,7 @@ class ConnectionViewModel @Inject constructor(
                 delay(100)
             }
 
-            connectionController.logBluetoothData(
+            deviceConnectionController.logBluetoothData(
                 state.value.selectedDevice!!.address,
                 BluetoothDataPacket(
                     data = byteArrayOf(),
@@ -175,7 +175,7 @@ class ConnectionViewModel @Inject constructor(
                 scriptToRun = script
             )
         }
-        connectionController.connect(device, BluetoothConnectionType.GATT)
+        deviceConnectionController.connect(device, BluetoothConnectionType.GATT)
     }
 
     fun connectToDevice(device: BluetoothDeviceDomain, profile: BluetoothConnectionType? = null) {
@@ -192,7 +192,7 @@ class ConnectionViewModel @Inject constructor(
                     profilesToSelect = emptyList()
                 )
             }
-            connectionController.connect(device, profile)
+            deviceConnectionController.connect(device, profile)
         }
     }
 
@@ -202,12 +202,12 @@ class ConnectionViewModel @Inject constructor(
 
     fun disconnectFromDevice() {
         val address = state.value.selectedDevice?.address ?: return
-        connectionController.disconnect(address)
+        deviceConnectionController.disconnect(address)
     }
 
     fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {
         val address = state.value.selectedDevice?.address ?: return
-        connectionController.process(
+        deviceConnectionController.process(
             address,
             ReadGattCharacteristicRequest(serviceUuid, characteristicUuid)
         )
@@ -238,7 +238,7 @@ class ConnectionViewModel @Inject constructor(
 
     fun writeCharacteristic(serviceUuid: String, characteristicUuid: String, data: ByteArray) {
         val address = state.value.selectedDevice?.address ?: return
-        connectionController.process(
+        deviceConnectionController.process(
             address,
             WriteGattCharacteristicRequest(serviceUuid, characteristicUuid, data)
         )

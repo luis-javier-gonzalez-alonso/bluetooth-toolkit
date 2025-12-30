@@ -1,4 +1,4 @@
-package net.ljga.projects.apps.bttk.domain.strategy
+package net.ljga.projects.apps.bttk.domain.device_connection.strategy
 
 import kotlinx.coroutines.flow.Flow
 import net.ljga.projects.apps.bttk.domain.model.BluetoothConnectionType

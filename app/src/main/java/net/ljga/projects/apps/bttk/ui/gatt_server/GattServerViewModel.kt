@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import net.ljga.projects.apps.bttk.domain.GattServerController
-import net.ljga.projects.apps.bttk.domain.GattServerService
+import net.ljga.projects.apps.bttk.domain.gatt_server.GattServerController
+import net.ljga.projects.apps.bttk.domain.gatt_server.GattServerService
 import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain

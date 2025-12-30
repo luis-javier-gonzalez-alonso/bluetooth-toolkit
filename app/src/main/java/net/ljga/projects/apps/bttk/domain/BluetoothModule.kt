@@ -6,6 +6,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import net.ljga.projects.apps.bttk.domain.device_connection.DeviceConnectionController
+import net.ljga.projects.apps.bttk.domain.gatt_server.GattServerController
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import javax.inject.Singleton
 
@@ -13,24 +15,18 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object BluetoothModule {
 
-//    @Provides
-//    @Singleton
-//    fun provideBluetoothController(@ApplicationContext context: Context): BluetoothController {
-//        return AndroidBluetoothController(context)
-//    }
-
     @Provides
     @Singleton
     fun provideConnectionController(
         @ApplicationContext context: Context,
         bluetoothDeviceRepository: BluetoothDeviceRepository
-    ): ConnectionController {
-        return ConnectionController(context, bluetoothDeviceRepository)
+    ): DeviceConnectionController {
+        return DeviceConnectionController(context, bluetoothDeviceRepository)
     }
 
     @Provides
     @Singleton
-    fun provideScannerController(
+    fun provideDeviceScanController(
         @ApplicationContext context: Context
     ): DeviceScanController {
         return DeviceScanController(context)
