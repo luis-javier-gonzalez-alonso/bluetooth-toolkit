@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.flowOn
 import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ProcessRequest
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
+import net.ljga.projects.apps.bttk.domain.model.DataFormat
 import java.io.IOException
 
 class SppBluetoothConnection(
@@ -22,7 +23,25 @@ class SppBluetoothConnection(
         val device = bluetoothAdapter.getRemoteDevice(address)
         socket = device.createRfcommSocketToServiceRecord(type.uuid)
         
-        socket?.connect()
+        try {
+            socket?.connect()
+            emit(
+                BluetoothDataPacket(
+                    source = "System",
+                    text = "Connected to ${device.name ?: device.address}",
+                    format = DataFormat.STRUCTURED
+                )
+            )
+        } catch (e: IOException) {
+            emit(
+                BluetoothDataPacket(
+                    source = "System",
+                    text = "Failed to connect: ${e.message}",
+                    format = DataFormat.STRUCTURED
+                )
+            )
+            throw e
+        }
         
         val inputStream = socket?.inputStream ?: throw IOException("Input stream is null")
         val buffer = ByteArray(1024)
@@ -30,7 +49,14 @@ class SppBluetoothConnection(
         while (true) {
             val bytesRead = try {
                 inputStream.read(buffer)
-            } catch (_: IOException) {
+            } catch (e: IOException) {
+                emit(
+                    BluetoothDataPacket(
+                        source = "System",
+                        text = "Connection lost: ${e.message}",
+                        format = DataFormat.STRUCTURED
+                    )
+                )
                 -1
             }
             

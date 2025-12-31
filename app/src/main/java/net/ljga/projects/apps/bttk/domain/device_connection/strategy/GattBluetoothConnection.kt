@@ -44,7 +44,14 @@ class GattBluetoothConnection(
                 
                 if (status != BluetoothGatt.GATT_SUCCESS && retryCount < maxRetries) {
                     retryCount++
-                    Log.w("GattConnection", "Encountered status 133, retrying... ($retryCount/$maxRetries)")
+                    val retryMsg = "Connection error (status $status). Retrying... ($retryCount/$maxRetries)"
+                    Log.w("GattConnection", retryMsg)
+                    trySend(BluetoothDataPacket(
+                        source = "System",
+                        text = retryMsg,
+                        format = DataFormat.STRUCTURED
+                    ))
+                    
                     gatt.close()
 
                     // Re-attempt connection with a slight delay
@@ -59,8 +66,23 @@ class GattBluetoothConnection(
 
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     retryCount = 0
+                    trySend(BluetoothDataPacket(
+                        source = "System",
+                        text = "Connected. Discovering services...",
+                        format = DataFormat.STRUCTURED
+                    ))
                     gatt.discoverServices()
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    val statusMsg = if (status != BluetoothGatt.GATT_SUCCESS) {
+                        "Disconnected (status $status)"
+                    } else {
+                        "Disconnected"
+                    }
+                    trySend(BluetoothDataPacket(
+                        source = "System",
+                        text = statusMsg,
+                        format = DataFormat.STRUCTURED
+                    ))
                     gatt.close()
                     if (gatt == bluetoothGatt) {
                         bluetoothGatt = null
@@ -71,6 +93,11 @@ class GattBluetoothConnection(
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
+                    trySend(BluetoothDataPacket(
+                        source = "System",
+                        text = "Services discovered successfully",
+                        format = DataFormat.STRUCTURED
+                    ))
                     val services = gatt.services.map { service ->
                         BluetoothServiceDomain(
                             uuid = service.uuid.toString(),
@@ -91,6 +118,12 @@ class GattBluetoothConnection(
                             source = address
                         )
                     )
+                } else {
+                    trySend(BluetoothDataPacket(
+                        source = "System",
+                        text = "Service discovery failed (status $status)",
+                        format = DataFormat.STRUCTURED
+                    ))
                 }
             }
 

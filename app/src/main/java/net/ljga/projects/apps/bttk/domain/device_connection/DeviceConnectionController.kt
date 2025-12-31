@@ -79,7 +79,15 @@ class DeviceConnectionController @Inject constructor(
         }
 
         _connections.update { it + (address to strategy) }
-        _connectionLogs.update { it + (address to emptyList()) }
+        
+        // Reset logs only when starting a new manual connection attempt
+        _connectionLogs.update { it + (address to listOf(
+            BluetoothDataPacket(
+                source = "System",
+                text = "Connecting to $address via ${strategy.type}...",
+                format = DataFormat.STRUCTURED
+            )
+        )) }
 
         val job = scope.launch {
             try {
@@ -87,7 +95,13 @@ class DeviceConnectionController @Inject constructor(
                     logBluetoothData(address, packet)
                 }
             } catch (e: Exception) {
-                _errors.tryEmit("Connection failed: ${e.message}")
+                val errorMessage = "Connection failed: ${e.message}"
+                _errors.tryEmit(errorMessage)
+                logBluetoothData(address, BluetoothDataPacket(
+                    source = "System",
+                    text = errorMessage,
+                    format = DataFormat.STRUCTURED
+                ))
             } finally {
                 disconnect(address)
             }
@@ -100,7 +114,7 @@ class DeviceConnectionController @Inject constructor(
         connectionJobs.remove(address)
         _connections.value[address]?.disconnect()
         _connections.update { it - address }
-        _connectionLogs.update { it - address }
+        // Note: we don't remove the logs here so they can be viewed after failure/disconnection
     }
 
     fun process(address: String, request: ProcessRequest) {
