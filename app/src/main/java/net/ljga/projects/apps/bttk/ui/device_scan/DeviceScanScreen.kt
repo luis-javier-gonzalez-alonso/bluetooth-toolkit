@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -71,61 +72,7 @@ fun DeviceScanScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-            floatingActionButton = {
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shape = MaterialTheme.shapes.large,
-                    tonalElevation = 6.dp,
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.animateContentSize(animationSpec = tween(durationMillis = 300))
-                ) {
-                    AnimatedContent(
-                        targetState = expanded,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(200, delayMillis = 100)) togetherWith
-                                    fadeOut(animationSpec = tween(200)) using
-                                    SizeTransform { _, _ -> tween(300) }
-                        },
-                        label = "FAB Menu Animation"
-                    ) { isExpanded ->
-                        if (!isExpanded) {
-                            IconButton(
-                                onClick = { expanded = true },
-                                modifier = Modifier.size(56.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Actions")
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier
-                                    .width(IntrinsicSize.Min)
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = "Actions",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
-
-                                DropdownMenuItem(
-                                    text = { Text("GATT Server") },
-                                    onClick = {
-                                        expanded = false
-                                        onGattServerClick()
-                                    },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Storage, contentDescription = null)
-                                    },
-                                    modifier = Modifier.padding(horizontal = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
         ) { padding ->
             val pullToRefreshState = rememberPullToRefreshState()
             
@@ -152,16 +99,16 @@ fun DeviceScanScreen(
             }
         }
 
-        // Scrim overlay when expanded
+        // Scrim overlay - Rendered after Scaffold but before FAB to allow FAB clicks
         AnimatedVisibility(
             visible = expanded,
-            enter = fadeIn(),
-            exit = fadeOut()
+            enter = fadeIn(animationSpec = tween(300, easing = LinearEasing)),
+            exit = fadeOut(animationSpec = tween(300, easing = LinearEasing))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
+                    .background(Color.Black.copy(alpha = 0.5f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -169,6 +116,89 @@ fun DeviceScanScreen(
                         expanded = false
                     }
             )
+        }
+
+        // Custom FAB menu placed manually to ensure it's on top of the scrim
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = MaterialTheme.shapes.extraLarge,
+                tonalElevation = 6.dp,
+                shadowElevation = 6.dp,
+                modifier = Modifier.animateContentSize(
+                    animationSpec = tween(durationMillis = 200, easing = LinearEasing),
+                    alignment = Alignment.BottomEnd
+                )
+            ) {
+                AnimatedContent(
+                    targetState = expanded,
+                    transitionSpec = {
+                        val duration = 350
+                        if (targetState) {
+                            // Expanding: content appears in the last moments (e.g., 250ms delay)
+                            (fadeIn(animationSpec = tween(50, delayMillis = 150, easing = LinearEasing)) +
+                             scaleIn(initialScale = 0.95f, animationSpec = tween(50, delayMillis = 150, easing = LinearEasing)))
+                                .togetherWith(fadeOut(animationSpec = tween(100, easing = LinearEasing)))
+                                .using(SizeTransform(clip = false) { _, _ -> tween(duration, easing = LinearEasing) })
+                        } else {
+                            // Shrinking: content disappears quickly, FAB icon appears late
+                            (fadeIn(animationSpec = tween(50, delayMillis = 0, easing = LinearEasing)) +
+                             scaleIn(initialScale = 0.8f, animationSpec = tween(100, delayMillis = 0, easing = LinearEasing)))
+                                .togetherWith(fadeOut(animationSpec = tween(100, easing = LinearEasing)))
+                                .using(SizeTransform(clip = false) { _, _ -> tween(duration, easing = LinearEasing) })
+                        }
+                    },
+                    contentAlignment = Alignment.BottomEnd,
+                    label = "FAB Menu Animation"
+                ) { isExpanded ->
+                    if (!isExpanded) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clickable { expanded = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Actions")
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .width(IntrinsicSize.Max)
+                                .widthIn(min = 220.dp)
+                                .padding(vertical = 16.dp, horizontal = 8.dp)
+                        ) {
+                            Text(
+                                text = "Actions",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("GATT Server", fontSize = 17.sp) },
+                                onClick = {
+                                    expanded = false
+                                    onGattServerClick()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Storage, 
+                                        contentDescription = null,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                },
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
