@@ -6,8 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -102,8 +101,8 @@ fun DeviceScanScreen(
         // Scrim overlay - Rendered after Scaffold but before FAB to allow FAB clicks
         AnimatedVisibility(
             visible = expanded,
-            enter = fadeIn(animationSpec = tween(300, easing = LinearEasing)),
-            exit = fadeOut(animationSpec = tween(300, easing = LinearEasing))
+            enter = fadeIn(animationSpec = tween(400, easing = FastOutSlowInEasing)),
+            exit = fadeOut(animationSpec = tween(400, easing = FastOutSlowInEasing))
         ) {
             Box(
                 modifier = Modifier
@@ -132,26 +131,26 @@ fun DeviceScanScreen(
                 tonalElevation = 6.dp,
                 shadowElevation = 6.dp,
                 modifier = Modifier.animateContentSize(
-                    animationSpec = tween(durationMillis = 200, easing = LinearEasing),
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
                     alignment = Alignment.BottomEnd
                 )
             ) {
                 AnimatedContent(
                     targetState = expanded,
                     transitionSpec = {
-                        val duration = 350
                         if (targetState) {
-                            // Expanding: content appears in the last moments (e.g., 250ms delay)
-                            (fadeIn(animationSpec = tween(50, delayMillis = 150, easing = LinearEasing)) +
-                             scaleIn(initialScale = 0.95f, animationSpec = tween(50, delayMillis = 150, easing = LinearEasing)))
-                                .togetherWith(fadeOut(animationSpec = tween(100, easing = LinearEasing)))
-                                .using(SizeTransform(clip = false) { _, _ -> tween(duration, easing = LinearEasing) })
+                            // Expanding: content appears with a slight delay as the surface expands
+                            (fadeIn(animationSpec = tween(250, delayMillis = 100, easing = FastOutSlowInEasing)) +
+                             scaleIn(initialScale = 0.92f, animationSpec = tween(250, delayMillis = 100, easing = FastOutSlowInEasing)))
+                                .togetherWith(fadeOut(animationSpec = tween(150, easing = FastOutSlowInEasing)))
                         } else {
-                            // Shrinking: content disappears quickly, FAB icon appears late
-                            (fadeIn(animationSpec = tween(50, delayMillis = 0, easing = LinearEasing)) +
-                             scaleIn(initialScale = 0.8f, animationSpec = tween(100, delayMillis = 0, easing = LinearEasing)))
-                                .togetherWith(fadeOut(animationSpec = tween(100, easing = LinearEasing)))
-                                .using(SizeTransform(clip = false) { _, _ -> tween(duration, easing = LinearEasing) })
+                            // Shrinking: content disappears quickly, FAB icon appears after a short delay
+                            (fadeIn(animationSpec = tween(200, delayMillis = 50, easing = FastOutSlowInEasing)) +
+                             scaleIn(initialScale = 0.92f, animationSpec = tween(200, delayMillis = 50, easing = FastOutSlowInEasing)))
+                                .togetherWith(fadeOut(animationSpec = tween(150, easing = FastOutSlowInEasing)))
                         }
                     },
                     contentAlignment = Alignment.BottomEnd,
