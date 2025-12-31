@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.*
@@ -38,7 +39,8 @@ fun DeviceScanScreen(
 //    scriptViewModel: BluetoothScriptViewModel = hiltViewModel(),
     onDeviceClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
-    onGattServerClick: () -> Unit
+    onGattServerClick: () -> Unit,
+    onAboutClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -185,6 +187,21 @@ fun DeviceScanScreen(
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Storage, 
+                                        contentDescription = null,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                },
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                            )
+                            DropdownMenuItem(
+                                text = { Text("About", fontSize = 17.sp) },
+                                onClick = {
+                                    expanded = false
+                                    onAboutClick()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Info, 
                                         contentDescription = null,
                                         modifier = Modifier.size(26.dp)
                                     )

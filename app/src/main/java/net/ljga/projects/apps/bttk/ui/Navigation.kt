@@ -8,6 +8,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import net.ljga.projects.apps.bttk.ui.about.AboutScreen
 import net.ljga.projects.apps.bttk.ui.device_connection.ConnectionScreen
 import net.ljga.projects.apps.bttk.ui.device_connection.ConnectionViewModel
 import net.ljga.projects.apps.bttk.ui.device_details.DeviceDetailScreen
@@ -35,6 +36,9 @@ fun MainNavigation() {
                 },
                 onGattServerClick = {
                     navController.navigate("gatt_server")
+                },
+                onAboutClick = {
+                    navController.navigate("about")
                 }
             )
         }
@@ -81,6 +85,11 @@ fun MainNavigation() {
         }
         composable("gatt_server") {
             GattServerScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable("about") {
+            AboutScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }
