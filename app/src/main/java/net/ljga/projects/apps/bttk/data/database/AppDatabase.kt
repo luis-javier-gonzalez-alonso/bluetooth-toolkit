@@ -26,7 +26,7 @@ import net.ljga.projects.apps.bttk.data.database.entity.AppSettingsEntity
         GattServerEntity::class,
         GattScriptEntity::class,
         AppSettingsEntity::class],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(

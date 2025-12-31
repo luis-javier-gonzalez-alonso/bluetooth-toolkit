@@ -73,16 +73,16 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Debug Logs", style = MaterialTheme.typography.bodyLarge)
+                    Text("Fine-grain logging", style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Enable detailed debug logs throughout the application",
+                        "Enable Verbose and Debug logs",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Switch(
-                    checked = state.isDebugEnabled,
-                    onCheckedChange = { viewModel.toggleDebug(it) }
+                    checked = state.isFineGrainLoggingEnabled,
+                    onCheckedChange = { viewModel.toggleFineGrainLogging(it) }
                 )
             }
 

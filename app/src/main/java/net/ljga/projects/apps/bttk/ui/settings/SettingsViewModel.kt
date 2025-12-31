@@ -21,7 +21,7 @@ import javax.inject.Inject
 data class SettingsState(
     val isLoading: Boolean = false,
     val message: String? = null,
-    val isDebugEnabled: Boolean = false
+    val isFineGrainLoggingEnabled: Boolean = false
 )
 
 @HiltViewModel
@@ -38,7 +38,7 @@ class SettingsViewModel @Inject constructor(
             SettingsState(
                 isLoading = _isLoading.value,
                 message = _message.value,
-                isDebugEnabled = settings?.isDebugEnabled ?: false
+                isFineGrainLoggingEnabled = settings?.isFineGrainLoggingEnabled ?: false
             )
         }.stateIn(
             scope = viewModelScope,
@@ -46,9 +46,9 @@ class SettingsViewModel @Inject constructor(
             initialValue = SettingsState()
         )
 
-    fun toggleDebug(enabled: Boolean) {
+    fun toggleFineGrainLogging(enabled: Boolean) {
         viewModelScope.launch {
-            database.appSettingsDao().updateSettings(AppSettingsEntity(isDebugEnabled = enabled))
+            database.appSettingsDao().updateSettings(AppSettingsEntity(isFineGrainLoggingEnabled = enabled))
         }
     }
 

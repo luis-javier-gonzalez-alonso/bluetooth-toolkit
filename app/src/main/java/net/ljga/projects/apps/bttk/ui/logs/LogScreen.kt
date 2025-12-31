@@ -46,12 +46,27 @@ class LogViewModel @Inject constructor(
     
     val selectedLevel = _selectedLevel.asStateFlow()
 
-    val logs = combine(_allLogs, _selectedLevel) { logs, level ->
-        val levelsToInclude = LogLevel.values().filter { it.ordinal >= level.ordinal }
+    private val isFineGrainLoggingEnabled = database.appSettingsDao().getSettings()
+        .map { it?.isFineGrainLoggingEnabled ?: false }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val logs = combine(_allLogs, _selectedLevel, isFineGrainLoggingEnabled) { logs, level, fineGrainEnabled ->
+        val levelsToInclude = LogLevel.values().filter { 
+            val isFineGrain = it == LogLevel.VERBOSE || it == LogLevel.DEBUG
+            if (!fineGrainEnabled && isFineGrain) return@filter false
+            it.ordinal >= level.ordinal
+        }
         logs.filter { line ->
             levelsToInclude.any { line.contains(it.pattern) } || line.startsWith("System:")
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val availableLevels = isFineGrainLoggingEnabled.map { fineGrainEnabled ->
+        LogLevel.values().filter { level ->
+            if (!fineGrainEnabled && (level == LogLevel.VERBOSE || level == LogLevel.DEBUG)) false
+            else true
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, LogLevel.values().filter { it != LogLevel.VERBOSE && it != LogLevel.DEBUG })
 
     private var process: Process? = null
 
@@ -105,6 +120,7 @@ fun LogScreen(
 ) {
     val logs by viewModel.logs.collectAsState()
     val selectedLevel by viewModel.selectedLevel.collectAsState()
+    val availableLevels by viewModel.availableLevels.collectAsState()
     val listState = rememberLazyListState()
     var showFilterMenu by remember { mutableStateOf(false) }
 
@@ -132,7 +148,7 @@ fun LogScreen(
                             expanded = showFilterMenu,
                             onDismissRequest = { showFilterMenu = false }
                         ) {
-                            LogLevel.values().forEach { level ->
+                            availableLevels.forEach { level ->
                                 DropdownMenuItem(
                                     text = { 
                                         Row(verticalAlignment = Alignment.CenterVertically) {
