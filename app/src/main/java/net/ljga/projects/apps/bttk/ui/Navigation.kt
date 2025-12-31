@@ -15,6 +15,7 @@ import net.ljga.projects.apps.bttk.ui.device_details.DeviceDetailScreen
 import net.ljga.projects.apps.bttk.ui.device_scan.DeviceScanScreen
 import net.ljga.projects.apps.bttk.ui.device_scan.DeviceScanViewModel
 import net.ljga.projects.apps.bttk.ui.gatt_server.GattServerScreen
+import net.ljga.projects.apps.bttk.ui.settings.SettingsScreen
 
 @Composable
 fun MainNavigation() {
@@ -39,6 +40,9 @@ fun MainNavigation() {
                 },
                 onAboutClick = {
                     navController.navigate("about")
+                },
+                onSettingsClick = {
+                    navController.navigate("settings")
                 }
             )
         }
@@ -90,6 +94,11 @@ fun MainNavigation() {
         }
         composable("about") {
             AboutScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable("settings") {
+            SettingsScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

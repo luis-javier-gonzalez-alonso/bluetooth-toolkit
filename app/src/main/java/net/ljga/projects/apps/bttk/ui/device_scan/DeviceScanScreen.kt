@@ -38,7 +38,8 @@ fun DeviceScanScreen(
     onDeviceClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onGattServerClick: () -> Unit,
-    onAboutClick: () -> Unit
+    onAboutClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -190,6 +191,21 @@ fun DeviceScanScreen(
                                 onClick = {
                                     expanded = false
                                     onGattServerClick()
+                                },
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                            )
+                            DropdownMenuItem(
+                                text = { 
+                                    Text(
+                                        "Settings", 
+                                        fontSize = 17.sp,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    ) 
+                                },
+                                onClick = {
+                                    expanded = false
+                                    onSettingsClick()
                                 },
                                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
                             )
