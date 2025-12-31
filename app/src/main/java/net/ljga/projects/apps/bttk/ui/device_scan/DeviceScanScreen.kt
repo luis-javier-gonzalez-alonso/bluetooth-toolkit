@@ -2,20 +2,28 @@ package net.ljga.projects.apps.bttk.ui.device_scan
 
 import android.Manifest
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
@@ -31,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -60,7 +69,6 @@ fun DeviceScanScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showFabMenu by remember { mutableStateOf(false) }
 //    var scriptDevice by remember { mutableStateOf<BluetoothDeviceDomain?>(null) }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -94,28 +102,60 @@ fun DeviceScanScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            Box {
-                FloatingActionButton(
-                    onClick = { showFabMenu = true },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Actions")
+            var expanded by remember { mutableStateOf(false) }
+
+            if (expanded) {
+                BackHandler {
+                    expanded = false
                 }
-                DropdownMenu(
-                    expanded = showFabMenu,
-                    onDismissRequest = { showFabMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("GATT Server") },
-                        onClick = {
-                            showFabMenu = false
-                            onGattServerClick()
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Storage, contentDescription = null)
+            }
+
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 6.dp,
+                shadowElevation = 6.dp,
+                modifier = Modifier.animateContentSize()
+            ) {
+                if (!expanded) {
+                    IconButton(
+                        onClick = { expanded = true },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Actions")
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.width(IntrinsicSize.Min)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clickable { expanded = false }
+                                .padding(16.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Close")
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = "Actions",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                    )
+
+                        DropdownMenuItem(
+                            text = { Text("GATT Server") },
+                            onClick = {
+                                expanded = false
+                                onGattServerClick()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Storage, contentDescription = null)
+                            },
+                            modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                        )
+                    }
                 }
             }
         }
