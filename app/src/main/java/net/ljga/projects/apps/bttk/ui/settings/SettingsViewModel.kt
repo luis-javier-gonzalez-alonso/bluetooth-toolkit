@@ -8,14 +8,20 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import net.ljga.projects.apps.bttk.data.database.AppDatabase
+import net.ljga.projects.apps.bttk.data.database.entity.AppSettingsEntity
 import java.io.File
 import javax.inject.Inject
 
 data class SettingsState(
     val isLoading: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val isDebugEnabled: Boolean = false
 )
 
 @HiltViewModel
@@ -24,12 +30,31 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SettingsState())
-    val state = _state.asStateFlow()
+    private val _message = MutableStateFlow<String?>(null)
+    private val _isLoading = MutableStateFlow(false)
+
+    val state: StateFlow<SettingsState> = database.appSettingsDao().getSettings()
+        .map { settings ->
+            SettingsState(
+                isLoading = _isLoading.value,
+                message = _message.value,
+                isDebugEnabled = settings?.isDebugEnabled ?: false
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = SettingsState()
+        )
+
+    fun toggleDebug(enabled: Boolean) {
+        viewModelScope.launch {
+            database.appSettingsDao().updateSettings(AppSettingsEntity(isDebugEnabled = enabled))
+        }
+    }
 
     fun exportDatabase(uri: Uri) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            _isLoading.value = true
             try {
                 database.close()
                 val dbFile = context.getDatabasePath("app_database")
@@ -38,16 +63,18 @@ class SettingsViewModel @Inject constructor(
                         inputStream.copyTo(outputStream)
                     }
                 }
-                _state.value = _state.value.copy(isLoading = false, message = "Database exported successfully")
+                _message.value = "Database exported successfully"
             } catch (e: Exception) {
-                _state.value = _state.value.copy(isLoading = false, message = "Export failed: ${e.message}")
+                _message.value = "Export failed: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun importDatabase(uri: Uri) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            _isLoading.value = true
             try {
                 database.close()
                 val dbFile = context.getDatabasePath("app_database")
@@ -56,14 +83,16 @@ class SettingsViewModel @Inject constructor(
                         inputStream.copyTo(outputStream)
                     }
                 }
-                _state.value = _state.value.copy(isLoading = false, message = "Database imported successfully. Please restart the app.")
+                _message.value = "Database imported successfully. Please restart the app."
             } catch (e: Exception) {
-                _state.value = _state.value.copy(isLoading = false, message = "Import failed: ${e.message}")
+                _message.value = "Import failed: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun clearMessage() {
-        _state.value = _state.value.copy(message = null)
+        _message.value = null
     }
 }

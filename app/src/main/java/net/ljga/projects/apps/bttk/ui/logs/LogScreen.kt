@@ -7,32 +7,51 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import net.ljga.projects.apps.bttk.data.database.AppDatabase
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import javax.inject.Inject
 
+enum class LogLevel(val label: String, val pattern: String) {
+    VERBOSE("Verbose", " V/"),
+    DEBUG("Debug", " D/"),
+    INFO("Info", " I/"),
+    WARN("Warn", " W/"),
+    ERROR("Error", " E/")
+}
+
 @HiltViewModel
-class LogViewModel @Inject constructor() : ViewModel() {
-    private val _logs = MutableStateFlow<List<String>>(emptyList())
-    val logs = _logs.asStateFlow()
+class LogViewModel @Inject constructor(
+    private val database: AppDatabase
+) : ViewModel() {
+    private val _allLogs = MutableStateFlow<List<String>>(listOf("System: Initializing..."))
+    private val _selectedLevel = MutableStateFlow(LogLevel.INFO)
+    
+    val selectedLevel = _selectedLevel.asStateFlow()
+
+    val logs = combine(_allLogs, _selectedLevel) { logs, level ->
+        val levelsToInclude = LogLevel.values().filter { it.ordinal >= level.ordinal }
+        logs.filter { line ->
+            levelsToInclude.any { line.contains(it.pattern) } || line.startsWith("System:")
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private var process: Process? = null
 
@@ -42,52 +61,39 @@ class LogViewModel @Inject constructor() : ViewModel() {
 
     private fun startLogcat() {
         viewModelScope.launch(Dispatchers.IO) {
+            val pid = android.os.Process.myPid()
+            _allLogs.update { it + "System: Starting log collection for PID $pid..." }
+            
             try {
-                // We don't clear (logcat -c) here to allow viewing recent history
-                process = Runtime.getRuntime().exec("logcat -v time")
+                process = Runtime.getRuntime().exec("logcat --pid=$pid -v time")
                 val reader = BufferedReader(InputStreamReader(process?.inputStream))
-                
-                val pid = android.os.Process.myPid().toString()
                 
                 while (isActive) {
                     val line = reader.readLine() ?: break
-                    // Filter by PID (most reliable way to get app logs) or relevant tags
-                    if (line.contains("($pid)") || 
-                        line.contains(" $pid ") ||
-                        line.contains("Gatt") || 
-                        line.contains("Bluetooth") ||
-                        line.contains("net.ljga.projects.apps.bttk")) {
-                        
-                        _logs.update { current ->
-                            (current + line).takeLast(500) // Reduced buffer for better performance
-                        }
-                    }
-                    // Small delay to prevent UI thread saturation if logs are flooding
-                    if (_logs.value.size % 10 == 0) {
-                        delay(5)
+                    _allLogs.update { current ->
+                        (current + line).takeLast(1000)
                     }
                 }
             } catch (e: Exception) {
-                _logs.update { it + "Error reading logs: ${e.message}" }
+                _allLogs.update { it + "System Error: ${e.message}" }
             }
         }
     }
 
+    fun setLevel(level: LogLevel) {
+        _selectedLevel.value = level
+    }
+
     fun clearLogs() {
-        _logs.value = emptyList()
+        _allLogs.value = listOf("System: Logs cleared")
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                Runtime.getRuntime().exec("logcat -c")
-            } catch (e: Exception) {
-                // Ignore clear failures
-            }
+            try { Runtime.getRuntime().exec("logcat -c") } catch (e: Exception) {}
         }
     }
 
     override fun onCleared() {
         super.onCleared()
         process?.destroy()
-        process = null
     }
 }
 
@@ -98,9 +104,10 @@ fun LogScreen(
     viewModel: LogViewModel = hiltViewModel()
 ) {
     val logs by viewModel.logs.collectAsState()
+    val selectedLevel by viewModel.selectedLevel.collectAsState()
     val listState = rememberLazyListState()
+    var showFilterMenu by remember { mutableStateOf(false) }
 
-    // Auto-scroll to bottom when new logs arrive
     LaunchedEffect(logs.size) {
         if (logs.isNotEmpty()) {
             listState.animateScrollToItem(logs.size - 1)
@@ -117,6 +124,34 @@ fun LogScreen(
                     }
                 },
                 actions = {
+                    Box {
+                        IconButton(onClick = { showFilterMenu = true }) {
+                            Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                        }
+                        DropdownMenu(
+                            expanded = showFilterMenu,
+                            onDismissRequest = { showFilterMenu = false }
+                        ) {
+                            LogLevel.values().forEach { level ->
+                                DropdownMenuItem(
+                                    text = { 
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            RadioButton(
+                                                selected = selectedLevel == level,
+                                                onClick = null
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(level.label)
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.setLevel(level)
+                                        showFilterMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                     IconButton(onClick = { viewModel.clearLogs() }) {
                         Icon(Icons.Default.Delete, contentDescription = "Clear Logs")
                     }
@@ -125,9 +160,7 @@ fun LogScreen(
         }
     ) { padding ->
         Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding),
             color = Color.Black
         ) {
             LazyColumn(
@@ -139,7 +172,7 @@ fun LogScreen(
                     Text(
                         text = log,
                         color = getLogColor(log),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
                         modifier = Modifier.padding(vertical = 1.dp)
                     )
@@ -152,7 +185,7 @@ fun LogScreen(
 fun getLogColor(log: String): Color {
     return when {
         log.contains(" E/") -> Color.Red
-        log.contains(" W/") -> Color(0xFFFFA500) // Orange
+        log.contains(" W/") -> Color(0xFFFFA500)
         log.contains(" I/") -> Color.Cyan
         log.contains(" D/") -> Color.Green
         else -> Color.White

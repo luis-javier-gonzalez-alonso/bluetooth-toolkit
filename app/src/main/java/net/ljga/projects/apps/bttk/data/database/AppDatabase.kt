@@ -8,6 +8,7 @@ import net.ljga.projects.apps.bttk.data.database.dao.DataFrameDao
 import net.ljga.projects.apps.bttk.data.database.dao.GattCharacteristicSettingsDao
 import net.ljga.projects.apps.bttk.data.database.dao.GattScriptDao
 import net.ljga.projects.apps.bttk.data.database.dao.GattServerDao
+import net.ljga.projects.apps.bttk.data.database.dao.AppSettingsDao
 import net.ljga.projects.apps.bttk.data.database.entity.BluetoothDeviceEntity
 import net.ljga.projects.apps.bttk.data.database.entity.DataFrameEntity
 import net.ljga.projects.apps.bttk.data.database.entity.GattCharacteristicSettingsEntity
@@ -15,6 +16,7 @@ import net.ljga.projects.apps.bttk.data.database.entity.GattScriptEntity
 import net.ljga.projects.apps.bttk.data.database.entity.GattScriptOperationsConverter
 import net.ljga.projects.apps.bttk.data.database.entity.GattServerEntity
 import net.ljga.projects.apps.bttk.data.database.entity.ParserFieldsConverter
+import net.ljga.projects.apps.bttk.data.database.entity.AppSettingsEntity
 
 @Database(
     entities = [
@@ -22,8 +24,9 @@ import net.ljga.projects.apps.bttk.data.database.entity.ParserFieldsConverter
         BluetoothDeviceEntity::class,
         GattCharacteristicSettingsEntity::class,
         GattServerEntity::class,
-        GattScriptEntity::class],
-    version = 9,
+        GattScriptEntity::class,
+        AppSettingsEntity::class],
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(
@@ -38,4 +41,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun gattCharacteristicSettingsDao(): GattCharacteristicSettingsDao
     abstract fun gattServerDao(): GattServerDao
     abstract fun gattScriptDao(): GattScriptDao
+    abstract fun appSettingsDao(): AppSettingsDao
 }
