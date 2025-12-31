@@ -5,53 +5,25 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,7 +41,7 @@ fun DeviceScanScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-//    var scriptDevice by remember { mutableStateOf<BluetoothDeviceDomain?>(null) }
+    var expanded by remember { mutableStateOf(false) }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -93,123 +65,123 @@ fun DeviceScanScreen(
         }
     }
 
-//    LaunchedEffect(state.errorMessage) {
-//        state.errorMessage?.let {
-//            snackbarHostState.showSnackbar(it)
-//        }
-//    }
+    if (expanded) {
+        BackHandler { expanded = false }
+    }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        floatingActionButton = {
-            var expanded by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            floatingActionButton = {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.animateContentSize(animationSpec = tween(durationMillis = 300))
+                ) {
+                    AnimatedContent(
+                        targetState = expanded,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(200, delayMillis = 100)) togetherWith
+                                    fadeOut(animationSpec = tween(200)) using
+                                    SizeTransform { _, _ -> tween(300) }
+                        },
+                        label = "FAB Menu Animation"
+                    ) { isExpanded ->
+                        if (!isExpanded) {
+                            IconButton(
+                                onClick = { expanded = true },
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Actions")
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .width(IntrinsicSize.Min)
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Actions",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
 
-            if (expanded) {
-                BackHandler {
-                    expanded = false
+                                DropdownMenuItem(
+                                    text = { Text("GATT Server") },
+                                    onClick = {
+                                        expanded = false
+                                        onGattServerClick()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Storage, contentDescription = null)
+                                    },
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
-
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp,
-                shadowElevation = 6.dp,
-                modifier = Modifier.animateContentSize()
+        ) { padding ->
+            val pullToRefreshState = rememberPullToRefreshState()
+            
+            PullToRefreshBox(
+                isRefreshing = state.isRefreshing,
+                state = pullToRefreshState,
+                onRefresh = {
+                    permissionLauncher.launch(permissions)
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
             ) {
-                if (!expanded) {
-                    IconButton(
-                        onClick = { expanded = true },
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Actions")
-                    }
-                } else {
-                    Column(
-                        modifier = Modifier.width(IntrinsicSize.Min)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clickable { expanded = false }
-                                .padding(16.dp)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                text = "Actions",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        DropdownMenuItem(
-                            text = { Text("GATT Server") },
-                            onClick = {
-                                expanded = false
-                                onGattServerClick()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Storage, contentDescription = null)
-                            },
-                            modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
-                        )
-                    }
-                }
+                BluetoothDeviceList(
+                    savedDevices = state.savedDevices,
+                    scannedDevices = state.scannedDevices,
+                    onClick = onDeviceClick,
+                    onDetailsClick = onDetailsClick,
+                    onSave = viewModel::saveDevice,
+                    onForgetSaved = viewModel::forgetSavedDevice,
+                    onCheckReachability = viewModel::checkReachability,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
-    ) { padding ->
-        val pullToRefreshState = rememberPullToRefreshState()
-        
-        PullToRefreshBox(
-            isRefreshing = state.isRefreshing,
-            state = pullToRefreshState,
-            onRefresh = {
-                permissionLauncher.launch(permissions)
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+
+        // Scrim overlay when expanded
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(),
+            exit = fadeOut()
         ) {
-            BluetoothDeviceList(
-                savedDevices = state.savedDevices,
-                scannedDevices = state.scannedDevices,
-//                isConnecting = state.isConnecting,
-                onClick = onDeviceClick,
-                onDetailsClick = onDetailsClick,
-                onSave = viewModel::saveDevice,
-                onForgetSaved = viewModel::forgetSavedDevice,
-                onCheckReachability = viewModel::checkReachability,
-//                onRunScript = { scriptDevice = it },
-                modifier = Modifier.fillMaxSize()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        expanded = false
+                    }
             )
         }
     }
-
-//    if (scriptDevice != null) {
-//        BluetoothScriptDialog(
-//            viewModel = scriptViewModel,
-//            onScriptSelected = { script ->
-//                viewModel.connectAndRunScript(scriptDevice!!, script)
-//                scriptDevice = null
-//            },
-//            onDismiss = { scriptDevice = null }
-//        )
-//    }
 }
 
 @Composable
 fun BluetoothDeviceList(
     savedDevices: List<BluetoothDeviceDomain>,
     scannedDevices: List<BluetoothDeviceDomain>,
-//    isConnecting: Boolean,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onSave: (BluetoothDeviceDomain) -> Unit,
     onForgetSaved: (BluetoothDeviceDomain) -> Unit,
     onCheckReachability: (BluetoothDeviceDomain) -> Unit,
-//    onRunScript: (BluetoothDeviceDomain) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -227,43 +199,6 @@ fun BluetoothDeviceList(
                 textAlign = TextAlign.Center
             )
         }
-
-//        if (isConnecting) {
-//            item {
-//                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-//            }
-//        }
-
-//        item {
-//            Text(
-//                text = "Paired Devices",
-//                fontWeight = FontWeight.Bold,
-//                fontSize = 20.sp,
-//                modifier = Modifier.padding(16.dp)
-//            )
-//        }
-//        if (pairedDevices.isEmpty()) {
-//            item {
-//                Text(
-//                    text = "No paired devices found",
-//                    modifier = Modifier.padding(horizontal = 16.dp),
-//                    color = MaterialTheme.colorScheme.secondary
-//                )
-//            }
-//        }
-//        items(pairedDevices) { device ->
-//            val isAlreadySaved = savedDevices.any { it.address == device.address }
-//            BluetoothDeviceItem(
-//                device = device,
-//                onClick = onClick,
-//                onDetailsClick = onDetailsClick,
-//                onForget = { onForgetPaired(device) },
-//                onSave = if (!isAlreadySaved) { { onSave(device) } } else null,
-//                onCheckReachability = { onCheckReachability(device) },
-//                onRunScript = { onRunScript(device) },
-//                isPaired = true
-//            )
-//        }
 
         item {
             Text(
@@ -283,15 +218,12 @@ fun BluetoothDeviceList(
             }
         }
         items(savedDevices) { device ->
-//            val isAlreadyPaired = pairedDevices.any { it.address == device.address }
             BluetoothDeviceItem(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-//                onPair = if (!isAlreadyPaired) { { onPair(device) } } else null,
                 onForget = { onForgetSaved(device) },
                 onCheckReachability = { onCheckReachability(device) },
-//                onRunScript = { onRunScript(device) },
                 isSaved = true
             )
         }
@@ -318,9 +250,7 @@ fun BluetoothDeviceList(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-//                onPair = { onPair(device) },
-                onSave = { onSave(device) },
-//                onRunScript = { onRunScript(device) }
+                onSave = { onSave(device) }
             )
         }
     }
@@ -331,18 +261,14 @@ fun BluetoothDeviceItem(
     device: BluetoothDeviceDomain,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
-//    onPair: (() -> Unit)? = null,
     onForget: (() -> Unit)? = null,
     onSave: (() -> Unit)? = null,
     onCheckReachability: (() -> Unit)? = null,
-//    onRunScript: (() -> Unit)? = null,
-//    isPaired: Boolean = false,
     isSaved: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
 
-    // Disable interaction if saved but not in range
     val isEnabled = (!isSaved) || device.isInRange
     val contentColor = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
 
@@ -432,24 +358,6 @@ fun BluetoothDeviceItem(
                             showMenu = false
                         }
                     )
-//                    onRunScript?.let {
-//                        DropdownMenuItem(
-//                            text = { Text("Run Script") },
-//                            onClick = {
-//                                it()
-//                                showMenu = false
-//                            }
-//                        )
-//                    }
-//                    onPair?.let {
-//                        DropdownMenuItem(
-//                            text = { Text("Pair") },
-//                            onClick = {
-//                                it()
-//                                showMenu = false
-//                            }
-//                        )
-//                    }
                     onCheckReachability?.let {
                         DropdownMenuItem(
                             text = { Text("Check Status") },
