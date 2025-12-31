@@ -15,9 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -176,35 +174,37 @@ fun DeviceScanScreen(
                             modifier = Modifier
                                 .fillMaxWidth(0.5f)
                                 .aspectRatio(screenRatio)
-                                .padding(vertical = 16.dp, horizontal = 8.dp)
+                                .padding(vertical = 16.dp, horizontal = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
                             DropdownMenuItem(
-                                text = { Text("GATT Server", fontSize = 17.sp) },
+                                text = { 
+                                    Text(
+                                        "GATT Server", 
+                                        fontSize = 17.sp,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    ) 
+                                },
                                 onClick = {
                                     expanded = false
                                     onGattServerClick()
                                 },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Storage, 
-                                        contentDescription = null,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                },
                                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
                             )
                             DropdownMenuItem(
-                                text = { Text("About", fontSize = 17.sp) },
+                                text = { 
+                                    Text(
+                                        "About", 
+                                        fontSize = 17.sp,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    ) 
+                                },
                                 onClick = {
                                     expanded = false
                                     onAboutClick()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Info, 
-                                        contentDescription = null,
-                                        modifier = Modifier.size(26.dp)
-                                    )
                                 },
                                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
                             )
