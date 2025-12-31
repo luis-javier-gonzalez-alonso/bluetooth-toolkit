@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -166,19 +167,15 @@ fun DeviceScanScreen(
                             Icon(Icons.Default.Add, contentDescription = "Actions")
                         }
                     } else {
+                        val configuration = LocalConfiguration.current
+                        val screenRatio = configuration.screenWidthDp.toFloat() / configuration.screenHeightDp.toFloat()
+                        
                         Column(
                             modifier = Modifier
-                                .width(IntrinsicSize.Max)
-                                .widthIn(min = 220.dp)
+                                .fillMaxWidth(0.5f)
+                                .aspectRatio(screenRatio)
                                 .padding(vertical = 16.dp, horizontal = 8.dp)
                         ) {
-                            Text(
-                                text = "Actions",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
-                            )
-
                             DropdownMenuItem(
                                 text = { Text("GATT Server", fontSize = 17.sp) },
                                 onClick = {
