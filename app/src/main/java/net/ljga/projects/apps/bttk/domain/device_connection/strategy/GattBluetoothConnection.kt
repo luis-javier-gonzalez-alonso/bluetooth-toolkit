@@ -36,17 +36,17 @@ class GattBluetoothConnection(
     override suspend fun connect(address: String): Flow<BluetoothDataPacket> = callbackFlow {
         val device = bluetoothAdapter.getRemoteDevice(address)
         var retryCount = 0
-        val maxRetries = 1
+        val maxRetries = 10
 
         val gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
                 Log.d("GattConnection", "onConnectionStateChange: status=$status, newState=$newState")
                 
-                if (status == 133 && retryCount < maxRetries) {
+                if (status != BluetoothGatt.GATT_SUCCESS && retryCount < maxRetries) {
                     retryCount++
                     Log.w("GattConnection", "Encountered status 133, retrying... ($retryCount/$maxRetries)")
                     gatt.close()
-                    
+
                     // Re-attempt connection with a slight delay
                     val retryGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         device.connectGatt(context, false, this, BluetoothDevice.TRANSPORT_LE)
