@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.update
 import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.utils.DeviceFoundReceiver
 import javax.inject.Inject
+
+private const val TAG = "DeviceScanController"
 
 class DeviceScanController @Inject constructor(
     private val context: Context
@@ -49,6 +52,7 @@ class DeviceScanController @Inject constructor(
 
     private var isReceiverRegistered = false
     private val deviceFoundReceiver = DeviceFoundReceiver { device, rssi ->
+        Log.v(TAG, "Device found: ${device.address} (RSSI: $rssi)")
         val newDevice = device.toBluetoothDeviceDomain(isInRange = true, rssi = rssi)
 
         _scannedDevices.update { devices ->
@@ -63,8 +67,14 @@ class DeviceScanController @Inject constructor(
     private val scanStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> _isScanning.value = true
-                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> _isScanning.value = false
+                BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
+                    Log.i(TAG, "Bluetooth discovery started")
+                    _isScanning.value = true
+                }
+                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                    Log.i(TAG, "Bluetooth discovery finished")
+                    _isScanning.value = false
+                }
             }
         }
     }
@@ -76,12 +86,15 @@ class DeviceScanController @Inject constructor(
     }
 
     fun startDiscovery(): Boolean {
+        Log.d(TAG, "Starting discovery requested")
         if (!hasPermission(getScanPermission())) {
+            Log.e(TAG, "Missing scan permission")
             _errors.tryEmit("Missing scan permission")
             return false
         }
 
         if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) {
+            Log.w(TAG, "Bluetooth not available or disabled")
             _errors.tryEmit("Bluetooth not available")
             return false
         }
@@ -91,24 +104,33 @@ class DeviceScanController @Inject constructor(
         registerReceiver()
         val started = bluetoothAdapter?.startDiscovery() == true
         if (started) {
+            Log.i(TAG, "Native discovery command successful")
             _isScanning.value = true
+        } else {
+            Log.e(TAG, "Native discovery command failed")
         }
         return started
     }
 
     fun stopDiscovery() {
+        Log.d(TAG, "Stopping discovery requested")
         if (!hasPermission(getScanPermission())) return
         bluetoothAdapter?.cancelDiscovery()
     }
 
     fun checkReachability(address: String) {
-        if (!hasPermission(getConnectPermission())) return
+        Log.d(TAG, "Checking reachability for: $address")
+        if (!hasPermission(getConnectPermission())) {
+            Log.w(TAG, "Missing connect permission for reachability check")
+            return
+        }
         registerReceiver()
         bluetoothAdapter?.getRemoteDevice(address)?.fetchUuidsWithSdp()
     }
 
     private fun registerReceiver() {
         if (!isReceiverRegistered) {
+            Log.v(TAG, "Registering device found receiver")
             val filter = IntentFilter().apply {
                 addAction(BluetoothDevice.ACTION_FOUND)
                 addAction(BluetoothDevice.ACTION_UUID)
@@ -119,6 +141,7 @@ class DeviceScanController @Inject constructor(
     }
 
     private fun registerScanStateReceiver() {
+        Log.v(TAG, "Registering scan state receiver")
         val filter = IntentFilter().apply {
             addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
@@ -132,16 +155,19 @@ class DeviceScanController @Inject constructor(
     }
 
     fun release() {
+        Log.d(TAG, "Releasing controller")
         if (isReceiverRegistered) {
             try {
                 context.unregisterReceiver(deviceFoundReceiver)
             } catch (e: Exception) {
+                Log.w(TAG, "Error unregistering deviceFoundReceiver: ${e.message}")
             }
             isReceiverRegistered = false
         }
         try {
             context.unregisterReceiver(scanStateReceiver)
         } catch (e: Exception) {
+            Log.w(TAG, "Error unregistering scanStateReceiver: ${e.message}")
         }
         stopDiscovery()
     }

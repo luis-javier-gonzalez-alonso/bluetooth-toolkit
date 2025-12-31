@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,6 +29,8 @@ import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import javax.inject.Inject
+
+private const val TAG = "DeviceConnectionController"
 
 @SuppressLint("MissingPermission")
 class DeviceConnectionController @Inject constructor(
@@ -61,21 +64,36 @@ class DeviceConnectionController @Inject constructor(
         val address = device.address
 
         if (_connections.value[address] != null) {
-            // Already connected or connecting
+            Log.d(TAG, "Already connected or connecting to $address")
             return
         }
 
+        Log.i(TAG, "Initiating connection to $address (profile: ${profile ?: "default"})")
+
         if (!hasPermission(getConnectPermission())) {
+            Log.e(TAG, "Missing connect permission for $address")
             _errors.tryEmit("Missing connect permission")
             return
         }
 
-        val adapter = bluetoothAdapter ?: return
+        val adapter = bluetoothAdapter ?: run {
+            Log.e(TAG, "Bluetooth adapter not available")
+            return
+        }
 
         val strategy: BluetoothConnection = when (profile) {
-            BluetoothConnectionType.SPP -> SppBluetoothConnection(adapter)
-            BluetoothConnectionType.GATT -> GattBluetoothConnection(adapter, context)
-            else -> GattBluetoothConnection(adapter, context)
+            BluetoothConnectionType.SPP -> {
+                Log.d(TAG, "Using SPP strategy for $address")
+                SppBluetoothConnection(adapter)
+            }
+            BluetoothConnectionType.GATT -> {
+                Log.d(TAG, "Using GATT strategy for $address")
+                GattBluetoothConnection(adapter, context)
+            }
+            else -> {
+                Log.d(TAG, "Using default (GATT) strategy for $address")
+                GattBluetoothConnection(adapter, context)
+            }
         }
 
         _connections.update { it + (address to strategy) }
@@ -91,11 +109,13 @@ class DeviceConnectionController @Inject constructor(
 
         val job = scope.launch {
             try {
+                Log.v(TAG, "Starting connection job for $address")
                 strategy.connect(address).collect { packet ->
                     logBluetoothData(address, packet)
                 }
             } catch (e: Exception) {
-                val errorMessage = "Connection failed: ${e.message}"
+                val errorMessage = "Connection failed for $address: ${e.message}"
+                Log.e(TAG, errorMessage, e)
                 _errors.tryEmit(errorMessage)
                 logBluetoothData(address, BluetoothDataPacket(
                     source = "System",
@@ -103,6 +123,7 @@ class DeviceConnectionController @Inject constructor(
                     format = DataFormat.STRUCTURED
                 ))
             } finally {
+                Log.i(TAG, "Connection job finished for $address")
                 disconnect(address)
             }
         }
@@ -110,25 +131,30 @@ class DeviceConnectionController @Inject constructor(
     }
 
     fun disconnect(address: String) {
+        Log.i(TAG, "Disconnecting from $address")
         connectionJobs[address]?.cancel()
         connectionJobs.remove(address)
         _connections.value[address]?.disconnect()
         _connections.update { it - address }
-        // Note: we don't remove the logs here so they can be viewed after failure/disconnection
     }
 
     fun process(address: String, request: ProcessRequest) {
+        Log.d(TAG, "Processing request for $address: ${request.javaClass.simpleName}")
         _connections.value[address]?.process(request)?.let {
             logBluetoothData(address, it)
-        }
+        } ?: Log.v(TAG, "Request processed without immediate response for $address")
     }
 
     fun logBluetoothData(address: String, packet: BluetoothDataPacket) {
         if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null && packet.source != null) {
+            Log.d(TAG, "Updating services in repository for $address")
             scope.launch {
                 bluetoothDeviceRepository.updateServices(address, packet.gattServices)
             }
         }
+        
+        Log.v(TAG, "Data received from $address: ${packet.text ?: "${packet.data?.size ?: 0} bytes"}")
+        
         _connectionLogs.update { current ->
             val logs = current[address] ?: emptyList()
             current + (address to (logs + packet).takeLast(100))

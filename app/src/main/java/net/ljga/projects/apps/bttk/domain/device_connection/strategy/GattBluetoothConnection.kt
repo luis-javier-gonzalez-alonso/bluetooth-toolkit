@@ -24,6 +24,8 @@ import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import net.ljga.projects.apps.bttk.domain.utils.prettyName
 import java.util.UUID
 
+private const val TAG = "GattConnection"
+
 class GattBluetoothConnection(
     private val bluetoothAdapter: BluetoothAdapter,
     private val context: Context
@@ -34,37 +36,40 @@ class GattBluetoothConnection(
     private var bluetoothGatt: BluetoothGatt? = null
 
     override suspend fun connect(address: String): Flow<BluetoothDataPacket> = callbackFlow {
+        Log.i(TAG, "Initiating GATT connection to $address")
         val device = bluetoothAdapter.getRemoteDevice(address)
         var retryCount = 0
         val maxRetries = 10
 
         val gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-                Log.d("GattConnection", "onConnectionStateChange: status=$status, newState=$newState")
-                
-                if (status != BluetoothGatt.GATT_SUCCESS && retryCount < maxRetries) {
-                    retryCount++
-                    val retryMsg = "Connection error (status $status). Retrying... ($retryCount/$maxRetries)"
-                    Log.w("GattConnection", retryMsg)
-                    trySend(BluetoothDataPacket(
-                        source = "System",
-                        text = retryMsg,
-                        format = DataFormat.STRUCTURED
-                    ))
-                    
-                    gatt.close()
+                if (status != BluetoothGatt.GATT_SUCCESS) {
+                    if (retryCount < maxRetries) {
+                        retryCount++
+                        val retryMsg = "Connection error (status $status). Retrying... ($retryCount/$maxRetries)"
+                        Log.w(TAG, retryMsg)
+                        trySend(BluetoothDataPacket(
+                            source = "System",
+                            text = retryMsg,
+                            format = DataFormat.STRUCTURED
+                        ))
+                        
+                        gatt.close()
 
-                    // Re-attempt connection with a slight delay
-                    val retryGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        device.connectGatt(context, false, this, BluetoothDevice.TRANSPORT_LE)
+                        val retryGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            device.connectGatt(context, false, this, BluetoothDevice.TRANSPORT_LE)
+                        } else {
+                            device.connectGatt(context, false, this)
+                        }
+                        bluetoothGatt = retryGatt
+                        return
                     } else {
-                        device.connectGatt(context, false, this)
+                        Log.e(TAG, "Connection failed after $maxRetries retries. Status: $status")
                     }
-                    bluetoothGatt = retryGatt
-                    return
                 }
 
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    Log.i(TAG, "GATT Connected to ${device.address}")
                     retryCount = 0
                     trySend(BluetoothDataPacket(
                         source = "System",
@@ -74,8 +79,10 @@ class GattBluetoothConnection(
                     gatt.discoverServices()
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     val statusMsg = if (status != BluetoothGatt.GATT_SUCCESS) {
+                        Log.w(TAG, "GATT Disconnected from ${device.address} with error status $status")
                         "Disconnected (status $status)"
                     } else {
+                        Log.i(TAG, "GATT Disconnected from ${device.address}")
                         "Disconnected"
                     }
                     trySend(BluetoothDataPacket(
@@ -93,6 +100,7 @@ class GattBluetoothConnection(
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.i(TAG, "Services discovered for ${device.address}: ${gatt.services.size} services found")
                     trySend(BluetoothDataPacket(
                         source = "System",
                         text = "Services discovered successfully",
@@ -119,6 +127,7 @@ class GattBluetoothConnection(
                         )
                     )
                 } else {
+                    Log.e(TAG, "Service discovery failed for ${device.address} with status $status")
                     trySend(BluetoothDataPacket(
                         source = "System",
                         text = "Service discovery failed (status $status)",
@@ -129,11 +138,15 @@ class GattBluetoothConnection(
 
             override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.d(TAG, "Characteristic read: ${characteristic.uuid} (${value.size} bytes)")
                     processData(characteristic, value)
+                } else {
+                    Log.w(TAG, "Failed to read characteristic ${characteristic.uuid}. Status: $status")
                 }
             }
 
             override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+                Log.v(TAG, "Characteristic notification: ${characteristic.uuid} (${value.size} bytes)")
                 processData(characteristic, value)
             }
 
@@ -157,11 +170,13 @@ class GattBluetoothConnection(
         }
 
         awaitClose {
+            Log.d(TAG, "Closing GATT connection flow for $address")
             disconnect()
         }
     }
 
     override fun disconnect() {
+        Log.i(TAG, "Explicit disconnect requested")
         bluetoothGatt?.disconnect()
         bluetoothGatt?.close()
         bluetoothGatt = null
@@ -169,9 +184,11 @@ class GattBluetoothConnection(
 
     override fun process(request: ProcessRequest): BluetoothDataPacket? {
         if (request is ReadGattCharacteristicRequest) {
+            Log.d(TAG, "Processing ReadGattCharacteristicRequest for ${request.characteristicUuid}")
             readCharacteristic(request.serviceUuid, request.characteristicUuid)
             return null
         } else if (request is WriteGattCharacteristicRequest) {
+            Log.d(TAG, "Processing WriteGattCharacteristicRequest for ${request.characteristicUuid} (${request.data.size} bytes)")
             writeCharacteristic(request.serviceUuid, request.characteristicUuid, request.data)
             return BluetoothDataPacket(
                 data = request.data,
@@ -188,7 +205,10 @@ class GattBluetoothConnection(
         val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
+            Log.v(TAG, "Reading characteristic $characteristicUuid")
             bluetoothGatt?.readCharacteristic(characteristic)
+        } else {
+            Log.w(TAG, "Characteristic $characteristicUuid not found for reading")
         }
     }
 
@@ -200,6 +220,7 @@ class GattBluetoothConnection(
         val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
+            Log.v(TAG, "Writing ${data.size} bytes to $characteristicUuid")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 bluetoothGatt?.writeCharacteristic(
                     characteristic,
@@ -222,6 +243,8 @@ class GattBluetoothConnection(
                 @Suppress("DEPRECATION")
                 bluetoothGatt?.writeCharacteristic(characteristic)
             }
+        } else {
+            Log.w(TAG, "Characteristic $characteristicUuid not found for writing")
         }
     }
 

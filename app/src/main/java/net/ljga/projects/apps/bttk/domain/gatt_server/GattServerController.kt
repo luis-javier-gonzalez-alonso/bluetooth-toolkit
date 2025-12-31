@@ -31,6 +31,8 @@ import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
 import java.util.UUID
 import javax.inject.Inject
 
+private const val TAG = "GattServer"
+
 @SuppressLint("MissingPermission")
 class GattServerController @Inject constructor(
     private val context: Context
@@ -64,10 +66,8 @@ class GattServerController @Inject constructor(
     private val gattServerCallback = object : BluetoothGattServerCallback() {
         override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
             super.onConnectionStateChange(device, status, newState)
-            Log.d(
-                "GattServer",
-                "Connection state change: ${device?.address} status: $status newState: $newState"
-            )
+            Log.i(TAG, "Connection state change: ${device?.address} status: $status newState: $newState")
+            
             val stateStr = when (newState) {
                 0 -> "Disconnected"
                 2 -> "Connected"
@@ -85,12 +85,16 @@ class GattServerController @Inject constructor(
 
         override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
             super.onServiceAdded(status, service)
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.i(TAG, "Service added successfully: ${service?.uuid}")
+            } else {
+                Log.e(TAG, "Failed to add service: ${service?.uuid}, status: $status")
+            }
             val text = if (status == BluetoothGatt.GATT_SUCCESS) {
                 "Service added successfully: ${service?.uuid}"
             } else {
                 "Failed to add service: ${service?.uuid}, status: $status"
             }
-            Log.d("GattServer", text)
             emitGattLog(
                 BluetoothDataPacket(
                     data = byteArrayOf(),
@@ -108,6 +112,7 @@ class GattServerController @Inject constructor(
             characteristic: BluetoothGattCharacteristic?
         ) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
+            Log.d(TAG, "Read request from ${device?.address} for ${characteristic?.uuid}")
             @Suppress("DEPRECATION")
             val valBytes = characteristic?.value ?: byteArrayOf()
             emitGattLog(
@@ -141,6 +146,7 @@ class GattServerController @Inject constructor(
                 offset,
                 value
             )
+            Log.d(TAG, "Write request from ${device?.address} for ${characteristic?.uuid} (${value?.size} bytes)")
             if (value != null) {
                 @Suppress("DEPRECATION")
                 characteristic?.value = value
@@ -169,7 +175,7 @@ class GattServerController @Inject constructor(
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             super.onStartSuccess(settingsInEffect)
             isAdvertising = true
-            Log.d("GattServer", "Advertising started successfully")
+            Log.i(TAG, "Advertising started successfully")
             emitGattLog(
                 BluetoothDataPacket(
                     data = byteArrayOf(),
@@ -191,6 +197,7 @@ class GattServerController @Inject constructor(
                 ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "Advertising failed: Too many advertisers"
                 else -> "Advertising failed with error code: $errorCode"
             }
+            Log.e(TAG, errorMsg)
             _errors.tryEmit(errorMsg)
             emitGattLog(
                 BluetoothDataPacket(
@@ -204,21 +211,28 @@ class GattServerController @Inject constructor(
     }
 
     fun startGattServer(deviceName: String?) {
+        Log.d(TAG, "Starting GATT server...")
         if (!hasPermission(getConnectPermission()) || !hasPermission(getAdvertisePermission())) {
+            Log.w(TAG, "Missing permissions for GATT Server")
             _errors.tryEmit("Missing permissions for GATT Server")
             return
         }
 
-        if (gattServer != null) return
+        if (gattServer != null) {
+            Log.d(TAG, "GATT Server already running")
+            return
+        }
 
         if (deviceName != null) {
             originalName = bluetoothAdapter?.name
+            Log.d(TAG, "Temporarily renaming device from $originalName to $deviceName")
             bluetoothAdapter?.name = deviceName
         }
 
         gattServer = bluetoothManager?.openGattServer(context, gattServerCallback)
         if (gattServer == null) {
             val errorMsg = "Failed to open GATT Server"
+            Log.e(TAG, errorMsg)
             _errors.tryEmit(errorMsg)
             emitGattLog(
                 BluetoothDataPacket(
@@ -243,6 +257,7 @@ class GattServerController @Inject constructor(
 
         // Add configured services
         _gattServerServices.value.forEach { serviceDomain ->
+            Log.v(TAG, "Adding service ${serviceDomain.uuid}")
             val gattService = BluetoothGattService(
                 UUID.fromString(serviceDomain.uuid),
                 BluetoothGattService.SERVICE_TYPE_PRIMARY
@@ -259,7 +274,7 @@ class GattServerController @Inject constructor(
                         @Suppress("DEPRECATION")
                         gattChar.value = bytes
                     } catch (e: Exception) {
-                        Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
+                        Log.e(TAG, "Failed to set initial value for ${charDomain.uuid}", e)
                     }
                 }
                 gattService.addCharacteristic(gattChar)
@@ -272,8 +287,10 @@ class GattServerController @Inject constructor(
     }
 
     private fun startAdvertising() {
+        Log.d(TAG, "Starting advertising...")
         val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser ?: run {
             val errorMsg = "BLE Advertising not supported"
+            Log.e(TAG, errorMsg)
             _errors.tryEmit(errorMsg)
             emitGattLog(
                 BluetoothDataPacket(
@@ -293,7 +310,6 @@ class GattServerController @Inject constructor(
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
             .build()
 
-        // Split data between Advertisement and Scan Response to avoid 31-byte limit
         val dataBuilder = AdvertiseData.Builder()
             .setIncludeTxPowerLevel(true)
 
@@ -307,7 +323,6 @@ class GattServerController @Inject constructor(
         val data = dataBuilder.build()
         val scanResponse = scanResponseBuilder.build()
 
-        Log.d("GattServer", "Starting advertising...")
         advertiser.startAdvertising(settings, data, scanResponse, advertiseCallback)
 
         emitGattLog(
@@ -321,6 +336,7 @@ class GattServerController @Inject constructor(
     }
 
     fun stopGattServer() {
+        Log.i(TAG, "Stopping GATT server")
         if (isAdvertising) {
             bluetoothAdapter?.bluetoothLeAdvertiser?.stopAdvertising(advertiseCallback)
             isAdvertising = false
@@ -337,16 +353,16 @@ class GattServerController @Inject constructor(
                 text = "Server stopped"
             )
         )
-        // Note: we don't clear logs here so they can be reviewed after stopping,
-        // they are cleared on next start.
 
         originalName?.let {
+            Log.d(TAG, "Restoring device name to $it")
             bluetoothAdapter?.name = it
             originalName = null
         }
     }
 
     fun addGattService(service: BluetoothServiceDomain) {
+        Log.d(TAG, "Manually adding service: ${service.uuid}")
         _gattServerServices.update { current ->
             if (current.any { it.uuid == service.uuid }) {
                 current.map { if (it.uuid == service.uuid) service else it }
@@ -371,7 +387,7 @@ class GattServerController @Inject constructor(
                         @Suppress("DEPRECATION")
                         gattChar.value = bytes
                     } catch (e: Exception) {
-                        Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
+                        Log.e(TAG, "Failed to set initial value for ${charDomain.uuid}", e)
                     }
                 }
                 gattService.addCharacteristic(gattChar)
@@ -381,6 +397,7 @@ class GattServerController @Inject constructor(
     }
 
     fun removeGattService(serviceUuid: String) {
+        Log.d(TAG, "Removing service: $serviceUuid")
         _gattServerServices.update { it.filter { service -> service.uuid != serviceUuid } }
         if (_isGattServerRunning.value) {
             gattServer?.getService(UUID.fromString(serviceUuid))?.let {
@@ -390,6 +407,7 @@ class GattServerController @Inject constructor(
     }
 
     fun clearGattServices() {
+        Log.d(TAG, "Clearing all services")
         _gattServerServices.value = emptyList()
         if (_isGattServerRunning.value) {
             gattServer?.clearServices()
@@ -397,6 +415,7 @@ class GattServerController @Inject constructor(
     }
 
     fun updateGattService(service: BluetoothServiceDomain) {
+        Log.d(TAG, "Updating service: ${service.uuid}")
         _gattServerServices.update { current ->
             current.map { if (it.uuid == service.uuid) service else it }
         }
@@ -420,7 +439,7 @@ class GattServerController @Inject constructor(
                         @Suppress("DEPRECATION")
                         gattChar.value = bytes
                     } catch (e: Exception) {
-                        Log.e("GattServer", "Failed to set initial value for ${charDomain.uuid}", e)
+                        Log.e(TAG, "Failed to set initial value for ${charDomain.uuid}", e)
                     }
                 }
                 gattService.addCharacteristic(gattChar)
