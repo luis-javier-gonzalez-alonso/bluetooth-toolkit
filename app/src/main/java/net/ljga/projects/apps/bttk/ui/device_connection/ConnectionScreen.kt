@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import net.ljga.projects.apps.bttk.R
 import net.ljga.projects.apps.bttk.domain.device_connection.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
@@ -97,19 +99,19 @@ fun ConnectionScreen(
             TopAppBar(
                 title = { 
                     Column {
-                        Text(text = device?.name ?: "Unknown Device", style = MaterialTheme.typography.titleMedium)
-                        Text(text = if (isConnected) "Connected" else "Connecting...", style = MaterialTheme.typography.bodySmall)
+                        Text(text = device?.name ?: stringResource(R.string.unknown_device), style = MaterialTheme.typography.titleMedium)
+                        Text(text = if (isConnected) stringResource(R.string.connected) else stringResource(R.string.connecting), style = MaterialTheme.typography.bodySmall)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     if (isConnected) {
                         TextButton(onClick = onDisconnectClick) {
-                            Text("Disconnect")
+                            Text(stringResource(R.string.disconnect))
                         }
                     }
                 }
@@ -130,7 +132,7 @@ fun ConnectionScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "Characteristics", fontWeight = FontWeight.Bold)
+                            Text(text = stringResource(R.string.characteristics), fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
@@ -163,7 +165,7 @@ fun ConnectionScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Discovering services...", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.discovering_services), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -175,7 +177,7 @@ fun ConnectionScreen(
 
             // Data Log Section
             Text(
-                text = "Data Log",
+                text = stringResource(R.string.data_log),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.titleSmall
             )
@@ -249,7 +251,7 @@ fun CharacteristicRow(
             IconButton(onClick = onConfigure, modifier = Modifier.size(24.dp)) {
                 Icon(
                     Icons.Default.Settings, 
-                    contentDescription = "Configure", 
+                    contentDescription = stringResource(R.string.settings), 
                     modifier = Modifier.size(16.dp), 
                     tint = if (hasParser || alias.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )
@@ -329,15 +331,15 @@ fun PacketSelectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Write to Characteristic") },
+        title = { Text(stringResource(R.string.write_to_characteristic)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                        Text(text = "Creator", modifier = Modifier.padding(8.dp))
+                        Text(text = stringResource(R.string.creator), modifier = Modifier.padding(8.dp))
                     }
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                        Text(text = "Stored", modifier = Modifier.padding(8.dp))
+                        Text(text = stringResource(R.string.stored), modifier = Modifier.padding(8.dp))
                     }
                 }
 
@@ -350,7 +352,7 @@ fun PacketSelectorDialog(
                             val clean = it.filter { c -> c.isDigit() || c in 'a'..'f' || c in 'A'..'F' }
                             hexString = clean
                         },
-                        label = { Text("Hex Data (e.g. 010AFF)") },
+                        label = { Text(stringResource(R.string.hex_data_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                         visualTransformation = HexVisualTransformation()
@@ -359,7 +361,7 @@ fun PacketSelectorDialog(
                     val data = remember(hexString) { parseHexNoSpaces(hexString) }
                     if (data.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Preview (ASCII):", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.preview_ascii), style = MaterialTheme.typography.labelSmall)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -381,7 +383,7 @@ fun PacketSelectorDialog(
                     OutlinedTextField(
                         value = saveName,
                         onValueChange = { saveName = it },
-                        label = { Text("Save as (optional)") },
+                        label = { Text(stringResource(R.string.save_as_optional)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 } else {
@@ -409,7 +411,7 @@ fun PacketSelectorDialog(
                                     )
                                 }
                                 IconButton(onClick = { onDelete(frame.uid) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                             HorizontalDivider()
@@ -428,7 +430,7 @@ fun PacketSelectorDialog(
                             saveName = ""
                         }
                     }) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 }
                 Button(
@@ -440,13 +442,13 @@ fun PacketSelectorDialog(
                     },
                     enabled = hexString.isNotBlank()
                 ) {
-                    Text("Send")
+                    Text(stringResource(R.string.send))
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

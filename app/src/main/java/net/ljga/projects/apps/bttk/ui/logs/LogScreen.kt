@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,24 +25,25 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
+import net.ljga.projects.apps.bttk.R
 import net.ljga.projects.apps.bttk.data.database.AppDatabase
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import javax.inject.Inject
 
-enum class LogLevel(val label: String, val pattern: String) {
-    VERBOSE("Verbose", " V/"),
-    DEBUG("Debug", " D/"),
-    INFO("Info", " I/"),
-    WARN("Warn", " W/"),
-    ERROR("Error", " E/")
+enum class LogLevel(val labelResId: Int, val pattern: String) {
+    VERBOSE(R.string.log_level_verbose, " V/"),
+    DEBUG(R.string.log_level_debug, " D/"),
+    INFO(R.string.log_level_info, " I/"),
+    WARN(R.string.log_level_warn, " W/"),
+    ERROR(R.string.log_level_error, " E/")
 }
 
 @HiltViewModel
 class LogViewModel @Inject constructor(
     private val database: AppDatabase
 ) : ViewModel() {
-    private val _allLogs = MutableStateFlow<List<String>>(listOf("System: Initializing..."))
+    private val _allLogs = MutableStateFlow<List<String>>(emptyList())
     private val _selectedLevel = MutableStateFlow(LogLevel.INFO)
     
     val selectedLevel = _selectedLevel.asStateFlow()
@@ -133,16 +135,16 @@ fun LogScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("System Logs") },
+                title = { Text(stringResource(R.string.system_logs)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     Box {
                         IconButton(onClick = { showFilterMenu = true }) {
-                            Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                            Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filter))
                         }
                         DropdownMenu(
                             expanded = showFilterMenu,
@@ -157,7 +159,7 @@ fun LogScreen(
                                                 onClick = null
                                             )
                                             Spacer(Modifier.width(8.dp))
-                                            Text(level.label)
+                                            Text(stringResource(level.labelResId))
                                         }
                                     },
                                     onClick = {
@@ -169,7 +171,7 @@ fun LogScreen(
                         }
                     }
                     IconButton(onClick = { viewModel.clearLogs() }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Clear Logs")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.clear_logs))
                     }
                 }
             )

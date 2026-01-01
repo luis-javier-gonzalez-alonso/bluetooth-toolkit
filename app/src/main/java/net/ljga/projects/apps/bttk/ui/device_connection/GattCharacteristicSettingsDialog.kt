@@ -37,8 +37,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import net.ljga.projects.apps.bttk.R
 import net.ljga.projects.apps.bttk.domain.device_connection.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.model.EndiannessDomain
 import net.ljga.projects.apps.bttk.domain.model.FieldTypeDomain
@@ -70,13 +72,13 @@ fun GattCharacteristicSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Characteristic Settings") },
+        title = { Text(stringResource(R.string.characteristic_settings)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = alias,
                     onValueChange = { alias = it },
-                    label = { Text("Alias") },
+                    label = { Text(stringResource(R.string.alias)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -85,13 +87,13 @@ fun GattCharacteristicSettingsDialog(
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Parser", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.parser), style = MaterialTheme.typography.titleSmall)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = template,
                     onValueChange = { template = it },
-                    label = { Text("Template (e.g. Value is {val1})") },
+                    label = { Text(stringResource(R.string.template_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
@@ -102,12 +104,12 @@ fun GattCharacteristicSettingsDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Fields", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.fields), style = MaterialTheme.typography.titleSmall)
                     IconButton(onClick = { 
                         editIndex = null
                         showFieldDialog = true 
                     }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Field")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_field))
                     }
                 }
 
@@ -139,12 +141,12 @@ fun GattCharacteristicSettingsDialog(
                 )
                 onDismiss()
             }) {
-                Text("Save")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -181,13 +183,16 @@ fun FieldRow(field: ParserFieldDomain, onDelete: () -> Unit, onEdit: () -> Unit)
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(field.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text("Offset: ${field.offset}, Type: ${field.type}, Len: ${field.length}", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = stringResource(R.string.offset_label, field.offset, field.type.name, field.length),
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), modifier = Modifier.size(20.dp))
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -210,13 +215,13 @@ fun FieldDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (field == null) "Add Field" else "Edit Field") },
+        title = { Text(if (field == null) stringResource(R.string.add_field) else stringResource(R.string.edit_field)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Field Name") },
+                    label = { Text(stringResource(R.string.field_name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -225,7 +230,7 @@ fun FieldDialog(
                 OutlinedTextField(
                     value = length,
                     onValueChange = { length = it },
-                    label = { Text("Length") },
+                    label = { Text(stringResource(R.string.length)) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = type.length == null
                 )
@@ -237,7 +242,7 @@ fun FieldDialog(
                         value = type.name,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Type") },
+                        label = { Text(stringResource(R.string.type)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                         modifier = Modifier
                             .menuAnchor()
@@ -264,7 +269,7 @@ fun FieldDialog(
                         value = endianness.name,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Endianness") },
+                        label = { Text(stringResource(R.string.endianness)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endianExpanded) },
                         modifier = Modifier
                             .menuAnchor()
@@ -290,11 +295,11 @@ fun FieldDialog(
                     )
                 )
             }, enabled = name.isNotBlank()) {
-                Text(if (field == null) "Add" else "Save")
+                Text(if (field == null) stringResource(R.string.add) else stringResource(R.string.save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }

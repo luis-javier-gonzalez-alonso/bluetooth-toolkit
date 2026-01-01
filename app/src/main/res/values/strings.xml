@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bluetooth Toolkit</string>
+
+    <!-- Navigation / General -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="confirm">Confirm</string>
+    <string name="options">Options</string>
+    <string name="actions">Actions</string>
+    <string name="about">About</string>
+    <string name="settings">Settings</string>
+    <string name="version">Version %1$s</string>
+    <string name="unknown_device">Unknown Device</string>
+    <string name="system_logs">System Logs</string>
+    <string name="edit">Edit</string>
+    <string name="add">Add</string>
+
+    <!-- Device Scan Screen -->
+    <string name="pull_down_to_scan">⌄ Pull down to scan ⌄</string>
+    <string name="saved_devices">Saved Devices</string>
+    <string name="no_saved_devices">No saved devices found</string>
+    <string name="scanned_devices">Scanned Devices</string>
+    <string name="no_scanned_devices">No scanned devices found</string>
+    <string name="forget_device_title">Forget Device</string>
+    <string name="forget_device_message">Are you sure you want to forget %1$s?</string>
+    <string name="out_of_range">Out of range</string>
+    <string name="details">Details</string>
+    <string name="check_status">Check Status</string>
+    <string name="forget">Forget</string>
+
+    <!-- Connection Screen -->
+    <string name="connected">Connected</string>
+    <string name="connecting">Connecting...</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="characteristics">Characteristics</string>
+    <string name="discovering_services">Discovering services...</string>
+    <string name="data_log">Data Log</string>
+    <string name="write_to_characteristic">Write to Characteristic</string>
+    <string name="creator">Creator</string>
+    <string name="stored">Stored</string>
+    <string name="hex_data_label">Hex Data (e.g. 010AFF)</string>
+    <string name="preview_ascii">Preview (ASCII):</string>
+    <string name="save_as_optional">Save as (optional)</string>
+    <string name="send">Send</string>
+    <string name="no_services_discovered">No services discovered</string>
+
+    <!-- GATT Server Screen -->
+    <string name="gatt_server">GATT Server</string>
+    <string name="profiles">Profiles</string>
+    <string name="clear_server">Clear Server</string>
+    <string name="stop_server">Stop Server</string>
+    <string name="start_server">Start Server</string>
+    <string name="profile_label">Profile: %1$s</string>
+    <string name="no_profile_selected">No profile selected</string>
+    <string name="server_status_label">Server Status: %1$s</string>
+    <string name="running">RUNNING</string>
+    <string name="stopped">STOPPED</string>
+    <string name="advertising_name">Advertising Name</string>
+    <string name="device_name_placeholder">Device Name</string>
+    <string name="service_uuid_hex">Service UUID (Hex)</string>
+    <string name="add_service">Add Service</string>
+    <string name="services">Services</string>
+    <string name="no_gatt_profile_selected">No GATT Server profile selected</string>
+    <string name="select_or_create_profile">Select or Create Profile</string>
+    <string name="gatt_server_profiles">GATT Server Profiles</string>
+    <string name="services_count">%1$d services</string>
+    <string name="create_new_profile">Create New Profile</string>
+    <string name="new_gatt_profile">New GATT Profile</string>
+    <string name="profile_name">Profile Name</string>
+    <string name="create">Create</string>
+    <string name="clear_gatt_server">Clear GATT Server</string>
+    <string name="clear_gatt_server_message">Are you sure you want to delete all services and reset all indices? This action cannot be undone.</string>
+    <string name="clear_all">Clear All</string>
+    <string name="add_characteristic">Add Characteristic</string>
+    <string name="characteristic_uuid_hex">Characteristic UUID (Hex)</string>
+    <string name="initial_value_hex">Initial Value (Hex)</string>
+    <string name="initial_value_preview">Initial Value: %1$s</string>
+    <string name="properties">Properties</string>
+    <string name="permissions">Permissions</string>
+    <string name="active_services">Active Services</string>
+    <string name="delete_service">Delete Service</string>
+    <string name="remove_characteristic">Remove Characteristic</string>
+
+    <!-- Characteristic Settings Dialog -->
+    <string name="characteristic_settings">Characteristic Settings</string>
+    <string name="alias">Alias</string>
+    <string name="parser">Parser</string>
+    <string name="template_label">Template (e.g. Value is {val1})</string>
+    <string name="fields">Fields</string>
+    <string name="add_field">Add Field</string>
+    <string name="edit_field">Edit Field</string>
+    <string name="field_name">Field Name</string>
+    <string name="length">Length</string>
+    <string name="type">Type</string>
+    <string name="endianness">Endianness</string>
+    <string name="offset_label">Offset: %1$d, Type: %2$s, Len: %3$d</string>
+
+    <!-- Log Screen -->
+    <string name="log_level_verbose">Verbose</string>
+    <string name="log_level_debug">Debug</string>
+    <string name="log_level_info">Info</string>
+    <string name="log_level_warn">Warn</string>
+    <string name="log_level_error">Error</string>
+    <string name="system_initializing">System: Initializing...</string>
+    <string name="system_starting_collection">System: Starting log collection for PID %1$d...</string>
+    <string name="system_error">System Error: %1$s</string>
+    <string name="system_logs_cleared">System: Logs cleared</string>
+    <string name="filter">Filter</string>
+    <string name="clear_logs">Clear Logs</string>
+
+    <!-- Permissions Rationale -->
+    <string name="permission_rationale_title">Bluetooth Permissions Required</string>
+    <string name="permission_rationale_message">This app needs Bluetooth permissions to scan for and connect to nearby devices. Please grant these permissions to continue.</string>
+</resources>

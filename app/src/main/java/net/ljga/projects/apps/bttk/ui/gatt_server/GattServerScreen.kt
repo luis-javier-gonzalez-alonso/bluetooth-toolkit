@@ -60,6 +60,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.R
 import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.utils.prettyCharacteristicName
@@ -142,25 +144,25 @@ fun GattServerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("GATT Server") },
+                title = { Text(stringResource(R.string.gatt_server)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showProfileSelection = true }) {
-                        Icon(Icons.Default.List, contentDescription = "Profiles")
+                        Icon(Icons.Default.List, contentDescription = stringResource(R.string.profiles))
                     }
                     if (!state.isGattServerRunning) {
                         IconButton(onClick = { showClearConfirmation = true }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear Server")
+                            Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.clear_server))
                         }
                     }
                     IconButton(onClick = { viewModel.toggleGattServer() }) {
                         Icon(
                             imageVector = if (state.isGattServerRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
-                            contentDescription = if (state.isGattServerRunning) "Stop Server" else "Start Server",
+                            contentDescription = if (state.isGattServerRunning) stringResource(R.string.stop_server) else stringResource(R.string.start_server),
                             tint = if (state.isGattServerRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                         )
                     }
@@ -180,7 +182,7 @@ fun GattServerScreen(
             ) {
                 val currentProfile = state.availableGattServers.find { it.id == state.currentGattServerId }
                 Text(
-                    text = "Profile: ${currentProfile?.name ?: "No profile selected"}",
+                    text = stringResource(R.string.profile_label, currentProfile?.name ?: stringResource(R.string.no_profile_selected)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -189,8 +191,9 @@ fun GattServerScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    val statusText = if (state.isGattServerRunning) stringResource(R.string.running) else stringResource(R.string.stopped)
                     Text(
-                        text = "Server Status: ${if (state.isGattServerRunning) "RUNNING" else "STOPPED"}",
+                        text = stringResource(R.string.server_status_label, statusText),
                         style = MaterialTheme.typography.titleMedium,
                         color = if (state.isGattServerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                         modifier = Modifier.weight(1f)
@@ -206,11 +209,11 @@ fun GattServerScreen(
                 OutlinedTextField(
                     value = state.gattServerDeviceName,
                     onValueChange = { viewModel.setGattServerDeviceName(it) },
-                    label = { Text("Advertising Name") },
+                    label = { Text(stringResource(R.string.advertising_name)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !state.isGattServerRunning,
-                    placeholder = { Text("Device Name") }
+                    placeholder = { Text(stringResource(R.string.device_name_placeholder)) }
                 )
             }
 
@@ -266,10 +269,10 @@ fun GattServerScreen(
             } else {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No GATT Server profile selected")
+                        Text(stringResource(R.string.no_gatt_profile_selected))
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { showProfileSelection = true }) {
-                            Text("Select or Create Profile")
+                            Text(stringResource(R.string.select_or_create_profile))
                         }
                     }
                 }
@@ -280,16 +283,16 @@ fun GattServerScreen(
     if (showProfileSelection) {
         AlertDialog(
             onDismissRequest = { showProfileSelection = false },
-            title = { Text("GATT Server Profiles") },
+            title = { Text(stringResource(R.string.gatt_server_profiles)) },
             text = {
                 LazyColumn {
                     items(state.availableGattServers) { server ->
                         ListItem(
                             headlineContent = { Text(server.name) },
-                            supportingContent = { Text("${server.services.size} services") },
+                            supportingContent = { Text(stringResource(R.string.services_count, server.services.size)) },
                             trailingContent = {
                                 IconButton(onClick = { viewModel.deleteGattServerProfile(server.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                                 }
                             },
                             modifier = Modifier.clickable {
@@ -308,14 +311,14 @@ fun GattServerScreen(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Create New Profile")
+                            Text(stringResource(R.string.create_new_profile))
                         }
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showProfileSelection = false }) {
-                    Text("Close")
+                    Text(stringResource(R.string.close))
                 }
             }
         )
@@ -325,12 +328,12 @@ fun GattServerScreen(
         var profileName by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showCreateProfileDialog = false },
-            title = { Text("New GATT Profile") },
+            title = { Text(stringResource(R.string.new_gatt_profile)) },
             text = {
                 OutlinedTextField(
                     value = profileName,
                     onValueChange = { profileName = it },
-                    label = { Text("Profile Name") },
+                    label = { Text(stringResource(R.string.profile_name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
             },
@@ -342,12 +345,12 @@ fun GattServerScreen(
                     },
                     enabled = profileName.isNotBlank()
                 ) {
-                    Text("Create")
+                    Text(stringResource(R.string.create))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCreateProfileDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -356,8 +359,8 @@ fun GattServerScreen(
     if (showClearConfirmation) {
         AlertDialog(
             onDismissRequest = { showClearConfirmation = false },
-            title = { Text("Clear GATT Server") },
-            text = { Text("Are you sure you want to delete all services and reset all indices? This action cannot be undone.") },
+            title = { Text(stringResource(R.string.clear_gatt_server)) },
+            text = { Text(stringResource(R.string.clear_gatt_server_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -366,12 +369,12 @@ fun GattServerScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Clear All")
+                    Text(stringResource(R.string.clear_all))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirmation = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -405,7 +408,7 @@ fun AddCharacteristicDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Characteristic") },
+        title = { Text(stringResource(R.string.add_characteristic)) },
         text = {
             Column(
                 modifier = Modifier
@@ -420,7 +423,7 @@ fun AddCharacteristicDialog(
                             uuidInput = hexOnly
                         }
                     },
-                    label = { Text("Characteristic UUID (Hex)") },
+                    label = { Text(stringResource(R.string.characteristic_uuid_hex)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     visualTransformation = UuidVisualTransformation()
@@ -434,7 +437,7 @@ fun AddCharacteristicDialog(
                         val hexOnly = input.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' || it.uppercaseChar() in 'A'..'F' }
                         initialValueInput = hexOnly
                     },
-                    label = { Text("Initial Value (Hex)") },
+                    label = { Text(stringResource(R.string.initial_value_hex)) },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("e.g. DEADBEEF") },
                     singleLine = true,
@@ -445,7 +448,7 @@ fun AddCharacteristicDialog(
                 val data = remember(initialValueInput) { parseHexNoSpaces(initialValueInput) }
                 if (data.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Preview (ASCII):", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.preview_ascii), style = MaterialTheme.typography.labelSmall)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -464,7 +467,7 @@ fun AddCharacteristicDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Properties", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.properties), style = MaterialTheme.typography.titleSmall)
                 properties.forEach { property ->
                     Row(
                         modifier = Modifier
@@ -496,7 +499,7 @@ fun AddCharacteristicDialog(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Permissions", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.permissions), style = MaterialTheme.typography.titleSmall)
                 permissions.forEach { permission ->
                     Row(
                         modifier = Modifier
@@ -555,12 +558,12 @@ fun AddCharacteristicDialog(
                 },
                 enabled = uuidInput.length == 32 || uuidInput.length == 4 || uuidInput.length == 8
             ) {
-                Text("Add")
+                Text(stringResource(R.string.add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -585,7 +588,7 @@ fun EditingServerView(
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
         Text(
-            text = "Services",
+            text = stringResource(R.string.services),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
         )
@@ -603,7 +606,7 @@ fun EditingServerView(
                         onErrorChange(false)
                     }
                 },
-                label = { Text("Service UUID (Hex)") },
+                label = { Text(stringResource(R.string.service_uuid_hex)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 isError = isError,
@@ -615,7 +618,7 @@ fun EditingServerView(
             )
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onAddService) {
-                Icon(Icons.Default.Add, contentDescription = "Add Service")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_service))
             }
         }
 
@@ -648,7 +651,7 @@ fun RunningServerView(state: GattServerUiState) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Active Services", fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.active_services), fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
@@ -674,7 +677,7 @@ fun RunningServerView(state: GattServerUiState) {
         }
 
         Text(
-            text = "Data Log",
+            text = stringResource(R.string.data_log),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             style = MaterialTheme.typography.titleSmall
         )
@@ -710,13 +713,13 @@ fun GattServiceItem(
                     Text(text = service.uuid, style = MaterialTheme.typography.bodyMedium)
                 }
                 IconButton(onClick = onDeleteService) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete Service", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_service), tint = MaterialTheme.colorScheme.error)
                 }
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            Text(text = "Characteristics", style = MaterialTheme.typography.titleSmall)
+            Text(text = stringResource(R.string.characteristics), style = MaterialTheme.typography.titleSmall)
 
             service.characteristics.forEach { characteristic ->
                 GattCharacteristicItem(
@@ -734,7 +737,7 @@ fun GattServiceItem(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add Characteristic")
+                Text(stringResource(R.string.add_characteristic))
             }
         }
     }
@@ -764,7 +767,7 @@ fun GattCharacteristicItem(
             )
             characteristic.initialValue?.let {
                 Text(
-                    text = "Initial Value: $it",
+                    text = stringResource(R.string.initial_value_preview, it),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -773,7 +776,7 @@ fun GattCharacteristicItem(
         IconButton(onClick = onDelete) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Remove Characteristic",
+                contentDescription = stringResource(R.string.remove_characteristic),
                 tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                 modifier = Modifier.padding(4.dp)
             )

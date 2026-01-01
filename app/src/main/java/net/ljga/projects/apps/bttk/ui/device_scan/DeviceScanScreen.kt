@@ -61,10 +61,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import net.ljga.projects.apps.bttk.R
 import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -82,6 +84,7 @@ fun DeviceScanScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var expanded by remember { mutableStateOf(false) }
+    var showPermissionRationale by remember { mutableStateOf(false) }
 
     val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -102,11 +105,34 @@ fun DeviceScanScreen(
         val allGranted = perms.values.all { it }
         if (allGranted) {
             viewModel.startScan()
+        } else {
+            showPermissionRationale = true
         }
     }
 
     if (expanded) {
         BackHandler { expanded = false }
+    }
+
+    if (showPermissionRationale) {
+        AlertDialog(
+            onDismissRequest = { showPermissionRationale = false },
+            title = { Text(stringResource(R.string.permission_rationale_title)) },
+            text = { Text(stringResource(R.string.permission_rationale_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPermissionRationale = false
+                    permissionLauncher.launch(permissions)
+                }) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionRationale = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     SharedTransitionLayout {
@@ -202,7 +228,7 @@ fun DeviceScanScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Menu, contentDescription = "Actions")
+                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.actions))
                             }
                         }
                     } else {
@@ -237,7 +263,7 @@ fun DeviceScanScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "GATT Server",
+                                            stringResource(R.string.gatt_server),
                                             fontSize = 17.sp,
                                             modifier = Modifier.fillMaxWidth(),
                                             textAlign = TextAlign.Center
@@ -255,7 +281,7 @@ fun DeviceScanScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "Settings",
+                                            stringResource(R.string.settings),
                                             fontSize = 17.sp,
                                             modifier = Modifier.fillMaxWidth(),
                                             textAlign = TextAlign.Center
@@ -273,7 +299,7 @@ fun DeviceScanScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "System Logs",
+                                            stringResource(R.string.system_logs),
                                             fontSize = 17.sp,
                                             modifier = Modifier.fillMaxWidth(),
                                             textAlign = TextAlign.Center
@@ -291,7 +317,7 @@ fun DeviceScanScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "About",
+                                            stringResource(R.string.about),
                                             fontSize = 17.sp,
                                             modifier = Modifier.fillMaxWidth(),
                                             textAlign = TextAlign.Center
@@ -332,7 +358,7 @@ fun BluetoothDeviceList(
     ) {
         item {
             Text(
-                text = " \u2304 Pull down to scan \u2304",
+                text = stringResource(R.string.pull_down_to_scan),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier
@@ -344,7 +370,7 @@ fun BluetoothDeviceList(
 
         item {
             Text(
-                text = "Saved Devices",
+                text = stringResource(R.string.saved_devices),
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 modifier = Modifier.padding(16.dp)
@@ -353,7 +379,7 @@ fun BluetoothDeviceList(
         if (savedDevices.isEmpty()) {
             item {
                 Text(
-                    text = "No saved devices found",
+                    text = stringResource(R.string.no_saved_devices),
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -372,7 +398,7 @@ fun BluetoothDeviceList(
 
         item {
             Text(
-                text = "Scanned Devices",
+                text = stringResource(R.string.scanned_devices),
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 modifier = Modifier.padding(16.dp)
@@ -381,7 +407,7 @@ fun BluetoothDeviceList(
         if (scannedDevices.isEmpty()) {
             item {
                 Text(
-                    text = "No scanned devices found",
+                    text = stringResource(R.string.no_scanned_devices),
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -417,8 +443,8 @@ fun BluetoothDeviceItem(
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text(text = "Forget Device") },
-            text = { Text(text = "Are you sure you want to forget ${device.name ?: device.address}?") },
+            title = { Text(text = stringResource(R.string.forget_device_title)) },
+            text = { Text(text = stringResource(R.string.forget_device_message, device.name ?: device.address)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -426,12 +452,12 @@ fun BluetoothDeviceItem(
                         showConfirmDialog = false
                     }
                 ) {
-                    Text("Confirm")
+                    Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -454,7 +480,7 @@ fun BluetoothDeviceItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = device.name ?: "Unknown Device",
+                    text = device.name ?: stringResource(R.string.unknown_device),
                     fontWeight = FontWeight.Medium,
                     color = contentColor
                 )
@@ -465,7 +491,7 @@ fun BluetoothDeviceItem(
                 )
                 if (isSaved && !device.isInRange) {
                     Text(
-                        text = "Out of range",
+                        text = stringResource(R.string.out_of_range),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
                     )
@@ -485,7 +511,7 @@ fun BluetoothDeviceItem(
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Options",
+                        contentDescription = stringResource(R.string.options),
                         tint = contentColor
                     )
                 }
@@ -494,7 +520,7 @@ fun BluetoothDeviceItem(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Details") },
+                        text = { Text(stringResource(R.string.details)) },
                         onClick = {
                             onDetailsClick(device)
                             showMenu = false
@@ -502,7 +528,7 @@ fun BluetoothDeviceItem(
                     )
                     onCheckReachability?.let {
                         DropdownMenuItem(
-                            text = { Text("Check Status") },
+                            text = { Text(stringResource(R.string.check_status)) },
                             onClick = {
                                 it()
                                 showMenu = false
@@ -511,7 +537,7 @@ fun BluetoothDeviceItem(
                     }
                     onSave?.let {
                         DropdownMenuItem(
-                            text = { Text("Save") },
+                            text = { Text(stringResource(R.string.save)) },
                             onClick = {
                                 it()
                                 showMenu = false
@@ -520,7 +546,7 @@ fun BluetoothDeviceItem(
                     }
                     onForget?.let {
                         DropdownMenuItem(
-                            text = { Text("Forget") },
+                            text = { Text(stringResource(R.string.forget)) },
                             onClick = {
                                 showConfirmDialog = true
                                 showMenu = false
