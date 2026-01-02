@@ -22,11 +22,14 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
+import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
 import net.ljga.projects.apps.bttk.domain.utils.DeviceFoundReceiver
 import javax.inject.Inject
+import javax.inject.Singleton
 
 private const val TAG = "DeviceScanController"
 
+@Singleton
 class DeviceScanController @Inject constructor(
     private val context: Context
 ) {
@@ -41,6 +44,10 @@ class DeviceScanController @Inject constructor(
     private val _scannedDevices = MutableStateFlow<List<BluetoothDeviceDomain>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDeviceDomain>>
         get() = _scannedDevices.asStateFlow()
+
+    private val _discoveredServices = MutableStateFlow<Map<String, List<BluetoothServiceDomain>>>(emptyMap())
+    val discoveredServices: StateFlow<Map<String, List<BluetoothServiceDomain>>>
+        get() = _discoveredServices.asStateFlow()
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean>
@@ -57,9 +64,14 @@ class DeviceScanController @Inject constructor(
 
         _scannedDevices.update { devices ->
             if (devices.any { it.address == newDevice.address }) {
-                devices.map { if (it.address == newDevice.address) newDevice else it }
+                devices.map { 
+                    if (it.address == newDevice.address) {
+                        // Maintain services from session memory if they exist
+                        newDevice.copy(services = _discoveredServices.value[it.address] ?: it.services)
+                    } else it 
+                }
             } else {
-                devices + newDevice
+                devices + newDevice.copy(services = _discoveredServices.value[newDevice.address] ?: emptyList())
             }
         }
     }
@@ -100,6 +112,7 @@ class DeviceScanController @Inject constructor(
         }
 
         _scannedDevices.value = emptyList()
+        _discoveredServices.value = emptyMap() // Clear session memory on next scan as requested
 
         registerReceiver()
         val started = bluetoothAdapter?.startDiscovery() == true
@@ -126,6 +139,15 @@ class DeviceScanController @Inject constructor(
         }
         registerReceiver()
         bluetoothAdapter?.getRemoteDevice(address)?.fetchUuidsWithSdp()
+    }
+
+    fun updateDeviceServices(address: String, services: List<BluetoothServiceDomain>) {
+        _discoveredServices.update { it + (address to services) }
+        _scannedDevices.update { devices ->
+            devices.map { 
+                if (it.address == address) it.copy(services = services) else it
+            }
+        }
     }
 
     private fun registerReceiver() {

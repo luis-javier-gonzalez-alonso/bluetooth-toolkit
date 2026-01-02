@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import net.ljga.projects.apps.bttk.domain.device_connection.DeviceConnectionController
 import net.ljga.projects.apps.bttk.domain.device_scan.DeviceScanController
 import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
@@ -23,6 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DeviceScanViewModel @Inject constructor(
     private val deviceScanController: DeviceScanController,
+    private val deviceConnectionController: DeviceConnectionController,
     private val bluetoothDeviceRepository: BluetoothDeviceRepository,
     private val gattCharacteristicSettingsRepository: GattCharacteristicSettingsRepository,
     @ApplicationContext private val context: Context
@@ -40,8 +42,9 @@ class DeviceScanViewModel @Inject constructor(
     val state = combine(
         devicesFlow,
         gattCharacteristicSettingsRepository.allSettings,
+        deviceConnectionController.connections,
         _state
-    ) { (scannedDevices, savedDevices), gattCharacteristicSettings, state ->
+    ) { (scannedDevices, savedDevices), gattCharacteristicSettings, connections, state ->
 
         val aliases = gattCharacteristicSettings.associate { "${it.serviceUuid}-${it.characteristicUuid}" to it.alias }
 
@@ -79,7 +82,8 @@ class DeviceScanViewModel @Inject constructor(
             scannedDevices = filteredScannedDevices,
             savedDevices = updatedSaved,
             selectedDevice = selectedDevice,
-            gattAliases = aliases
+            gattAliases = aliases,
+            connectedAddresses = connections.keys
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ServiceScanUiState())
 
@@ -131,6 +135,7 @@ class DeviceScanViewModel @Inject constructor(
 data class ServiceScanUiState(
     val scannedDevices: List<BluetoothDeviceDomain> = emptyList(),
     val savedDevices: List<BluetoothDeviceDomain> = emptyList(),
+    val connectedAddresses: Set<String> = emptySet(),
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
     val isRefreshing: Boolean = false,

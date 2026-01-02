@@ -21,7 +21,9 @@ import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothScrip
 import net.ljga.projects.apps.bttk.domain.device_connection.model.GattCharacteristicSettingsDomain
 import net.ljga.projects.apps.bttk.domain.device_connection.model.ScriptOperationTypeDomain
 import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ReadGattCharacteristicRequest
+import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ToggleNotificationRequest
 import net.ljga.projects.apps.bttk.domain.device_connection.model.process.WriteGattCharacteristicRequest
+import net.ljga.projects.apps.bttk.domain.device_scan.DeviceScanController
 import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.CharacteristicParserConfigDomain
@@ -36,6 +38,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ConnectionViewModel @Inject constructor(
     private val deviceConnectionController: DeviceConnectionController,
+    private val deviceScanController: DeviceScanController,
     private val bluetoothDeviceRepository: BluetoothDeviceRepository,
     private val dataFrameRepository: DataFrameRepository,
     private val gattCharacteristicSettingsRepository: GattCharacteristicSettingsRepository,
@@ -48,19 +51,28 @@ class ConnectionViewModel @Inject constructor(
     ) { logs, connections ->
         Pair(logs, connections)
     }
+    val devicesFlow = combine(
+        bluetoothDeviceRepository.savedDevices,
+        deviceScanController.scannedDevices,
+    ) { savedDevices, scannedDevices ->
+        Pair(savedDevices, scannedDevices)
+    }
 
     private val _state = MutableStateFlow(ConnectionUiState())
     val state = combine(
         gattCharacteristicSettingsRepository.allSettings,
         dataFrameRepository.dataFrames,
         connectionFlow,
-        bluetoothDeviceRepository.savedDevices,
+        devicesFlow,
         _state
-    ) { allSettings, dataFrames, (connectionLogs, connections), savedDevices, state ->
+    ) { allSettings, dataFrames, (connectionLogs, connections), (savedDevices, scannedDevices), state ->
 
         val address = state.selectedDevice?.address ?: return@combine state
 
-        val currentDevice = savedDevices.find { it.address == address } ?: state.selectedDevice
+        val currentDevice = savedDevices.find { it.address == address } 
+            ?: scannedDevices.find { it.address == address }
+            ?: state.selectedDevice
+
         val isConnected = connections.containsKey(address)
 
         val settingsMap = allSettings.associateBy { "${it.serviceUuid}-${it.characteristicUuid}" }
@@ -214,6 +226,8 @@ class ConnectionViewModel @Inject constructor(
     }
 
     fun toggleNotification(serviceUuid: String, characteristicUuid: String, enable: Boolean) {
+        val address = state.value.selectedDevice?.address ?: return
+        
         _state.update { currentState ->
             val key = "$serviceUuid-$characteristicUuid"
             val newEnabledNotifications = if (enable) {
@@ -223,8 +237,11 @@ class ConnectionViewModel @Inject constructor(
             }
             currentState.copy(enabledNotifications = newEnabledNotifications)
         }
-        // TODO: Implement notification toggle
-//        connectionController.toggleNotification(serviceUuid, characteristicUuid, enable)
+        
+        deviceConnectionController.process(
+            address,
+            ToggleNotificationRequest(serviceUuid, characteristicUuid, enable)
+        )
     }
 
     fun saveAlias(serviceUuid: String, characteristicUuid: String, alias: String) {

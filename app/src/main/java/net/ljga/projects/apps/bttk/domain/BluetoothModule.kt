@@ -20,9 +20,12 @@ object BluetoothModule {
     @Singleton
     fun provideConnectionController(
         @ApplicationContext context: Context,
-        bluetoothDeviceRepository: BluetoothDeviceRepository
+        bluetoothDeviceRepository: BluetoothDeviceRepository,
+        deviceScanController: DeviceScanController
     ): DeviceConnectionController {
-        return DeviceConnectionController(context, bluetoothDeviceRepository)
+        return DeviceConnectionController(
+            context, bluetoothDeviceRepository, deviceScanController
+        )
     }
 
     @Provides

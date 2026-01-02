@@ -22,12 +22,16 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -155,6 +159,7 @@ fun DeviceScanScreen(
                     BluetoothDeviceList(
                         savedDevices = state.savedDevices,
                         scannedDevices = state.scannedDevices,
+                        connectedAddresses = state.connectedAddresses,
                         onClick = onDeviceClick,
                         onDetailsClick = onDetailsClick,
                         onSave = viewModel::saveDevice,
@@ -345,6 +350,7 @@ fun DeviceScanScreen(
 fun BluetoothDeviceList(
     savedDevices: List<BluetoothDeviceDomain>,
     scannedDevices: List<BluetoothDeviceDomain>,
+    connectedAddresses: Set<String>,
     onClick: (BluetoothDeviceDomain) -> Unit,
     onDetailsClick: (BluetoothDeviceDomain) -> Unit,
     onSave: (BluetoothDeviceDomain) -> Unit,
@@ -392,7 +398,8 @@ fun BluetoothDeviceList(
                 onDetailsClick = onDetailsClick,
                 onForget = { onForgetSaved(device) },
                 onCheckReachability = { onCheckReachability(device) },
-                isSaved = true
+                isSaved = true,
+                isConnected = connectedAddresses.contains(device.address)
             )
         }
 
@@ -418,7 +425,8 @@ fun BluetoothDeviceList(
                 device = device,
                 onClick = onClick,
                 onDetailsClick = onDetailsClick,
-                onSave = { onSave(device) }
+                onSave = { onSave(device) },
+                isConnected = connectedAddresses.contains(device.address)
             )
         }
     }
@@ -432,7 +440,8 @@ fun BluetoothDeviceItem(
     onForget: (() -> Unit)? = null,
     onSave: (() -> Unit)? = null,
     onCheckReachability: (() -> Unit)? = null,
-    isSaved: Boolean = false
+    isSaved: Boolean = false,
+    isConnected: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -474,84 +483,99 @@ fun BluetoothDeviceItem(
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = device.name ?: stringResource(R.string.unknown_device),
-                    fontWeight = FontWeight.Medium,
-                    color = contentColor
-                )
-                Text(
-                    text = device.address,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = contentColor
-                )
-                if (isSaved && !device.isInRange) {
+            // Connection Indicator Bar
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(if (isConnected) Color.Green else Color.Transparent)
+            )
+
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.out_of_range),
+                        text = device.name ?: stringResource(R.string.unknown_device),
+                        fontWeight = FontWeight.Medium,
+                        color = contentColor
+                    )
+                    Text(
+                        text = device.address,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = contentColor
+                    )
+                    if (isSaved && !device.isInRange) {
+                        Text(
+                            text = stringResource(R.string.out_of_range),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+                
+                if (device.rssi != null) {
+                    Text(
+                        text = "${device.rssi} dBm",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+                        color = contentColor,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }
-            }
-            
-            if (device.rssi != null) {
-                Text(
-                    text = "${device.rssi} dBm",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = contentColor,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-            }
-            
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.options),
-                        tint = contentColor
-                    )
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.details)) },
-                        onClick = {
-                            onDetailsClick(device)
-                            showMenu = false
+                
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.options),
+                            tint = contentColor
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.details)) },
+                            onClick = {
+                                onDetailsClick(device)
+                                showMenu = false
+                            }
+                        )
+                        onCheckReachability?.let {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.check_status)) },
+                                onClick = {
+                                    it()
+                                    showMenu = false
+                                }
+                            )
                         }
-                    )
-                    onCheckReachability?.let {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.check_status)) },
-                            onClick = {
-                                it()
-                                showMenu = false
-                            }
-                        )
-                    }
-                    onSave?.let {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.save)) },
-                            onClick = {
-                                it()
-                                showMenu = false
-                            }
-                        )
-                    }
-                    onForget?.let {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.forget)) },
-                            onClick = {
-                                showConfirmDialog = true
-                                showMenu = false
-                            }
-                        )
+                        onSave?.let {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.save)) },
+                                onClick = {
+                                    it()
+                                    showMenu = false
+                                }
+                            )
+                        }
+                        onForget?.let {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.forget)) },
+                                onClick = {
+                                    showConfirmDialog = true
+                                    showMenu = false
+                                }
+                            )
+                        }
                     }
                 }
             }

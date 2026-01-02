@@ -24,18 +24,22 @@ import net.ljga.projects.apps.bttk.domain.device_connection.model.process.Proces
 import net.ljga.projects.apps.bttk.domain.device_connection.strategy.BluetoothConnection
 import net.ljga.projects.apps.bttk.domain.device_connection.strategy.GattBluetoothConnection
 import net.ljga.projects.apps.bttk.domain.device_connection.strategy.SppBluetoothConnection
+import net.ljga.projects.apps.bttk.domain.device_scan.DeviceScanController
 import net.ljga.projects.apps.bttk.domain.device_scan.model.BluetoothDeviceDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.DataFormat
 import net.ljga.projects.apps.bttk.domain.repository.BluetoothDeviceRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
 private const val TAG = "DeviceConnectionController"
 
+//@Singleton
 @SuppressLint("MissingPermission")
 class DeviceConnectionController @Inject constructor(
     private val context: Context,
-    private val bluetoothDeviceRepository: BluetoothDeviceRepository
+    private val bluetoothDeviceRepository: BluetoothDeviceRepository,
+    private val deviceScanController: DeviceScanController
 ) {
 
     private val bluetoothManager by lazy {
@@ -146,8 +150,12 @@ class DeviceConnectionController @Inject constructor(
     }
 
     fun logBluetoothData(address: String, packet: BluetoothDataPacket) {
-        if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null && packet.source != null) {
-            Log.d(TAG, "Updating services in repository for $address")
+        if (packet.format == DataFormat.GATT_STRUCTURE && packet.gattServices != null) {
+            Log.d(TAG, "Updating services for $address")
+            // Update in-memory scanned devices for details view
+            deviceScanController.updateDeviceServices(address, packet.gattServices)
+            
+            // Only update repository if the device is already saved
             scope.launch {
                 bluetoothDeviceRepository.updateServices(address, packet.gattServices)
             }
