@@ -1,21 +1,27 @@
 package net.ljga.projects.apps.bttk.domain.device_connection.strategy
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.GlobalScope
 import net.ljga.projects.apps.bttk.domain.device_connection.model.BluetoothConnectionType
 import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ProcessRequest
 import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ReadGattCharacteristicRequest
 import net.ljga.projects.apps.bttk.domain.device_connection.model.process.WriteGattCharacteristicRequest
+import net.ljga.projects.apps.bttk.domain.device_connection.model.process.ToggleNotificationRequest
 import net.ljga.projects.apps.bttk.domain.model.BluetoothCharacteristicDomain
 import net.ljga.projects.apps.bttk.domain.model.BluetoothDataPacket
 import net.ljga.projects.apps.bttk.domain.model.BluetoothServiceDomain
@@ -26,6 +32,7 @@ import java.util.UUID
 
 private const val TAG = "GattConnection"
 
+@SuppressLint("MissingPermission")
 class GattBluetoothConnection(
     private val bluetoothAdapter: BluetoothAdapter,
     private val context: Context
@@ -34,19 +41,26 @@ class GattBluetoothConnection(
 
     private val cccd: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
     private var bluetoothGatt: BluetoothGatt? = null
+    private var isManualDisconnect = false
 
     override suspend fun connect(address: String): Flow<BluetoothDataPacket> = callbackFlow {
         Log.i(TAG, "Initiating GATT connection to $address")
         val device = bluetoothAdapter.getRemoteDevice(address)
         var retryCount = 0
-        val maxRetries = 10
+        val maxRetries = 5
+        isManualDisconnect = false
 
         val gattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                val statusDescription = getGattStatusDescription(status)
+                
                 if (status != BluetoothGatt.GATT_SUCCESS) {
-                    if (retryCount < maxRetries) {
+                    Log.e(TAG, "GATT Error: status=$status ($statusDescription), newState=$newState")
+                    
+                    if (!isManualDisconnect && retryCount < maxRetries) {
                         retryCount++
-                        val retryMsg = "Connection error (status $status). Retrying... ($retryCount/$maxRetries)"
+                        val backoffMillis = retryCount * 1000L
+                        val retryMsg = "Connection error: $statusDescription. Retrying in ${backoffMillis/1000}s... ($retryCount/$maxRetries)"
                         Log.w(TAG, retryMsg)
                         trySend(BluetoothDataPacket(
                             source = "System",
@@ -55,16 +69,20 @@ class GattBluetoothConnection(
                         ))
                         
                         gatt.close()
-
-                        val retryGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            device.connectGatt(context, false, this, BluetoothDevice.TRANSPORT_LE)
-                        } else {
-                            device.connectGatt(context, false, this)
+                        
+                        val callbackInstance = this
+                        @Suppress("OPT_IN_USAGE")
+                        GlobalScope.launch {
+                            delay(backoffMillis)
+                            if (!isManualDisconnect) {
+                                bluetoothGatt = connectGattCompat(device, callbackInstance)
+                            }
                         }
-                        bluetoothGatt = retryGatt
                         return
                     } else {
-                        Log.e(TAG, "Connection failed after $maxRetries retries. Status: $status")
+                        val failMsg = "Connection failed: $statusDescription after $retryCount retries."
+                        Log.e(TAG, failMsg)
+                        trySend(BluetoothDataPacket(source = "System", text = failMsg, format = DataFormat.STRUCTURED))
                     }
                 }
 
@@ -73,29 +91,37 @@ class GattBluetoothConnection(
                     retryCount = 0
                     trySend(BluetoothDataPacket(
                         source = "System",
-                        text = "Connected. Discovering services...",
+                        text = "Connected. Requesting MTU...",
                         format = DataFormat.STRUCTURED
                     ))
-                    gatt.discoverServices()
+                    gatt.requestMtu(517)
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    val statusMsg = if (status != BluetoothGatt.GATT_SUCCESS) {
-                        Log.w(TAG, "GATT Disconnected from ${device.address} with error status $status")
-                        "Disconnected (status $status)"
-                    } else {
-                        Log.i(TAG, "GATT Disconnected from ${device.address}")
-                        "Disconnected"
-                    }
+                    Log.i(TAG, "GATT Disconnected from ${device.address}")
                     trySend(BluetoothDataPacket(
                         source = "System",
-                        text = statusMsg,
+                        text = if (isManualDisconnect) "Disconnected by user" else "Disconnected (Status: $statusDescription)",
                         format = DataFormat.STRUCTURED
                     ))
                     gatt.close()
                     if (gatt == bluetoothGatt) {
                         bluetoothGatt = null
                     }
-                    close()
+                    if (!isManualDisconnect && status != BluetoothGatt.GATT_SUCCESS) {
+                        close()
+                    } else if (isManualDisconnect) {
+                        close()
+                    }
                 }
+            }
+
+            override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+                Log.i(TAG, "MTU changed to $mtu, status=$status")
+                trySend(BluetoothDataPacket(
+                    source = "System",
+                    text = "MTU updated to $mtu. Discovering services...",
+                    format = DataFormat.STRUCTURED
+                ))
+                gatt.discoverServices()
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
@@ -127,34 +153,57 @@ class GattBluetoothConnection(
                         )
                     )
                 } else {
-                    Log.e(TAG, "Service discovery failed for ${device.address} with status $status")
-                    trySend(BluetoothDataPacket(
-                        source = "System",
-                        text = "Service discovery failed (status $status)",
-                        format = DataFormat.STRUCTURED
-                    ))
+                    val errorMsg = "Service discovery failed (status: ${getGattStatusDescription(status)})"
+                    Log.e(TAG, errorMsg)
+                    trySend(BluetoothDataPacket(source = "System", text = errorMsg, format = DataFormat.STRUCTURED))
                 }
             }
 
             override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray, status: Int) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     Log.d(TAG, "Characteristic read: ${characteristic.uuid} (${value.size} bytes)")
-                    processData(characteristic, value)
+                    processData(characteristic, value, "Read")
                 } else {
-                    Log.w(TAG, "Failed to read characteristic ${characteristic.uuid}. Status: $status")
+                    val errorMsg = "Failed to read characteristic ${characteristic.uuid.prettyCharacteristicName()}. Status: $status"
+                    Log.w(TAG, errorMsg)
+                    trySend(BluetoothDataPacket(source = "System", text = errorMsg, format = DataFormat.STRUCTURED))
+                }
+            }
+
+            override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.v(TAG, "Characteristic write successful: ${characteristic.uuid}")
+                } else {
+                    val errorMsg = "Write failed for ${characteristic.uuid.prettyCharacteristicName()}. Status: $status"
+                    Log.w(TAG, errorMsg)
+                    trySend(BluetoothDataPacket(source = "System", text = errorMsg, format = DataFormat.STRUCTURED))
                 }
             }
 
             override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
                 Log.v(TAG, "Characteristic notification: ${characteristic.uuid} (${value.size} bytes)")
-                processData(characteristic, value)
+                processData(characteristic, value, "Notify")
             }
 
-            private fun processData(characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+            override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+                val action = if (descriptor.uuid == cccd) "Notifications" else "Descriptor Write"
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.i(TAG, "$action enabled for ${descriptor.characteristic.uuid}")
+                    trySend(BluetoothDataPacket(
+                        source = "System",
+                        text = "$action state updated for ${descriptor.characteristic.uuid.prettyCharacteristicName()}",
+                        format = DataFormat.STRUCTURED
+                    ))
+                } else {
+                    Log.e(TAG, "Failed to update $action. Status: $status")
+                }
+            }
+
+            private fun processData(characteristic: BluetoothGattCharacteristic, value: ByteArray, type: String) {
                 trySend(
                     BluetoothDataPacket(
                         data = value,
-                        source = "Read: ${characteristic.prettyName()}...",
+                        source = "$type: ${characteristic.prettyName()}...",
                         format = DataFormat.HEX_ASCII,
                         serviceUuid = characteristic.service.uuid.toString(),
                         characteristicUuid = characteristic.uuid.toString()
@@ -163,11 +212,7 @@ class GattBluetoothConnection(
             }
         }
 
-        bluetoothGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-        } else {
-            device.connectGatt(context, false, gattCallback)
-        }
+        bluetoothGatt = connectGattCompat(device, gattCallback)
 
         awaitClose {
             Log.d(TAG, "Closing GATT connection flow for $address")
@@ -175,38 +220,48 @@ class GattBluetoothConnection(
         }
     }
 
+    private fun connectGattCompat(device: BluetoothDevice, callback: BluetoothGattCallback): BluetoothGatt? {
+        // Since minSdk is 23 (Marshmallow), Build.VERSION_CODES.M is always true.
+        return device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
+    }
+
     override fun disconnect() {
-        Log.i(TAG, "Explicit disconnect requested")
+        Log.i(TAG, "Disconnecting from GATT")
+        isManualDisconnect = true
         bluetoothGatt?.disconnect()
         bluetoothGatt?.close()
         bluetoothGatt = null
     }
 
     override fun process(request: ProcessRequest): BluetoothDataPacket? {
-        if (request is ReadGattCharacteristicRequest) {
-            Log.d(TAG, "Processing ReadGattCharacteristicRequest for ${request.characteristicUuid}")
-            readCharacteristic(request.serviceUuid, request.characteristicUuid)
-            return null
-        } else if (request is WriteGattCharacteristicRequest) {
-            Log.d(TAG, "Processing WriteGattCharacteristicRequest for ${request.characteristicUuid} (${request.data.size} bytes)")
-            writeCharacteristic(request.serviceUuid, request.characteristicUuid, request.data)
-            return BluetoothDataPacket(
-                data = request.data,
-                source = "Write: ${request.characteristicUuid.prettyCharacteristicName()}...",
-                format = DataFormat.HEX_ASCII,
-                serviceUuid = request.serviceUuid,
-                characteristicUuid = request.characteristicUuid
-            )
+        when (request) {
+            is ReadGattCharacteristicRequest -> {
+                readCharacteristic(request.serviceUuid, request.characteristicUuid)
+            }
+            is WriteGattCharacteristicRequest -> {
+                writeCharacteristic(request.serviceUuid, request.characteristicUuid, request.data)
+                return BluetoothDataPacket(
+                    data = request.data,
+                    source = "Write: ${request.characteristicUuid.prettyCharacteristicName()}...",
+                    format = DataFormat.HEX_ASCII,
+                    serviceUuid = request.serviceUuid,
+                    characteristicUuid = request.characteristicUuid
+                )
+            }
+            is ToggleNotificationRequest -> {
+                toggleNotifications(request.serviceUuid, request.characteristicUuid, request.enable)
+            }
         }
         return null
     }
 
     private fun readCharacteristic(serviceUuid: String, characteristicUuid: String) {
-        val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
+        val gatt = bluetoothGatt ?: return
+        val service = gatt.getService(UUID.fromString(serviceUuid))
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
             Log.v(TAG, "Reading characteristic $characteristicUuid")
-            bluetoothGatt?.readCharacteristic(characteristic)
+            gatt.readCharacteristic(characteristic)
         } else {
             Log.w(TAG, "Characteristic $characteristicUuid not found for reading")
         }
@@ -217,12 +272,13 @@ class GattBluetoothConnection(
         characteristicUuid: String,
         data: ByteArray
     ) {
-        val service = bluetoothGatt?.getService(UUID.fromString(serviceUuid))
+        val gatt = bluetoothGatt ?: return
+        val service = gatt.getService(UUID.fromString(serviceUuid))
         val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
         if (characteristic != null) {
             Log.v(TAG, "Writing ${data.size} bytes to $characteristicUuid")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                bluetoothGatt?.writeCharacteristic(
+                gatt.writeCharacteristic(
                     characteristic,
                     data,
                     if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0) {
@@ -241,10 +297,61 @@ class GattBluetoothConnection(
                     BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
                 }
                 @Suppress("DEPRECATION")
-                bluetoothGatt?.writeCharacteristic(characteristic)
+                gatt.writeCharacteristic(characteristic)
             }
         } else {
             Log.w(TAG, "Characteristic $characteristicUuid not found for writing")
+        }
+    }
+
+    private fun toggleNotifications(serviceUuid: String, characteristicUuid: String, enable: Boolean) {
+        val gatt = bluetoothGatt ?: return
+        val service = gatt.getService(UUID.fromString(serviceUuid))
+        val characteristic = service?.getCharacteristic(UUID.fromString(characteristicUuid))
+        
+        if (characteristic != null) {
+            Log.i(TAG, "${if (enable) "Enabling" else "Disabling"} notifications for $characteristicUuid")
+            gatt.setCharacteristicNotification(characteristic, enable)
+            
+            val descriptor = characteristic.getDescriptor(cccd)
+            if (descriptor != null) {
+                val value = when {
+                    !enable -> BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+                    characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0 -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                    characteristic.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0 -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                    else -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                }
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gatt.writeDescriptor(descriptor, value)
+                } else {
+                    @Suppress("DEPRECATION")
+                    descriptor.value = value
+                    @Suppress("DEPRECATION")
+                    gatt.writeDescriptor(descriptor)
+                }
+            }
+        }
+    }
+
+    private fun getGattStatusDescription(status: Int): String {
+        return when (status) {
+            BluetoothGatt.GATT_SUCCESS -> "Success"
+            BluetoothGatt.GATT_READ_NOT_PERMITTED -> "Read Not Permitted"
+            BluetoothGatt.GATT_WRITE_NOT_PERMITTED -> "Write Not Permitted"
+            BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION -> "Insufficient Authentication"
+            BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED -> "Request Not Supported"
+            BluetoothGatt.GATT_INSUFFICIENT_ENCRYPTION -> "Insufficient Encryption"
+            BluetoothGatt.GATT_INVALID_OFFSET -> "Invalid Offset"
+            BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH -> "Invalid Attribute Length"
+            BluetoothGatt.GATT_CONNECTION_CONGESTED -> "Connection Congested"
+            BluetoothGatt.GATT_FAILURE -> "GATT Failure"
+            133 -> "GATT_ERROR (133)"
+            8 -> "GATT_INSUF_AUTHORIZATION (8)"
+            19 -> "GATT_CONN_TERMINATE_PEER_USER (19)"
+            22 -> "GATT_CONN_TERMINATE_LOCAL_HOST (22)"
+            62 -> "GATT_CONN_FAIL_ESTABLISH (62)"
+            else -> "Unknown Error ($status)"
         }
     }
 
